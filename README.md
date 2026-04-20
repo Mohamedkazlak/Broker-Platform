@@ -44,7 +44,7 @@ Here are previews of the platform to give you an idea of the polished UI and use
 1. **Clone the repository:**
 
    ```bash
-   git clone <https://github.com/Mohamedkazlak/Broker-Platform>
+   git clone https://github.com/Mohamedkazlak/Broker-Platform
    cd "Broker Platform Main"
    ```
 
