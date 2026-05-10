@@ -1,5 +1,5 @@
-import validator from 'validator';
-import { contactModel } from '../models/contactModel.js';
+import validator from "validator";
+import { contactModel } from "../models/contactModel.js";
 
 /**
  * POST /api/contact
@@ -12,16 +12,16 @@ export const create = async (req, res, next) => {
     // Validate required fields
     if (!name || !email || !subject || !message) {
       return res.status(400).json({
-        status: 'error',
-        error: 'Missing required fields: name, email, subject, message',
+        status: "error",
+        error: "Missing required fields: name, email, subject, message",
       });
     }
 
     // Validate email format
     if (!validator.isEmail(email)) {
       return res.status(400).json({
-        status: 'error',
-        error: 'Invalid email address',
+        status: "error",
+        error: "Invalid email address",
       });
     }
 
@@ -35,7 +35,7 @@ export const create = async (req, res, next) => {
     };
 
     const data = await contactModel.create(sanitized);
-    res.status(201).json({ status: 'success', data });
+    res.status(201).json({ status: "success", data });
   } catch (error) {
     next(error);
   }
@@ -47,8 +47,8 @@ export const create = async (req, res, next) => {
  */
 export const getAll = async (req, res, next) => {
   try {
-    const data = await contactModel.findAll();
-    res.json({ status: 'success', data });
+    const data = await contactModel.findAll(req.brokerId);
+    res.json({ status: "success", data });
   } catch (error) {
     next(error);
   }
@@ -60,8 +60,8 @@ export const getAll = async (req, res, next) => {
  */
 export const markAsRead = async (req, res, next) => {
   try {
-    const data = await contactModel.markAsRead(req.params.id);
-    res.json({ status: 'success', data });
+    const data = await contactModel.markAsRead(req.params.id, req.brokerId);
+    res.json({ status: "success", data });
   } catch (error) {
     next(error);
   }
@@ -73,8 +73,8 @@ export const markAsRead = async (req, res, next) => {
  */
 export const remove = async (req, res, next) => {
   try {
-    await contactModel.delete(req.params.id);
-    res.json({ status: 'success', message: 'Message deleted' });
+    await contactModel.delete(req.params.id, req.brokerId);
+    res.json({ status: "success", message: "Message deleted" });
   } catch (error) {
     next(error);
   }

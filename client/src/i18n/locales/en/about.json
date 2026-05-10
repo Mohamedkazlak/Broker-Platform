@@ -1,0 +1,44 @@
+{
+  "hero": {
+    "headlinePrefix": "About",
+    "subheadline": "Empowering real estate brokers with cutting-edge tools. We provide the platform you need to showcase properties and grow your business."
+  },
+  "story": {
+    "eyebrow": "Our Story",
+    "heading": "Empowering Brokers to Succeed Online",
+    "paragraph1": "Founded with a vision to revolutionize real estate technology, Broker Platform provides dedicated digital solutions designed specifically for property professionals.",
+    "paragraph2": "Our expert team brings together deep knowledge in software engineering and real estate market dynamics. We understand that establishing a strong online presence is crucial for modern brokerages to thrive.",
+    "paragraph3": "That's why we are committed to delivering an intuitive, reliable, and highly customizable platform that puts your brand front and center, helping you turn leads into lasting client relationships.",
+    "teamImageAlt": "Real estate team",
+    "yearsBadge": "Years of Excellence",
+    "yearsBadgeValue": "10+"
+  },
+  "values": {
+    "eyebrow": "Our Values",
+    "heading": "What Sets Us Apart",
+    "items": {
+      "trust": {
+        "title": "Trust & Reliability",
+        "description": "Secure, high-uptime infrastructure you can depend on daily."
+      },
+      "brokerFirst": {
+        "title": "Broker First",
+        "description": "Your growth is our priority. We continuously evolve to meet your needs."
+      },
+      "innovation": {
+        "title": "Innovation",
+        "description": "We deliver cutting-edge technology to keep you ahead of the competition."
+      },
+      "seamless": {
+        "title": "Seamless Experience",
+        "description": "An intuitive platform that saves you time and simplifies management."
+      }
+    }
+  },
+  "stats": {
+    "activeBrokers": "Active Brokers",
+    "propertiesListed": "Properties Listed",
+    "platformUptime": "Platform Uptime",
+    "dedicatedSupport": "Dedicated Support"
+  }
+}

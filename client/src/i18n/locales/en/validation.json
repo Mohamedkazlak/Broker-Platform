@@ -1,0 +1,29 @@
+{
+  "contact": {
+    "nameMin": "Name must be at least 2 characters",
+    "emailInvalid": "Please enter a valid email",
+    "subjectMin": "Subject must be at least 5 characters",
+    "messageMin": "Message must be at least 10 characters"
+  },
+  "auth": {
+    "emailInvalid": "Please enter a valid email address",
+    "passwordMin": "Password must be at least 6 characters",
+    "emailRequired": "Email is required",
+    "passwordRequired": "Password is required",
+    "confirmPasswordRequired": "Confirm Password is required",
+    "firstNameRequired": "First name is required",
+    "firstNameMin": "First name must be at least 2 characters",
+    "lastNameRequired": "Last name is required",
+    "lastNameMin": "Last name must be at least 2 characters",
+    "platformNameRequired": "Platform name is required",
+    "platformNameMin": "Platform name must be at least 3 characters",
+    "subdomainRequired": "Subdomain is required",
+    "subdomainMin": "Subdomain is at least 3 characters",
+    "subdomainFormat": "Subdomain can only contain lowercase letters, numbers, and hyphens",
+    "phoneRequired": "Phone number is required",
+    "phoneMin": "Please enter a valid phone number",
+    "whatsappRequired": "WhatsApp number is required",
+    "whatsappMin": "Please enter a valid WhatsApp number",
+    "passwordMismatch": "Passwords don't match"
+  }
+}

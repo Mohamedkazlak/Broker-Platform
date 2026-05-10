@@ -6,10 +6,13 @@ import { supabaseAdmin } from '../config/supabase.js';
  */
 
 export const contactModel = {
-  async findAll() {
+  async findAll(brokerId) {
     const { data, error } = await supabaseAdmin
       .from('contact_messages')
-      .select('*')
+      .select(
+        'id,broker_id,property_id,name,email,phone,subject,message,read,created_at',
+      )
+      .eq('broker_id', brokerId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -27,11 +30,12 @@ export const contactModel = {
     return data;
   },
 
-  async markAsRead(id) {
+  async markAsRead(id, brokerId) {
     const { data, error } = await supabaseAdmin
       .from('contact_messages')
       .update({ read: true })
       .eq('id', id)
+      .eq('broker_id', brokerId)
       .select()
       .single();
 
@@ -39,20 +43,22 @@ export const contactModel = {
     return data;
   },
 
-  async delete(id) {
+  async delete(id, brokerId) {
     const { error } = await supabaseAdmin
       .from('contact_messages')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('broker_id', brokerId);
 
     if (error) throw error;
   },
 
-  async countUnread() {
+  async countUnread(brokerId) {
     const { count, error } = await supabaseAdmin
       .from('contact_messages')
       .select('*', { count: 'exact', head: true })
-      .eq('read', false);
+      .eq('read', false)
+      .eq('broker_id', brokerId);
 
     if (error) throw error;
     return count;

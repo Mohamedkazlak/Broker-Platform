@@ -1,15 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  Home,
-  Building2,
-  Users,
-  LogOut,
-  Settings,
   Menu,
   ArrowLeft,
   Upload,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,18 +21,23 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBroker } from "@/contexts/BrokerContext";
 import { useToast } from "@/hooks/use-toast";
 import { propertyService } from "@/services/propertyService";
 import { supabase } from "@/integrations/supabase/client";
+import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import {
+  AMENITY_KEYS,
+  normalizeAmenityPersistedList,
+} from "@/utils/amenities";
 
 export default function DashboardAddProperty() {
   const { id: editId } = useParams();
   const isEdit = Boolean(editId);
-  const { user, profile, role, isLoading, signOut } = useAuth();
-  const { broker } = useBroker();
+  const { isLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { t } = useTranslation("dashboard");
+  const { t: tCommon } = useTranslation("common");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadingProperty, setLoadingProperty] = useState(isEdit);
@@ -44,7 +45,7 @@ export default function DashboardAddProperty() {
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
   const generatePropertyCode = () => {
-    return 'PR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    return "PR-" + Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
   const [form, setForm] = useState({
@@ -75,21 +76,6 @@ export default function DashboardAddProperty() {
     amenities: [] as string[],
   });
 
-  const amenitiesList = [
-    "Elevator",
-    "Parking",
-    "Balcony / Terrace",
-    "Central A/C",
-    "Natural Gas",
-    "Security / CCTV",
-    "Swimming Pool",
-    "Garden",
-    "Gym / Fitness Center",
-    "Laundry Room",
-    "Pet Friendly",
-    "Smart Home",
-  ];
-
   const handleChange = (field: string, value: string | boolean | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -112,7 +98,8 @@ export default function DashboardAddProperty() {
         const p = await propertyService.getById(editId);
         if (cancelled) return;
         setForm({
-          property_code: (p as { property_code?: string }).property_code ?? generatePropertyCode(),
+          property_code:
+            (p as { property_code?: string }).property_code ?? generatePropertyCode(),
           title: p.title,
           description: p.description ?? "",
           property_type: p.property_type,
@@ -121,63 +108,86 @@ export default function DashboardAddProperty() {
           location: p.location,
           city: p.city ?? "",
           country: p.country ?? "",
-          building_type: (p.building_type as "apartment" | "villa" | "commercial") ?? "apartment",
-          apartment_level: p.apartment_level != null ? String(p.apartment_level) : "",
+          building_type:
+            (p.building_type as "apartment" | "villa" | "commercial") ?? "apartment",
+          apartment_level:
+            p.apartment_level != null ? String(p.apartment_level) : "",
           villa_levels: p.villa_levels != null ? String(p.villa_levels) : "",
-          finishing: (p.finishing as "" | "economic" | "medium" | "luxury" | "ultra") ?? "",
-          contract_duration: (p as { contract_duration?: string }).contract_duration ?? "",
+          finishing:
+            (p.finishing as "" | "economic" | "medium" | "luxury" | "ultra") ?? "",
+          contract_duration:
+            (p as { contract_duration?: string }).contract_duration ?? "",
           price_negotiable: p.price_negotiable ?? false,
           bedrooms: p.bedrooms != null ? String(p.bedrooms) : "",
           bathrooms: p.bathrooms != null ? String(p.bathrooms) : "",
           area_sqft: p.area_sqft != null ? String(p.area_sqft) : "",
-          furnished: (p.furnished as "" | "furnished" | "unfurnished" | "semi-furnished") ?? "",
+          furnished:
+            (p.furnished as "" | "furnished" | "unfurnished" | "semi-furnished") ??
+            "",
           featured: p.featured ?? false,
           status: p.status ?? "active",
           image_url: p.image_url ?? "",
-          image_urls: Array.isArray((p as { image_urls?: string[] }).image_urls) ? (p as { image_urls?: string[] }).image_urls : [],
-          video_urls: Array.isArray((p as { video_urls?: string[] }).video_urls) ? (p as { video_urls?: string[] }).video_urls : [],
-          amenities: Array.isArray(p.amenities) ? p.amenities : [],
+          image_urls: Array.isArray((p as { image_urls?: string[] }).image_urls)
+            ? (p as { image_urls?: string[] }).image_urls!
+            : [],
+          video_urls: Array.isArray((p as { video_urls?: string[] }).video_urls)
+            ? (p as { video_urls?: string[] }).video_urls!
+            : [],
+          amenities: normalizeAmenityPersistedList(
+            Array.isArray(p.amenities) ? p.amenities : [],
+          ),
         });
       } catch {
-        if (!cancelled) toast({ title: "Failed to load property", variant: "destructive" });
+        if (!cancelled)
+          toast({
+            title: t("addProperty.toasts.loadFailed"),
+            variant: "destructive",
+          });
       } finally {
         if (!cancelled) setLoadingProperty(false);
       }
     })();
-    return () => { cancelled = true; };
-  }, [editId, isEdit, toast]);
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, isEdit, toast, t]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      const totalMediaCount = form.image_urls.length + form.video_urls.length + selectedFiles.length + newFiles.length;
-      
+      const totalMediaCount =
+        form.image_urls.length +
+        form.video_urls.length +
+        selectedFiles.length +
+        newFiles.length;
+
       if (totalMediaCount > 20) {
         toast({
-          title: "Too many media files",
-          description: "You can only upload up to 20 images and videos in total.",
-          variant: "destructive"
+          title: t("addProperty.toasts.tooManyTitle"),
+          description: t("addProperty.toasts.tooManyDescription"),
+          variant: "destructive",
         });
         return;
       }
 
-      // Check file size (e.g., 50MB limit)
-      const oversizedFiles = newFiles.filter(file => file.size > 50 * 1024 * 1024);
+      const oversizedFiles = newFiles.filter(
+        (file) => file.size > 50 * 1024 * 1024,
+      );
       if (oversizedFiles.length > 0) {
         toast({
-          title: "File too large",
-          description: "Each media file must be smaller than 50MB.",
-          variant: "destructive"
+          title: t("addProperty.toasts.fileTooLargeTitle"),
+          description: t("addProperty.toasts.fileTooLargeDescription"),
+          variant: "destructive",
         });
         return;
       }
 
-      setSelectedFiles(prev => [...prev, ...newFiles]);
+      setSelectedFiles((prev) => [...prev, ...newFiles]);
     }
   };
 
   const removeSelectedFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,8 +195,8 @@ export default function DashboardAddProperty() {
 
     if (!form.title || !form.price || !form.location || !form.property_type) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields.",
+        title: t("addProperty.toasts.missingFieldsTitle"),
+        description: t("addProperty.toasts.missingFieldsDescription"),
         variant: "destructive",
       });
       return;
@@ -199,26 +209,33 @@ export default function DashboardAddProperty() {
 
       if (selectedFiles.length > 0) {
         let uploadedCount = 0;
-        setUploadProgress(`Uploading media (0/${selectedFiles.length})...`);
-        
+        setUploadProgress(
+          t("addProperty.toasts.uploading", {
+            uploaded: 0,
+            total: selectedFiles.length,
+          }),
+        );
+
         for (const file of selectedFiles) {
-          const fileExt = file.name.split('.').pop();
-          const isVideo = file.type.startsWith('video/');
-          const prefix = isVideo ? 'vid' : 'img';
-          const fileName = `${form.property_code}-${prefix}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+          const fileExt = file.name.split(".").pop();
+          const isVideo = file.type.startsWith("video/");
+          const prefix = isVideo ? "vid" : "img";
+          const fileName = `${form.property_code}-${prefix}-${Math.random()
+            .toString(36)
+            .substring(2, 9)}.${fileExt}`;
           const filePath = `${fileName}`;
 
           const { error: uploadError } = await supabase.storage
-            .from('property-images')
+            .from("property-images")
             .upload(filePath, file);
 
           if (uploadError) {
-            console.error('Error uploading file:', uploadError);
+            console.error("Error uploading file:", uploadError);
             throw new Error(`Failed to upload ${file.name}`);
           }
 
           const { data } = supabase.storage
-            .from('property-images')
+            .from("property-images")
             .getPublicUrl(filePath);
 
           if (isVideo) {
@@ -226,9 +243,14 @@ export default function DashboardAddProperty() {
           } else {
             finalImageUrls.push(data.publicUrl);
           }
-          
+
           uploadedCount++;
-          setUploadProgress(`Uploading media (${uploadedCount}/${selectedFiles.length})...`);
+          setUploadProgress(
+            t("addProperty.toasts.uploading", {
+              uploaded: uploadedCount,
+              total: selectedFiles.length,
+            }),
+          );
         }
       }
       setUploadProgress(null);
@@ -258,20 +280,35 @@ export default function DashboardAddProperty() {
         image_url: form.image_url || (finalImageUrls[0] as string) || "",
         image_urls: finalImageUrls,
         video_urls: finalVideoUrls,
-        amenities: form.amenities,
+        amenities: normalizeAmenityPersistedList(form.amenities),
       };
       if (isEdit && editId) {
         await propertyService.update(editId, payload);
-        toast({ title: "Property updated", description: `"${form.title}" has been updated.` });
+        toast({
+          title: t("addProperty.toasts.updatedTitle"),
+          description: t("addProperty.toasts.updatedDescription", {
+            title: form.title,
+          }),
+        });
       } else {
         await propertyService.create(payload);
-        toast({ title: "Property added", description: `"${form.title}" has been created successfully.` });
+        toast({
+          title: t("addProperty.toasts.createdTitle"),
+          description: t("addProperty.toasts.createdDescription", {
+            title: form.title,
+          }),
+        });
       }
       navigate("/dashboard/properties");
     } catch (err) {
       toast({
-        title: isEdit ? "Failed to update property" : "Failed to add property",
-        description: err instanceof Error ? err.message : "Please try again.",
+        title: isEdit
+          ? t("addProperty.toasts.updateFailedTitle")
+          : t("addProperty.toasts.createFailedTitle"),
+        description:
+          err instanceof Error
+            ? err.message
+            : t("addProperty.toasts.genericDescription"),
         variant: "destructive",
       });
       setUploadProgress(null);
@@ -290,91 +327,7 @@ export default function DashboardAddProperty() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-      >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-            <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
-              <span className="text-sidebar-primary-foreground font-display font-bold text-lg">
-                M
-              </span>
-            </div>
-            <span className="font-display text-lg font-semibold text-sidebar-foreground">
-              {broker?.platform_name || "MyFlat"}
-            </span>
-          </div>
-
-          <nav className="flex-1 px-4 py-6 space-y-1">
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <Home className="w-5 h-5" />
-              Dashboard
-            </Link>
-            <Link
-              to="/dashboard/properties"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-            >
-              <Building2 className="w-5 h-5" />
-              Properties
-            </Link>
-            <Link
-              to="/dashboard/insights"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <Users className="w-5 h-5" />
-              Insights
-            </Link>
-            <Link
-              to="/dashboard/settings"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-              Settings
-            </Link>
-          </nav>
-
-          <div className="px-4 py-4 border-t border-sidebar-border">
-            <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center">
-                <span className="text-sidebar-accent-foreground font-medium">
-                  {profile?.full_name?.charAt(0) ||
-                    user?.email?.charAt(0)?.toUpperCase() ||
-                    "U"}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {profile?.full_name || "User"}
-                </p>
-                <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {role || "Editor"}
-                </p>
-              </div>
-              <button
-                onClick={async () => {
-                  await signOut();
-                  navigate("/home");
-                }}
-                className="p-2 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <DashboardSidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
@@ -383,17 +336,18 @@ export default function DashboardAddProperty() {
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 text-foreground"
+              aria-label="menu"
             >
               <Menu className="w-5 h-5" />
             </button>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/dashboard/properties">
-                <ArrowLeft className="w-4 h-4" />
-                Back
+                <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+                {t("addProperty.back")}
               </Link>
             </Button>
             <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
-              {isEdit ? "Edit Property" : "Add New Property"}
+              {isEdit ? t("addProperty.headingEdit") : t("addProperty.headingAdd")}
             </h1>
           </div>
         </header>
@@ -403,22 +357,26 @@ export default function DashboardAddProperty() {
             {/* Basic Info */}
             <div className="bg-card rounded-xl border border-border shadow-card p-6 space-y-5">
               <h2 className="font-display text-lg font-semibold text-foreground">
-                Basic Information
+                {t("addProperty.sections.basic")}
               </h2>
 
               <div className="space-y-2">
-                <Label htmlFor="property_code">Property Code</Label>
+                <Label htmlFor="property_code">
+                  {t("addProperty.fields.propertyCode")}
+                </Label>
                 <Input
                   id="property_code"
                   value={form.property_code}
                   disabled
                   className="bg-muted max-w-sm"
                 />
-                <p className="text-xs text-muted-foreground">Auto-generated unique ID</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("addProperty.fields.propertyCodeHint")}
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="title">Title *</Label>
+                <Label htmlFor="title">{t("addProperty.fields.title")}</Label>
                 <Input
                   id="title"
                   value={form.title}
@@ -428,10 +386,12 @@ export default function DashboardAddProperty() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">
+                  {t("addProperty.fields.description")}
+                </Label>
                 <Textarea
                   id="description"
-                  placeholder="Describe the property..."
+                  placeholder={t("addProperty.fields.descriptionPlaceholder")}
                   rows={4}
                   value={form.description}
                   onChange={(e) => handleChange("description", e.target.value)}
@@ -440,7 +400,7 @@ export default function DashboardAddProperty() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Listed as *</Label>
+                  <Label>{t("addProperty.fields.listedAs")}</Label>
                   <Select
                     value={form.property_type}
                     onValueChange={(v) => handleChange("property_type", v)}
@@ -449,14 +409,18 @@ export default function DashboardAddProperty() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="sale">For Sale</SelectItem>
-                      <SelectItem value="rent">For Rent</SelectItem>
+                      <SelectItem value="sale">
+                        {t("properties.filters.forSale")}
+                      </SelectItem>
+                      <SelectItem value="rent">
+                        {t("properties.filters.forRent")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Status</Label>
+                  <Label>{t("addProperty.fields.status")}</Label>
                   <Select
                     value={form.status}
                     onValueChange={(v) => handleChange("status", v)}
@@ -465,9 +429,15 @@ export default function DashboardAddProperty() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="sold">Sold</SelectItem>
-                      <SelectItem value="rented">Rented</SelectItem>
+                      <SelectItem value="active">
+                        {t("addProperty.fields.statusActive")}
+                      </SelectItem>
+                      <SelectItem value="sold">
+                        {t("addProperty.fields.statusSold")}
+                      </SelectItem>
+                      <SelectItem value="rented">
+                        {t("addProperty.fields.statusRented")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -475,12 +445,12 @@ export default function DashboardAddProperty() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price *</Label>
+                  <Label htmlFor="price">{t("addProperty.fields.price")}</Label>
                   <Input
                     id="price"
                     type="number"
                     min="0"
-                    placeholder="e.g. 2500000"
+                    placeholder={t("addProperty.fields.pricePlaceholder")}
                     value={form.price}
                     onChange={(e) => handleChange("price", e.target.value)}
                     required
@@ -488,7 +458,7 @@ export default function DashboardAddProperty() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Currency</Label>
+                  <Label>{t("addProperty.fields.currency")}</Label>
                   <Select
                     value={form.currency}
                     onValueChange={(v) => handleChange("currency", v)}
@@ -506,22 +476,24 @@ export default function DashboardAddProperty() {
 
               {form.property_type === "rent" && (
                 <div className="space-y-2">
-                  <Label>Contract Duration</Label>
+                  <Label>{t("addProperty.fields.contractDuration")}</Label>
                   <Select
                     value={form.contract_duration}
                     onValueChange={(v) => handleChange("contract_duration", v)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select contract duration" />
+                      <SelectValue
+                        placeholder={t("addProperty.fields.contractDurationPlaceholder")}
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 month</SelectItem>
-                      <SelectItem value="2">2 months</SelectItem>
-                      <SelectItem value="3">3 months</SelectItem>
-                      <SelectItem value="6">6 months</SelectItem>
-                      <SelectItem value="12">1 Year</SelectItem>
-                      <SelectItem value="24">2 Years</SelectItem>
-                      <SelectItem value="60">5 Years</SelectItem>
+                      <SelectItem value="1">{t("addProperty.fields.months1")}</SelectItem>
+                      <SelectItem value="2">{t("addProperty.fields.months2")}</SelectItem>
+                      <SelectItem value="3">{t("addProperty.fields.months3")}</SelectItem>
+                      <SelectItem value="6">{t("addProperty.fields.months6")}</SelectItem>
+                      <SelectItem value="12">{t("addProperty.fields.year1")}</SelectItem>
+                      <SelectItem value="24">{t("addProperty.fields.years2")}</SelectItem>
+                      <SelectItem value="60">{t("addProperty.fields.years5")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -537,7 +509,7 @@ export default function DashboardAddProperty() {
                   htmlFor="price_negotiable"
                   className="text-sm font-normal cursor-pointer"
                 >
-                  Price is negotiable
+                  {t("addProperty.fields.priceNegotiable")}
                 </Label>
               </div>
             </div>
@@ -545,11 +517,11 @@ export default function DashboardAddProperty() {
             {/* Unit Details */}
             <div className="bg-card rounded-xl border border-border shadow-card p-6 space-y-5">
               <h2 className="font-display text-lg font-semibold text-foreground">
-                Unit Details
+                {t("addProperty.sections.unit")}
               </h2>
 
               <div className="space-y-2">
-                <Label>Property Type</Label>
+                <Label>{t("addProperty.fields.propertyType")}</Label>
                 <Select
                   value={form.building_type}
                   onValueChange={(v) =>
@@ -563,22 +535,30 @@ export default function DashboardAddProperty() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="apartment">Apartment</SelectItem>
-                    <SelectItem value="villa">Villa</SelectItem>
-                    <SelectItem value="commercial">Commercial Units</SelectItem>
+                    <SelectItem value="apartment">
+                      {t("addProperty.fields.apartment")}
+                    </SelectItem>
+                    <SelectItem value="villa">
+                      {t("addProperty.fields.villa")}
+                    </SelectItem>
+                    <SelectItem value="commercial">
+                      {t("addProperty.fields.commercial")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {form.building_type === "apartment" && (
                 <div className="space-y-2">
-                  <Label htmlFor="apartment_level">Apartment Level</Label>
+                  <Label htmlFor="apartment_level">
+                    {t("addProperty.fields.apartmentLevel")}
+                  </Label>
                   <Input
                     id="apartment_level"
                     type="number"
                     min={1}
                     max={99}
-                    placeholder="e.g. 3"
+                    placeholder={t("addProperty.fields.apartmentLevelPlaceholder")}
                     value={form.apartment_level}
                     onChange={(e) =>
                       handleChange("apartment_level", e.target.value)
@@ -589,7 +569,7 @@ export default function DashboardAddProperty() {
 
               {form.building_type === "villa" && (
                 <div className="space-y-2">
-                  <Label>Number of Levels</Label>
+                  <Label>{t("addProperty.fields.numberOfLevels")}</Label>
                   <RadioGroup
                     value={form.villa_levels}
                     onValueChange={(v) => handleChange("villa_levels", v)}
@@ -597,29 +577,20 @@ export default function DashboardAddProperty() {
                   >
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="1" id="villa-1" />
-                      <Label
-                        htmlFor="villa-1"
-                        className="font-normal cursor-pointer"
-                      >
-                        1 Level
+                      <Label htmlFor="villa-1" className="font-normal cursor-pointer">
+                        {t("addProperty.fields.level1")}
                       </Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="2" id="villa-2" />
-                      <Label
-                        htmlFor="villa-2"
-                        className="font-normal cursor-pointer"
-                      >
-                        2 Levels
+                      <Label htmlFor="villa-2" className="font-normal cursor-pointer">
+                        {t("addProperty.fields.level2")}
                       </Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="3" id="villa-3" />
-                      <Label
-                        htmlFor="villa-3"
-                        className="font-normal cursor-pointer"
-                      >
-                        3 Levels
+                      <Label htmlFor="villa-3" className="font-normal cursor-pointer">
+                        {t("addProperty.fields.level3")}
                       </Label>
                     </div>
                   </RadioGroup>
@@ -627,7 +598,7 @@ export default function DashboardAddProperty() {
               )}
 
               <div className="space-y-2">
-                <Label>Finishing</Label>
+                <Label>{t("addProperty.fields.finishing")}</Label>
                 <Select
                   value={form.finishing}
                   onValueChange={(v) =>
@@ -638,16 +609,22 @@ export default function DashboardAddProperty() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select finishing" />
+                    <SelectValue
+                      placeholder={t("addProperty.fields.finishingPlaceholder")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="economic">Economic (basic)</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="economic">
+                      {t("addProperty.fields.finishingEconomic")}
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      {t("addProperty.fields.finishingMedium")}
+                    </SelectItem>
                     <SelectItem value="luxury">
-                      Luxury (high-end materials like marble)
+                      {t("addProperty.fields.finishingLuxury")}
                     </SelectItem>
                     <SelectItem value="ultra">
-                      Ultra-Super Lux (customized, premium)
+                      {t("addProperty.fields.finishingUltra")}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -657,50 +634,44 @@ export default function DashboardAddProperty() {
                 <div className="space-y-2">
                   <Label
                     htmlFor={
-                      form.building_type === "commercial"
-                        ? "offices"
-                        : "bedrooms"
+                      form.building_type === "commercial" ? "offices" : "bedrooms"
                     }
                   >
                     {form.building_type === "commercial"
-                      ? "Offices"
-                      : "Bedrooms"}
+                      ? t("addProperty.fields.offices")
+                      : t("addProperty.fields.bedrooms")}
                   </Label>
                   <Input
                     id={
-                      form.building_type === "commercial"
-                        ? "offices"
-                        : "bedrooms"
+                      form.building_type === "commercial" ? "offices" : "bedrooms"
                     }
                     type="number"
                     min="0"
-                    placeholder={
-                      form.building_type === "commercial"
-                        ? "1, 2, 3, etc.."
-                        : "1, 2, 3, etc.."
-                    }
+                    placeholder={t("addProperty.fields.roomCountPlaceholder")}
                     value={form.bedrooms}
                     onChange={(e) => handleChange("bedrooms", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bathrooms">Bathrooms</Label>
+                  <Label htmlFor="bathrooms">
+                    {t("addProperty.fields.bathrooms")}
+                  </Label>
                   <Input
                     id="bathrooms"
                     type="number"
                     min="0"
-                    placeholder="1, 2, 3, etc.."
+                    placeholder={t("addProperty.fields.roomCountPlaceholder")}
                     value={form.bathrooms}
                     onChange={(e) => handleChange("bathrooms", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="area_sqft">Area (m²)</Label>
+                  <Label htmlFor="area_sqft">{t("addProperty.fields.area")}</Label>
                   <Input
                     id="area_sqft"
                     type="number"
                     min="0"
-                    placeholder="90, 100, 150, etc.."
+                    placeholder={t("addProperty.fields.areaPlaceholder")}
                     value={form.area_sqft}
                     onChange={(e) => handleChange("area_sqft", e.target.value)}
                   />
@@ -708,7 +679,7 @@ export default function DashboardAddProperty() {
               </div>
 
               <div className="space-y-2">
-                <Label>Furnished</Label>
+                <Label>{t("addProperty.fields.furnished")}</Label>
                 <Select
                   value={form.furnished}
                   onValueChange={(v) =>
@@ -719,13 +690,19 @@ export default function DashboardAddProperty() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select option" />
+                    <SelectValue
+                      placeholder={t("addProperty.fields.furnishedPlaceholder")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="furnished">Furnished</SelectItem>
-                    <SelectItem value="unfurnished">Unfurnished</SelectItem>
+                    <SelectItem value="furnished">
+                      {t("addProperty.fields.furnishedYes")}
+                    </SelectItem>
+                    <SelectItem value="unfurnished">
+                      {t("addProperty.fields.furnishedNo")}
+                    </SelectItem>
                     <SelectItem value="semi-furnished">
-                      Semi-Furnished
+                      {t("addProperty.fields.furnishedSemi")}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -737,11 +714,8 @@ export default function DashboardAddProperty() {
                   checked={form.featured}
                   onCheckedChange={(v) => handleChange("featured", v)}
                 />
-                <Label
-                  htmlFor="featured"
-                  className="font-normal cursor-pointer"
-                >
-                  Featured Listing
+                <Label htmlFor="featured" className="font-normal cursor-pointer">
+                  {t("addProperty.fields.featuredListing")}
                 </Label>
               </div>
             </div>
@@ -749,14 +723,16 @@ export default function DashboardAddProperty() {
             {/* Location */}
             <div className="bg-card rounded-xl border border-border shadow-card p-6 space-y-5">
               <h2 className="font-display text-lg font-semibold text-foreground">
-                Location
+                {t("addProperty.sections.location")}
               </h2>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Address / Area *</Label>
+                <Label htmlFor="location">
+                  {t("addProperty.fields.locationAddress")}
+                </Label>
                 <Input
                   id="location"
-                  placeholder="e.g. Maadi, New Cairo, etc.."
+                  placeholder={t("addProperty.fields.locationAddressPlaceholder")}
                   value={form.location}
                   onChange={(e) => handleChange("location", e.target.value)}
                   required
@@ -765,19 +741,19 @@ export default function DashboardAddProperty() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">{t("addProperty.fields.city")}</Label>
                   <Input
                     id="city"
-                    placeholder="e.g. Cairo, Giza, etc.."
+                    placeholder={t("addProperty.fields.cityPlaceholder")}
                     value={form.city}
                     onChange={(e) => handleChange("city", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
+                  <Label htmlFor="country">{t("addProperty.fields.country")}</Label>
                   <Input
                     id="country"
-                    placeholder="Egypt"
+                    placeholder={t("addProperty.fields.countryPlaceholder")}
                     value={form.country}
                     onChange={(e) => handleChange("country", e.target.value)}
                   />
@@ -788,39 +764,44 @@ export default function DashboardAddProperty() {
             {/* Amenities & Features */}
             <div className="bg-card rounded-xl border border-border shadow-card p-6 space-y-5">
               <h2 className="font-display text-lg font-semibold text-foreground">
-                Amenities & Features
+                {t("addProperty.sections.amenities")}
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {amenitiesList.map((amenity) => (
-                  <div key={amenity} className="flex items-center gap-2.5">
-                    <Checkbox
-                      id={`amenity-${amenity}`}
-                      checked={form.amenities.includes(amenity)}
-                      onCheckedChange={() => toggleAmenity(amenity)}
-                    />
-                    <Label
-                      htmlFor={`amenity-${amenity}`}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {amenity}
-                    </Label>
-                  </div>
-                ))}
+                {AMENITY_KEYS.map((key) => {
+                  const label = t(`addProperty.amenities.${key}`);
+                  return (
+                    <div key={key} className="flex items-center gap-2.5">
+                      <Checkbox
+                        id={`amenity-${key}`}
+                        checked={form.amenities.includes(key)}
+                        onCheckedChange={() => toggleAmenity(key)}
+                      />
+                      <Label
+                        htmlFor={`amenity-${key}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {label}
+                      </Label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Image */}
+            {/* Media */}
             <div className="bg-card rounded-xl border border-border shadow-card p-6 space-y-5">
               <h2 className="font-display text-lg font-semibold text-foreground">
-                Media
+                {t("addProperty.sections.media")}
               </h2>
 
               <div className="space-y-2">
-                <Label htmlFor="video_url">Video URL</Label>
+                <Label htmlFor="video_url">
+                  {t("addProperty.fields.videoUrl")}
+                </Label>
                 <Input
                   id="video_url"
                   type="url"
-                  placeholder="https://... (e.g. YouTube, Vimeo, or direct video link)"
+                  placeholder={t("addProperty.fields.videoUrlPlaceholder")}
                   value={form.image_url}
                   onChange={(e) => handleChange("image_url", e.target.value)}
                 />
@@ -841,8 +822,8 @@ export default function DashboardAddProperty() {
                         size="sm"
                         className="pointer-events-none"
                       >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Media
+                        <Upload className="w-4 h-4 me-2" />
+                        {t("addProperty.fields.uploadMedia")}
                       </Button>
                     </div>
                     <Button
@@ -860,73 +841,117 @@ export default function DashboardAddProperty() {
                         }
                       }}
                     >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Attach Video URL
+                      <Upload className="w-4 h-4 me-2" />
+                      {t("addProperty.fields.attachVideoUrl")}
                     </Button>
                   </div>
                   <span className="text-xs text-muted-foreground w-full">
-                    Click Upload Media to choose image/video files from your device, or paste a video link above and click Attach Video URL. First image uploaded/selected is the main photo. (Max 20 total, 50MB per file)
+                    {t("addProperty.fields.uploadHint")}
                   </span>
                 </div>
-                {(form.image_urls.length > 0 || form.video_urls.length > 0 || selectedFiles.length > 0) && (
+                {(form.image_urls.length > 0 ||
+                  form.video_urls.length > 0 ||
+                  selectedFiles.length > 0) && (
                   <div className="space-y-4">
-                    <p className="text-sm font-medium">Included Media ({form.image_urls.length + form.video_urls.length + selectedFiles.length}/20)</p>
+                    <p className="text-sm font-medium">
+                      {t("addProperty.fields.includedMedia", {
+                        count:
+                          form.image_urls.length +
+                          form.video_urls.length +
+                          selectedFiles.length,
+                      })}
+                    </p>
                     <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {form.image_urls.map((url, i) => (
-                        <li key={`url-${i}`} className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border">
-                          <img src={url} alt={`Property image ${i + 1}`} className="w-full h-full object-cover" />
+                        <li
+                          key={`url-${i}`}
+                          className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border"
+                        >
+                          <img
+                            src={url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
-                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">{url}</span>
+                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">
+                              {url}
+                            </span>
                             <button
                               type="button"
                               className="text-white hover:text-destructive bg-black/40 px-2 py-1 rounded text-xs"
                               onClick={() =>
                                 setForm((prev) => ({
                                   ...prev,
-                                  image_urls: prev.image_urls.filter((_, j) => j !== i),
+                                  image_urls: prev.image_urls.filter(
+                                    (_, j) => j !== i,
+                                  ),
                                 }))
                               }
                             >
-                              Remove Link
+                              {t("addProperty.fields.removeLink")}
                             </button>
                           </div>
                         </li>
                       ))}
                       {form.video_urls.map((url, i) => (
-                        <li key={`video-url-${i}`} className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border">
-                          <video src={url} className="w-full h-full object-cover" controls={false} />
+                        <li
+                          key={`video-url-${i}`}
+                          className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border"
+                        >
+                          <video
+                            src={url}
+                            className="w-full h-full object-cover"
+                            controls={false}
+                          />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
-                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">{url}</span>
+                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">
+                              {url}
+                            </span>
                             <button
                               type="button"
                               className="text-white hover:text-destructive bg-black/40 px-2 py-1 rounded text-xs"
                               onClick={() =>
                                 setForm((prev) => ({
                                   ...prev,
-                                  video_urls: prev.video_urls.filter((_, j) => j !== i),
+                                  video_urls: prev.video_urls.filter(
+                                    (_, j) => j !== i,
+                                  ),
                                 }))
                               }
                             >
-                              Remove Video
+                              {t("addProperty.fields.removeVideo")}
                             </button>
                           </div>
                         </li>
                       ))}
                       {selectedFiles.map((file, i) => (
-                        <li key={`file-${i}`} className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border">
-                          {file.type.startsWith('image/') ? (
-                             <img src={URL.createObjectURL(file)} alt={`Selected file ${i + 1}`} className="w-full h-full object-cover" />
+                        <li
+                          key={`file-${i}`}
+                          className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border"
+                        >
+                          {file.type.startsWith("image/") ? (
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                             <video src={URL.createObjectURL(file)} className="w-full h-full object-cover" controls={false} />
+                            <video
+                              src={URL.createObjectURL(file)}
+                              className="w-full h-full object-cover"
+                              controls={false}
+                            />
                           )}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
-                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">{file.name}</span>
+                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">
+                              {file.name}
+                            </span>
                             <button
                               type="button"
                               className="text-white hover:text-destructive bg-black/40 px-2 py-1 rounded text-xs"
                               onClick={() => removeSelectedFile(i)}
                             >
-                              Remove File
+                              {t("addProperty.fields.removeFile")}
                             </button>
                           </div>
                         </li>
@@ -940,7 +965,7 @@ export default function DashboardAddProperty() {
                 <div className="relative w-full max-w-xs rounded-lg overflow-hidden border border-border">
                   <img
                     src={form.image_url || form.image_urls[0]}
-                    alt="Preview"
+                    alt=""
                     className="w-full h-40 object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
@@ -952,17 +977,23 @@ export default function DashboardAddProperty() {
 
             {/* Submit */}
             <div className="flex items-center justify-end gap-4 pt-4">
-              <span className="text-sm text-muted-foreground">{uploadProgress}</span>
+              <span className="text-sm text-muted-foreground">
+                {uploadProgress}
+              </span>
               <Button
                 type="button"
                 variant="outline"
                 asChild
                 disabled={submitting}
               >
-                <Link to="/dashboard/properties">Cancel</Link>
+                <Link to="/dashboard/properties">{tCommon("actions.cancel")}</Link>
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? uploadProgress || "Saving..." : isEdit ? "Update Property" : "Save Property"}
+                {submitting
+                  ? uploadProgress || t("addProperty.submit.saving")
+                  : isEdit
+                  ? t("addProperty.submit.update")
+                  : t("addProperty.submit.save")}
               </Button>
             </div>
           </form>

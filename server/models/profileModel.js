@@ -19,6 +19,22 @@ export const profileModel = {
     return data;
   },
 
+  /**
+   * One round trip: profile joined to broker rows needed after login redirect.
+   */
+  async findBrokerForLoginRedirect(userId) {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('brokers(id, platform_name, subdomain)')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    const embedded = data?.brokers;
+    if (!embedded) return null;
+    return Array.isArray(embedded) ? embedded[0] ?? null : embedded;
+  },
+
   async findByUserId(userId) {
     const { data, error } = await supabaseAdmin
       .from('profiles')

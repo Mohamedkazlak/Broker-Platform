@@ -1,0 +1,118 @@
+{
+  "hero": {
+    "headlinePart1": "Simple, Transparent",
+    "headlineHighlight": "Pricing",
+    "subheadline": "Choose the plan that fits your business. Upgrade, downgrade, or cancel anytime."
+  },
+  "currencyPerMonth": "EGP/month",
+  "pricePerMonth": "EGP/mo",
+  "mostPopular": "Most Popular",
+  "getStarted": "Get Started",
+  "plans": {
+    "starter": {
+      "name": "Starter Package",
+      "price": "0",
+      "description": "Great for getting started and exploring the platform",
+      "features": [
+        "Custom subdomain",
+        "Up to 5 property listings",
+        "Mobile responsive website"
+      ]
+    },
+    "free": {
+      "name": "Starter Package",
+      "price": "0",
+      "description": "Great for getting started and exploring the platform",
+      "features": [
+        "Standard subdomain",
+        "Up to 5 property listings",
+        "Standard responsive website",
+        "Community support"
+      ]
+    },
+    "plus": {
+      "name": "Plus Package",
+      "price": "1,000",
+      "description": "Perfect for individual brokers starting out",
+      "features": [
+        "Custom subdomain",
+        "Up to 10 property listings",
+        "Basic branding",
+        "Email support"
+      ]
+    },
+    "pro": {
+      "name": "Pro Package",
+      "price": "2,000",
+      "description": "Best for growing real estate businesses",
+      "features": [
+        "Everything in Plus",
+        "Up to 50 property listings",
+        "Full customization",
+        "Analytics dashboard"
+      ]
+    },
+    "ultra": {
+      "name": "Ultra Package",
+      "price": "4,000",
+      "description": "For agencies and top-tier brokers",
+      "features": [
+        "Everything in Pro",
+        "Unlimited property listings",
+        "Custom domain",
+        "Dedicated manager"
+      ]
+    }
+  },
+  "faq": {
+    "heading": "Frequently Asked Questions",
+    "subheading": "Have questions? We've got answers.",
+    "q1Title": "Can I upgrade my plan later?",
+    "q1Answer": "Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.",
+    "q2Title": "Do I need technical skills to get started?",
+    "q2Answer": "Not at all. Our platform is designed to be simple and intuitive, and our team is here to help you launch your website with just a few clicks.",
+    "q3Title": "What payment methods do you accept?",
+    "q3Answer": "We accept all major credit cards, bank transfers, and mobile payment options.",
+    "q4Title": "Can I cancel anytime?",
+    "q4Answer": "Yes, you can cancel your subscription at any time with no hidden fees or penalties."
+  },
+  "subscription": {
+    "heading": "Select Your Subscription Plan",
+    "subheading": "Choose the package that best fits your business needs to continue setup.",
+    "recommended": "RECOMMENDED",
+    "currencyShort": "EGP/mo",
+    "selectPlan": "Select Plan",
+    "starterFeatures": [
+      "Standard subdomain",
+      "Up to 5 property listings",
+      "Standard responsive website",
+      "Community support"
+    ],
+    "plusFeatures": [
+      "Custom subdomain",
+      "Up to 10 property listings",
+      "Basic branding",
+      "Email support"
+    ],
+    "proFeatures": [
+      "Everything in Plus",
+      "Up to 50 property listings",
+      "Full customization",
+      "Analytics dashboard"
+    ],
+    "ultraFeatures": [
+      "Everything in Pro",
+      "Unlimited property listings",
+      "Custom domain",
+      "Dedicated manager"
+    ],
+    "toasts": {
+      "noBrokerTitle": "Error",
+      "noBrokerDescription": "No associated platform found. Please register again.",
+      "successTitle": "Plan Selected!",
+      "successDescription": "Your subscription plan has been successfully updated.",
+      "errorTitle": "Failed to update plan",
+      "errorDescription": "Please try again later."
+    }
+  }
+}

@@ -1,20 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
-  Home,
   Building2,
-  Users,
   Search,
   MoreVertical,
   Edit,
   Trash2,
   Eye,
-  LogOut,
-  Settings,
   Plus,
   Menu,
-  TrendingUp,
 } from 'lucide-react';
+import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,14 +28,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBroker } from '@/contexts/BrokerContext';
 import { Property } from '@/components/properties/PropertyCard';
 import { propertyService } from '@/services/propertyService';
+import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 
 export default function DashboardProperties() {
-  const navigate = useNavigate();
-  const { user, profile, role, isLoading, signOut } = useAuth();
-  const { broker } = useBroker();
+  const { profile, isLoading } = useAuth();
+  const { t, i18n } = useTranslation('dashboard');
   const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -60,17 +55,21 @@ export default function DashboardProperties() {
   }, [profile?.broker_id]);
 
   const formatPrice = (price: number, currency: string, type: 'rent' | 'sale') => {
-    const formatted = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
+    const formatted = new Intl.NumberFormat(
+      i18n.language === 'ar' ? 'ar-EG' : 'en-US',
+      {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }
+    ).format(price);
     return type === 'rent' ? `${formatted}/mo` : formatted;
   };
 
   const filteredProperties = properties.filter((p) => {
-    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.location.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === 'all' || p.property_type === filterType;
     return matchesSearch && matchesType;
@@ -86,87 +85,7 @@ export default function DashboardProperties() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-      >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-            <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-sidebar-primary-foreground" />
-            </div>
-            <span className="font-display text-lg font-semibold text-sidebar-foreground">
-              {broker?.platform_name || 'MyFlat'}
-            </span>
-          </div>
-
-          <nav className="flex-1 px-4 py-6 space-y-1">
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <Home className="w-5 h-5" />
-              Dashboard
-            </Link>
-            <Link
-              to="/dashboard/properties"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-            >
-              <Building2 className="w-5 h-5" />
-              Properties
-            </Link>
-            <Link
-              to="/dashboard/insights"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <TrendingUp className="w-5 h-5" />
-              Insights
-            </Link>
-            <Link
-              to="/dashboard/settings"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-              Settings
-            </Link>
-          </nav>
-
-          <div className="px-4 py-4 border-t border-sidebar-border">
-            <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center">
-                <span className="text-sidebar-accent-foreground font-medium">
-                  {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {profile?.full_name || 'User'}
-                </p>
-                <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {role || 'Editor'}
-                </p>
-              </div>
-              <button
-                onClick={async () => {
-                  await signOut();
-                  navigate('/home');
-                }}
-                className="p-2 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <DashboardSidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
@@ -176,17 +95,18 @@ export default function DashboardProperties() {
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="lg:hidden p-2 text-foreground"
+                aria-label="menu"
               >
                 <Menu className="w-5 h-5" />
               </button>
               <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
-                Properties
+                {t('properties.heading')}
               </h1>
             </div>
             <Button variant="default" asChild>
               <Link to="/dashboard/properties/new">
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add Property</span>
+                <span className="hidden sm:inline">{t('overview.addProperty')}</span>
               </Link>
             </Button>
           </div>
@@ -196,24 +116,24 @@ export default function DashboardProperties() {
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search properties..."
+                placeholder={t('properties.filters.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
 
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Property Type" />
+                <SelectValue placeholder={t('properties.filters.typePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Properties</SelectItem>
-                <SelectItem value="rent">For Rent</SelectItem>
-                <SelectItem value="sale">For Sale</SelectItem>
+                <SelectItem value="all">{t('properties.filters.allProperties')}</SelectItem>
+                <SelectItem value="rent">{t('properties.filters.forRent')}</SelectItem>
+                <SelectItem value="sale">{t('properties.filters.forSale')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -224,13 +144,27 @@ export default function DashboardProperties() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3">Property</th>
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden md:table-cell">Type</th>
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3">Price</th>
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden sm:table-cell">Beds</th>
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden lg:table-cell">Area</th>
-                    <th className="text-left text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden lg:table-cell">Status</th>
-                    <th className="text-right text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3">Actions</th>
+                    <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3">
+                      {t('overview.table.property')}
+                    </th>
+                    <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden md:table-cell">
+                      {t('overview.table.type')}
+                    </th>
+                    <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3">
+                      {t('overview.table.price')}
+                    </th>
+                    <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden sm:table-cell">
+                      {t('overview.table.beds')}
+                    </th>
+                    <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden lg:table-cell">
+                      {t('overview.table.area')}
+                    </th>
+                    <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden lg:table-cell">
+                      {t('overview.table.status')}
+                    </th>
+                    <th className="text-end text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3">
+                      {t('overview.table.actions')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -246,14 +180,17 @@ export default function DashboardProperties() {
                           <div className="min-w-0">
                             <p className="font-medium text-foreground truncate">{property.title}</p>
                             <p className="text-sm text-muted-foreground truncate">
-                              {property.location}{property.city ? `, ${property.city}` : ''}
+                              {property.location}
+                              {property.city ? `, ${property.city}` : ''}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 lg:px-6 py-4 hidden md:table-cell">
                         <Badge variant={property.property_type === 'rent' ? 'secondary' : 'default'}>
-                          {property.property_type === 'rent' ? 'For Rent' : 'For Sale'}
+                          {property.property_type === 'rent'
+                            ? t('properties.filters.forRent')
+                            : t('properties.filters.forSale')}
                         </Badge>
                       </td>
                       <td className="px-4 lg:px-6 py-4">
@@ -279,30 +216,35 @@ export default function DashboardProperties() {
                           {property.status}
                         </Badge>
                       </td>
-                      <td className="px-4 lg:px-6 py-4 text-right">
+                      <td className="px-4 lg:px-6 py-4 text-end">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" aria-label="actions">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
                               <Link to={`/properties/${property.id}`}>
-                                <Eye className="w-4 h-4 mr-2" />
-                                View
+                                <Eye className="w-4 h-4 me-2" />
+                                {t('overview.rowActions.view')}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link to={`/dashboard/properties/edit/${property.id}`}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit
+                                <Edit className="w-4 h-4 me-2" />
+                                {t('overview.rowActions.edit')}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={async () => {
-                                if (!window.confirm(`Delete "${property.title}"?`)) return;
+                                if (
+                                  !window.confirm(
+                                    t('overview.rowActions.deleteConfirm', { title: property.title })
+                                  )
+                                )
+                                  return;
                                 try {
                                   await propertyService.delete(property.id);
                                   await fetchProperties();
@@ -311,8 +253,8 @@ export default function DashboardProperties() {
                                 }
                               }}
                             >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
+                              <Trash2 className="w-4 h-4 me-2" />
+                              {t('overview.rowActions.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -326,13 +268,17 @@ export default function DashboardProperties() {
             {filteredProperties.length === 0 && (
               <div className="text-center py-12">
                 <Building2 className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-                <p className="text-muted-foreground">No properties found</p>
+                <p className="text-muted-foreground">{t('properties.noResults')}</p>
               </div>
             )}
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Showing {filteredProperties.length} of {properties.length} properties
+            <Trans
+              i18nKey="properties.showingCount"
+              t={t}
+              values={{ shown: filteredProperties.length, total: properties.length }}
+            />
           </p>
         </div>
       </main>

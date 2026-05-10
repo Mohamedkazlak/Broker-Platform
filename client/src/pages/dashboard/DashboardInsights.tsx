@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import {
-  Home,
   Building2,
-  TrendingUp,
-  LogOut,
-  Settings,
   Menu,
   Package,
   CheckCircle2,
   DollarSign,
   Key,
-  Mail,
-  ChevronDown,
-  ChevronUp,
   Eye,
   Info,
 } from 'lucide-react';
@@ -29,15 +21,15 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Badge } from '@/components/ui/badge';
+import { useTranslation, Trans } from 'react-i18next';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBroker } from '@/contexts/BrokerContext';
 import { supabase } from '@/integrations/supabase/client';
 import { analyticsService } from '@/services/analyticsService';
 import { propertyService } from '@/services/propertyService';
 import { format } from 'date-fns';
+import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 
 const PLAN_LIMITS: Record<string, number> = {
   free: 5,
@@ -45,15 +37,6 @@ const PLAN_LIMITS: Record<string, number> = {
   pro: 50,
   ultra: Infinity,
 };
-
-const PLAN_LABELS: Record<string, string> = {
-  free: 'Starter Package',
-  plus: 'Plus Package',
-  pro: 'Pro Package',
-  ultra: 'Ultra Package',
-};
-
-// Contact messages removed for brokers
 
 interface PropertyStats {
   active: number;
@@ -63,21 +46,27 @@ interface PropertyStats {
 }
 
 export default function DashboardInsights() {
-  const navigate = useNavigate();
-  const { user, profile, role, isLoading, signOut } = useAuth();
-  const { broker } = useBroker();
+  const { profile, isLoading } = useAuth();
+  const { t } = useTranslation('dashboard');
+  const { t: tPricing } = useTranslation('pricing');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [propertyStats, setPropertyStats] = useState<PropertyStats>({ active: 0, sold: 0, rented: 0, total: 0 });
   const [loadingData, setLoadingData] = useState(true);
   const [topProperties, setTopProperties] = useState<{ title: string; views: number }[]>([]);
   const [viewsData, setViewsData] = useState<{ day: string; views: number }[]>([]);
-
   const [adminPackage, setAdminPackage] = useState<string>('free');
 
   const plan = adminPackage || 'free';
   const planLimit = PLAN_LIMITS[plan] || 5;
   const usedSlots = propertyStats.total;
   const usagePercent = planLimit === Infinity ? 0 : Math.min(100, Math.round((usedSlots / planLimit) * 100));
+
+  const planLabels: Record<string, string> = {
+    free: tPricing('plans.starter.name'),
+    plus: tPricing('plans.plus.name'),
+    pro: tPricing('plans.pro.name'),
+    ultra: tPricing('plans.ultra.name'),
+  };
 
   useEffect(() => {
     if (!profile?.broker_id) return;
@@ -88,15 +77,8 @@ export default function DashboardInsights() {
     setLoadingData(true);
     try {
       const [brokerRes, propertiesRes, viewsRes, topRes] = await Promise.all([
-        supabase
-          .from('brokers')
-          .select('package')
-          .eq('id', profile!.broker_id)
-          .single(),
-        supabase
-          .from('properties')
-          .select('id, title, status')
-          .eq('broker_id', profile!.broker_id),
+        supabase.from('brokers').select('package').eq('id', profile!.broker_id).single(),
+        supabase.from('properties').select('id, title, status').eq('broker_id', profile!.broker_id),
         analyticsService.getViews(31).catch(() => ({ data: [], total: 0 })),
         analyticsService.getTopProperties(5, 30).catch(() => []),
       ]);
@@ -112,8 +94,6 @@ export default function DashboardInsights() {
         const rented = props.filter((p) => p.status === 'rented').length;
         setPropertyStats({ active, sold, rented, total: props.length });
       }
-
-      // Messages intentionally not fetched
 
       if (viewsRes.data && Array.isArray(viewsRes.data)) {
         const rows = viewsRes.data as { day?: string; views?: number; viewed_at?: string }[];
@@ -161,20 +141,11 @@ export default function DashboardInsights() {
     }
   };
 
-  // Message expand handler removed
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/home');
-  };
-
   const barData = [
-    { name: 'Active', count: propertyStats.active, fill: 'hsl(var(--primary))' },
-    { name: 'Sold', count: propertyStats.sold, fill: 'hsl(var(--accent))' },
-    { name: 'Rented', count: propertyStats.rented, fill: 'hsl(var(--muted-foreground))' },
+    { name: t('insights.barActive'), count: propertyStats.active, fill: 'hsl(var(--primary))' },
+    { name: t('insights.barSold'), count: propertyStats.sold, fill: 'hsl(var(--accent))' },
+    { name: t('insights.barRented'), count: propertyStats.rented, fill: 'hsl(var(--muted-foreground))' },
   ];
-
-  // Unread count removed
 
   if (isLoading) {
     return (
@@ -186,102 +157,33 @@ export default function DashboardInsights() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-      >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
-            <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-sidebar-primary-foreground" />
-            </div>
-            <span className="font-display text-lg font-semibold text-sidebar-foreground">
-              {broker?.platform_name || 'MyFlat'}
-            </span>
-          </div>
-
-          <nav className="flex-1 px-4 py-6 space-y-1">
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <Home className="w-5 h-5" />
-              Dashboard
-            </Link>
-            <Link
-              to="/dashboard/properties"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <Building2 className="w-5 h-5" />
-              Properties
-            </Link>
-            <Link
-              to="/dashboard/insights"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-            >
-              <TrendingUp className="w-5 h-5" />
-              Insights
-            </Link>
-            <Link
-              to="/dashboard/settings"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-              Settings
-            </Link>
-          </nav>
-
-          <div className="px-4 py-4 border-t border-sidebar-border">
-            <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center">
-                <span className="text-sidebar-accent-foreground font-medium">
-                  {profile?.full_name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {profile?.full_name || 'User'}
-                </p>
-                <p className="text-xs text-sidebar-foreground/60 truncate">{role || 'Editor'}</p>
-              </div>
-              <button
-                onClick={handleSignOut}
-                className="p-2 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
+      <DashboardSidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
         <header className="sticky top-0 z-30 bg-background border-b border-border px-4 lg:px-8 py-4">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-foreground">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-foreground" aria-label="menu">
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">Insights</h1>
+            <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
+              {t('insights.heading')}
+            </h1>
           </div>
         </header>
 
         <div className="p-4 lg:p-8 space-y-8">
-
           {/* ── Section A: Package Usage ── */}
           <Card className="shadow-card">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Package className="w-5 h-5 text-primary" />
-                <CardTitle className="font-display text-lg">Package Usage</CardTitle>
+                <CardTitle className="font-display text-lg">
+                  {t('insights.packageUsageTitle')}
+                </CardTitle>
               </div>
               <CardDescription>
-                {PLAN_LABELS[plan]} plan · Listing allowance
+                {t('insights.packageUsageDescription', { plan: planLabels[plan] })}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -289,23 +191,29 @@ export default function DashboardInsights() {
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-5 h-5 text-primary" />
                   <p className="text-foreground font-medium">
-                    Unlimited listings — {usedSlots} published
+                    {t('insights.unlimitedListings', { count: usedSlots })}
                   </p>
                 </div>
               ) : (
                 <>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
-                      <span className="font-semibold text-foreground">{usedSlots}</span> of{' '}
-                      <span className="font-semibold text-foreground">{planLimit}</span> listings used
+                      <Trans
+                        i18nKey="insights.listingsUsed"
+                        t={t}
+                        values={{ used: usedSlots, limit: planLimit }}
+                        components={{ strong: <span className="font-semibold text-foreground" /> }}
+                      />
                     </span>
-                    <span className="text-muted-foreground">{planLimit - usedSlots} remaining</span>
+                    <span className="text-muted-foreground">
+                      {t('insights.listingsRemaining', { count: planLimit - usedSlots })}
+                    </span>
                   </div>
                   <Progress value={usagePercent} className="h-3" />
                   {usagePercent >= 80 && (
                     <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
                       <Info className="w-4 h-4 shrink-0" />
-                      <span>You're approaching your limit. Consider upgrading your plan.</span>
+                      <span>{t('insights.approachingLimit')}</span>
                     </div>
                   )}
                 </>
@@ -317,14 +225,14 @@ export default function DashboardInsights() {
           <div>
             <h2 className="font-display text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-primary" />
-              Property Status
+              {t('insights.propertyStatusHeading')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <Card className="shadow-card">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Active Listings</p>
+                      <p className="text-sm text-muted-foreground">{t('insights.activeListings')}</p>
                       <p className="text-3xl font-display font-bold text-foreground mt-1">
                         {loadingData ? '—' : propertyStats.active}
                       </p>
@@ -339,7 +247,7 @@ export default function DashboardInsights() {
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Sold Properties</p>
+                      <p className="text-sm text-muted-foreground">{t('insights.soldProperties')}</p>
                       <p className="text-3xl font-display font-bold text-foreground mt-1">
                         {loadingData ? '—' : propertyStats.sold}
                       </p>
@@ -354,7 +262,7 @@ export default function DashboardInsights() {
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Rented Properties</p>
+                      <p className="text-sm text-muted-foreground">{t('insights.rentedProperties')}</p>
                       <p className="text-3xl font-display font-bold text-foreground mt-1">
                         {loadingData ? '—' : propertyStats.rented}
                       </p>
@@ -377,7 +285,11 @@ export default function DashboardInsights() {
                       <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
                       <YAxis allowDecimals={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
                       <Tooltip
-                        contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
+                        contentStyle={{
+                          background: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: 8,
+                        }}
                         labelStyle={{ color: 'hsl(var(--foreground))' }}
                       />
                       <Bar dataKey="count" radius={[6, 6, 0, 0]}>
@@ -392,13 +304,11 @@ export default function DashboardInsights() {
             )}
           </div>
 
-          {/* Contact Messages Section Removed */}
-
           {/* ── Section D: Website Views & Most Watched ── */}
           <div>
             <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2 mb-4">
               <Eye className="w-5 h-5 text-primary" />
-              Website Views This Month
+              {t('insights.viewsHeading')}
             </h2>
 
             <div className="grid lg:grid-cols-3 gap-6">
@@ -414,9 +324,13 @@ export default function DashboardInsights() {
                       />
                       <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} />
                       <Tooltip
-                        contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
+                        contentStyle={{
+                          background: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: 8,
+                        }}
                         labelStyle={{ color: 'hsl(var(--foreground))' }}
-                        labelFormatter={(v) => `Day ${v}`}
+                        labelFormatter={(v) => t('insights.dayLabel', { day: v })}
                       />
                       <Line
                         type="monotone"
@@ -433,27 +347,41 @@ export default function DashboardInsights() {
 
               <Card className="shadow-card">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-display">Most Viewed Properties</CardTitle>
-                  <CardDescription className="text-xs">Views in the last 30 days</CardDescription>
+                  <CardTitle className="text-base font-display">
+                    {t('insights.mostViewedTitle')}
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    {t('insights.mostViewedSubtitle')}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {topProperties.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No properties yet</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      {t('insights.noProperties')}
+                    </p>
                   ) : (
                     <div className="space-y-3">
                       {topProperties.map((prop, i) => (
                         <div key={i} className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-muted-foreground w-5 shrink-0">#{i + 1}</span>
+                          <span className="text-xs font-bold text-muted-foreground w-5 shrink-0">
+                            #{i + 1}
+                          </span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{prop.title}</p>
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {prop.title}
+                            </p>
                             <div className="h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
                               <div
                                 className="h-full bg-primary rounded-full"
-                                style={{ width: `${Math.round((prop.views / topProperties[0].views) * 100)}%` }}
+                                style={{
+                                  width: `${Math.round((prop.views / topProperties[0].views) * 100)}%`,
+                                }}
                               />
                             </div>
                           </div>
-                          <span className="text-xs text-muted-foreground shrink-0">{prop.views}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {prop.views}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -462,7 +390,6 @@ export default function DashboardInsights() {
               </Card>
             </div>
           </div>
-
         </div>
       </main>
     </div>

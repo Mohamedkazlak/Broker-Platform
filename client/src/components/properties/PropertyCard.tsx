@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Square, Heart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 export interface Property {
   id: string;
@@ -37,21 +37,32 @@ interface PropertyCardProps {
   featured?: boolean;
 }
 
-export function PropertyCard({ property, featured = false }: PropertyCardProps) {
-  const isFurnished = (value: Property['furnished']) => {
-    if (typeof value === 'boolean') return value;
-    return value === 'furnished' || value === 'semi-furnished';
+export function PropertyCard({ property }: PropertyCardProps) {
+  const { t, i18n } = useTranslation('property');
+  const localeNum = i18n.language?.startsWith('ar') ? 'ar-EG' : 'en-US';
+  const badgeCase = i18n.language?.startsWith('ar') ? 'normal-case tracking-normal' : 'uppercase tracking-wide';
+
+  const furnishingChipLabel = (): string | null => {
+    const f = property.furnished;
+    if (typeof f === 'boolean')
+      return f ? t('listing.furnishedLabels.furnished') : null;
+    if (!f || f === 'unfurnished') return null;
+    if (f === 'furnished') return t('listing.furnishedLabels.furnished');
+    if (f === 'semi-furnished') return t('listing.furnishedLabels.semiFurnished');
+    return null;
   };
 
+  const furnishingChip = furnishingChipLabel();
+
   const formatPrice = (price: number, currency: string, type: 'rent' | 'sale') => {
-    const formatted = new Intl.NumberFormat('en-US', {
+    const formatted = new Intl.NumberFormat(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price);
 
-    return type === 'rent' ? `${formatted}/mo` : formatted;
+    return type === 'rent' ? `${formatted}${t('listing.priceSuffixMonthShort')}` : formatted;
   };
 
   return (
@@ -62,7 +73,10 @@ export function PropertyCard({ property, featured = false }: PropertyCardProps) 
       {/* Image Container */}
       <div className="relative overflow-hidden h-56">
         <img
-          src={property.image_url || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80'}
+          src={
+            property.image_url ||
+            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80'
+          }
           alt={property.title}
           className="property-image w-full h-full object-cover"
         />
@@ -71,18 +85,20 @@ export function PropertyCard({ property, featured = false }: PropertyCardProps) 
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
         {/* Badges */}
-        <div className="absolute top-4 left-4 flex gap-2">
+        <div className="absolute top-4 start-4 flex gap-2">
           <Badge
             className={`${property.property_type === 'rent'
               ? 'bg-navy text-primary-foreground'
               : 'bg-accent text-accent-foreground'
-              } font-medium uppercase text-xs`}
+              } font-medium text-xs ${badgeCase}`}
           >
-            For {property.property_type}
+            {property.property_type === 'rent' ? t('listing.forRent') : t('listing.forSale')}
           </Badge>
           {property.featured && (
-            <Badge className="bg-accent text-accent-foreground font-medium">
-              Featured
+            <Badge
+              className={`bg-accent text-accent-foreground font-medium text-xs ${i18n.language?.startsWith('ar') ? 'normal-case tracking-normal' : ''}`}
+            >
+              {t('listing.featured')}
             </Badge>
           )}
         </div>
@@ -91,15 +107,15 @@ export function PropertyCard({ property, featured = false }: PropertyCardProps) 
         <button
           onClick={(e) => {
             e.preventDefault();
-            // Handle favorite
           }}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md hover:bg-white transition-colors group/fav"
+          className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md hover:bg-white transition-colors group/fav"
+          aria-label={t('listing.ariaFavorite')}
         >
           <Heart className="w-5 h-5 text-muted-foreground group-hover/fav:text-destructive transition-colors" />
         </button>
 
         {/* Price */}
-        <div className="absolute bottom-4 left-4">
+        <div className="absolute bottom-4 start-4">
           <p className="text-2xl font-display font-bold text-white">
             {formatPrice(property.price, property.currency, property.property_type)}
           </p>
@@ -127,28 +143,37 @@ export function PropertyCard({ property, featured = false }: PropertyCardProps) 
           {property.bedrooms !== null && (
             <div className="flex items-center gap-1.5">
               <Bed className="w-4 h-4" />
-              <span className="text-sm">{property.bedrooms} {property.building_type === 'commercial' ? 'Offices' : 'Beds'}</span>
+              <span className="text-sm">
+                {property.bedrooms}{' '}
+                {property.building_type === 'commercial'
+                  ? t('listing.offices')
+                  : t('listing.beds')}
+              </span>
             </div>
           )}
           {property.bathrooms !== null && (
             <div className="flex items-center gap-1.5">
               <Bath className="w-4 h-4" />
-              <span className="text-sm">{property.bathrooms} Baths</span>
+              <span className="text-sm">
+                {property.bathrooms} {t('listing.baths')}
+              </span>
             </div>
           )}
           {property.area_sqft !== null && (
             <div className="flex items-center gap-1.5">
               <Square className="w-4 h-4" />
-              <span className="text-sm">{property.area_sqft.toLocaleString()} m³</span>
+              <span className="text-sm">
+                {property.area_sqft.toLocaleString(localeNum)} {t('listing.areaUnit')}
+              </span>
             </div>
           )}
         </div>
 
         {/* Tags */}
         <div className="flex items-center gap-2 flex-wrap">
-          {isFurnished(property.furnished) && (
+          {furnishingChip && (
             <span className="px-2.5 py-1 bg-secondary text-secondary-foreground text-xs rounded-full font-medium">
-              Furnished
+              {furnishingChip}
             </span>
           )}
         </div>

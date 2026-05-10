@@ -1,7 +1,15 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+} from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useBroker } from './BrokerContext';
+import { acceptRelayedSession } from '@/lib/sessionRelay';
 
 interface Profile {
   id: string;
@@ -44,8 +52,6 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => { },
 });
 
-import { acceptRelayedSession } from '@/lib/sessionRelay';
-
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -56,54 +62,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<'admin' | 'editor' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const profileLoadsRef = useRef<Map<string, Promise<void>>>(new Map());
+
+  const fetchProfile = useCallback(async (userId: string) => {
+    let p = profileLoadsRef.current.get(userId);
+    if (p) {
+      await p;
+      return;
+    }
+
+    p = (async () => {
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (profileError) throw profileError;
+        setProfile(profileData as Profile | null);
+
+        setRole('admin');
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        profileLoadsRef.current.delete(userId);
+        setIsLoading(false);
+      }
+    })();
+
+    profileLoadsRef.current.set(userId, p);
+    await p;
+  }, []);
+
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     const STORAGE_KEY = 'broker_platform_server_started_at';
 
-    async function checkServerRestart() {
-      try {
-        const res = await fetch(`${apiUrl}/health`, { credentials: 'include' });
-        const json = await res.json();
-        const serverAt = json?.serverStartedAt;
-        if (serverAt == null) return;
-        const stored = sessionStorage.getItem(STORAGE_KEY);
-        if (stored != null && Number(stored) !== serverAt) {
-          sessionStorage.removeItem(STORAGE_KEY);
-          await supabase.auth.signOut();
-          setUser(null);
-          setSession(null);
-          setProfile(null);
-          setRole(null);
-          const port = window.location.port ? `:${window.location.port}` : '';
-          window.location.href = `http://localhost${port}/login`;
-          return;
-        }
-        sessionStorage.setItem(STORAGE_KEY, String(serverAt));
-      } catch {
-        // Ignore network errors; don't log out
+    let healthInflight: Promise<void> | null = null;
+
+    function checkServerRestart() {
+      if (!healthInflight) {
+        healthInflight = (async () => {
+          try {
+            const res = await fetch(`${apiUrl}/health`, { credentials: 'include' });
+            const json = await res.json();
+            const serverAt = json?.serverStartedAt;
+            if (serverAt == null) return;
+            const stored = sessionStorage.getItem(STORAGE_KEY);
+            if (stored != null && Number(stored) !== serverAt) {
+              sessionStorage.removeItem(STORAGE_KEY);
+              await supabase.auth.signOut();
+              setUser(null);
+              setSession(null);
+              setProfile(null);
+              setRole(null);
+              const port = window.location.port ? `:${window.location.port}` : '';
+              window.location.href = `http://localhost${port}/login`;
+              return;
+            }
+            sessionStorage.setItem(STORAGE_KEY, String(serverAt));
+          } catch {
+            /* ignore network errors */
+          }
+        })().finally(() => {
+          healthInflight = null;
+        });
       }
+      return healthInflight;
     }
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Defer profile fetch to avoid deadlock
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
-          checkServerRestart();
+          queueMicrotask(() => {
+            void fetchProfile(session.user.id);
+          });
+          void checkServerRestart();
         } else {
           setProfile(null);
           setRole(null);
         }
-      }
+      },
     );
 
-    // Accept relayed session tokens (cross-subdomain handoff), then check session
     async function initSession() {
       await acceptRelayedSession();
 
@@ -112,37 +157,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchProfile(session.user.id);
-        checkServerRestart();
+        await fetchProfile(session.user.id);
+        await checkServerRestart();
       } else {
         setIsLoading(false);
       }
     }
 
-    initSession();
+    void initSession();
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  async function fetchProfile(userId: string) {
-    try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-      setProfile(profileData as Profile | null);
-
-      // Broker is the sole operator — no roles table needed
-      setRole('admin');
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  }, [fetchProfile]);
 
   const signIn = async (email: string, password: string) => {
     try {

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../config/supabase.js';
+import { supabaseAdmin } from "../config/supabase.js";
 
 /**
  * Property database operations.
@@ -7,56 +7,58 @@ import { supabaseAdmin } from '../config/supabase.js';
 
 /** List view: omit description (large TEXT) to reduce payload and IO. Detail uses findById. */
 const PROPERTY_LIST_COLUMNS = [
-  'id',
-  'broker_id',
-  'property_code',
-  'title',
-  'property_type',
-  'status',
-  'price',
-  'currency',
-  'price_negotiable',
-  'contract_duration',
-  'location',
-  'city',
-  'country',
-  'building_type',
-  'apartment_level',
-  'villa_levels',
-  'finishing',
-  'bedrooms',
-  'bathrooms',
-  'area_sqft',
-  'furnished',
-  'amenities',
-  'featured',
-  'image_url',
-  'image_urls',
-  'video_urls',
-  'created_at',
-  'updated_at',
-].join(',');
+  "id",
+  "broker_id",
+  "property_code",
+  "title",
+  "property_type",
+  "status",
+  "price",
+  "currency",
+  "price_negotiable",
+  "contract_duration",
+  "location",
+  "city",
+  "country",
+  "building_type",
+  "apartment_level",
+  "villa_levels",
+  "finishing",
+  "bedrooms",
+  "bathrooms",
+  "area_sqft",
+  "furnished",
+  "amenities",
+  "featured",
+  "image_url",
+  "image_urls",
+  "video_urls",
+  "created_at",
+  "updated_at",
+].join(",");
 
 export const propertyModel = {
   async findAll(filters = {}) {
     let query = supabaseAdmin
-      .from('properties')
+      .from("properties")
       .select(PROPERTY_LIST_COLUMNS)
-      .order('created_at', { ascending: false });
+      .order("created_at", { ascending: false });
 
     // Apply filters
-    if (filters.broker_id) query = query.eq('broker_id', filters.broker_id);
-    if (filters.status) query = query.eq('status', filters.status);
-    if (filters.property_type) query = query.eq('property_type', filters.property_type);
-    if (filters.building_type) query = query.eq('building_type', filters.building_type);
-    if (filters.city) query = query.ilike('city', `%${filters.city}%`);
-    if (filters.minPrice) query = query.gte('price', filters.minPrice);
-    if (filters.maxPrice) query = query.lte('price', filters.maxPrice);
+    if (filters.broker_id) query = query.eq("broker_id", filters.broker_id);
+    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.property_type)
+      query = query.eq("property_type", filters.property_type);
+    if (filters.building_type)
+      query = query.eq("building_type", filters.building_type);
+    if (filters.city) query = query.ilike("city", `%${filters.city}%`);
+    if (filters.minPrice) query = query.gte("price", filters.minPrice);
+    if (filters.maxPrice) query = query.lte("price", filters.maxPrice);
 
     // Text search across title, description, and location
     if (filters.search) {
       query = query.or(
-        `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,location.ilike.%${filters.search}%`
+        `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,location.ilike.%${filters.search}%`,
       );
     }
 
@@ -72,9 +74,9 @@ export const propertyModel = {
 
   async findById(id) {
     const { data, error } = await supabaseAdmin
-      .from('properties')
-      .select('*')
-      .eq('id', id)
+      .from("properties")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) throw error;
@@ -83,7 +85,7 @@ export const propertyModel = {
 
   async create(propertyData) {
     const { data, error } = await supabaseAdmin
-      .from('properties')
+      .from("properties")
       .insert(propertyData)
       .select()
       .single();
@@ -94,10 +96,10 @@ export const propertyModel = {
 
   async update(id, brokerId, updates) {
     const { data, error } = await supabaseAdmin
-      .from('properties')
+      .from("properties")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('broker_id', brokerId)   // Ensure broker can only update their own
+      .eq("id", id)
+      .eq("broker_id", brokerId) // Ensure broker can only update their own
       .select()
       .single();
 
@@ -107,19 +109,19 @@ export const propertyModel = {
 
   async delete(id, brokerId) {
     const { error } = await supabaseAdmin
-      .from('properties')
+      .from("properties")
       .delete()
-      .eq('id', id)
-      .eq('broker_id', brokerId);   // Ensure broker can only delete their own
+      .eq("id", id)
+      .eq("broker_id", brokerId); // Ensure broker can only delete their own
 
     if (error) throw error;
   },
 
   async countByBroker(brokerId) {
     const { count, error } = await supabaseAdmin
-      .from('properties')
-      .select('id', { count: 'exact', head: true })
-      .eq('broker_id', brokerId);
+      .from("properties")
+      .select("id", { count: "exact", head: true })
+      .eq("broker_id", brokerId);
 
     if (error) throw error;
     return count;

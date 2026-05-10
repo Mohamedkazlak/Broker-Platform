@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, Grid, List, X } from 'lucide-react';
+import { Search, Grid, List, X } from 'lucide-react';
+import { useTranslation, Trans } from 'react-i18next';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { PropertyCard, Property } from '@/components/properties/PropertyCard';
@@ -17,9 +18,10 @@ import { useBroker } from '@/contexts/BrokerContext';
 import { propertyService } from '@/services/propertyService';
 
 export default function Properties() {
-  const { broker } = useBroker();
+  const { broker, isLoading: brokerLoading } = useBroker();
+  const { t } = useTranslation('property');
+  const { t: tCommon } = useTranslation('common');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -31,7 +33,46 @@ export default function Properties() {
 
   const [baseProperties, setBaseProperties] = useState<Property[]>([]);
 
-  const uniqueCities = [...new Set(baseProperties.map(p => p.city).filter(Boolean))].sort();
+  const uniqueCities = useMemo(
+    () => [...new Set(baseProperties.map((p) => p.city).filter(Boolean))].sort(),
+    [baseProperties],
+  );
+
+  const filteredProperties = useMemo(() => {
+    let filtered = [...baseProperties];
+
+    if (propertyType !== 'all') {
+      filtered = filtered.filter((p) => p.property_type === propertyType);
+    }
+
+    if (selectedCity !== 'all') {
+      filtered = filtered.filter((p) => p.city === selectedCity);
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.title.toLowerCase().includes(query) ||
+          p.location.toLowerCase().includes(query) ||
+          (p.city && p.city.toLowerCase().includes(query)),
+      );
+    }
+
+    if (sortBy === 'price-low') {
+      filtered.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price-high') {
+      filtered.sort((a, b) => b.price - a.price);
+    } else {
+      filtered.sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
+    }
+
+    return filtered;
+  }, [baseProperties, propertyType, selectedCity, searchQuery, sortBy]);
 
   useEffect(() => {
     setSearchQuery(searchParams.get('q') || '');
@@ -39,58 +80,24 @@ export default function Properties() {
     setSelectedCity(searchParams.get('city') || 'all');
   }, [searchParams]);
 
+  /** One network fetch per tenant — filters/sort/search applied in memory after load. */
   useEffect(() => {
+    if (brokerLoading) return;
+
     async function fetchProperties() {
       setIsLoading(true);
       try {
         const filters: { status?: string; broker_id?: string } = { status: 'active' };
         if (broker?.id && broker.id !== 'demo-broker-id') filters.broker_id = broker.id;
         const apiData = await propertyService.getAll(filters);
-        const dataToFilter = Array.isArray(apiData) ? apiData : [];
-
-        setBaseProperties(dataToFilter);
-        let filtered = [...dataToFilter];
-
-        // Apply filters
-        if (propertyType !== 'all') {
-          filtered = filtered.filter(p => p.property_type === propertyType);
-        }
-
-        if (selectedCity !== 'all') {
-          filtered = filtered.filter(p => p.city === selectedCity);
-        }
-
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          filtered = filtered.filter(p =>
-            p.title.toLowerCase().includes(query) ||
-            p.location.toLowerCase().includes(query) ||
-            (p.city && p.city.toLowerCase().includes(query))
-          );
-        }
-
-        // Apply sorting
-        if (sortBy === 'price-low') {
-          filtered.sort((a, b) => a.price - b.price);
-        } else if (sortBy === 'price-high') {
-          filtered.sort((a, b) => b.price - a.price);
-        } else {
-          // newest
-          filtered.sort((a, b) => {
-            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return dateB - dateA;
-          });
-        }
-
-        setProperties(filtered);
+        setBaseProperties(Array.isArray(apiData) ? apiData : []);
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchProperties();
-  }, [broker, propertyType, sortBy, searchQuery, selectedCity]);
+  }, [brokerLoading, broker?.id]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -101,7 +108,8 @@ export default function Properties() {
     setSearchParams({});
   };
 
-  const hasActiveFilters = searchQuery || propertyType !== 'all' || priceRange !== 'all' || selectedCity !== 'all';
+  const hasActiveFilters =
+    searchQuery || propertyType !== 'all' || priceRange !== 'all' || selectedCity !== 'all';
 
   return (
     <div className="min-h-screen bg-background">
@@ -112,11 +120,9 @@ export default function Properties() {
         <div className="bg-primary py-16">
           <div className="container mx-auto px-4">
             <h1 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground">
-              Browse Properties
+              {t('browse.heading')}
             </h1>
-            <p className="mt-2 text-primary-foreground/80">
-              Find your perfect property from our curated selection
-            </p>
+            <p className="mt-2 text-primary-foreground/80">{t('browse.subheading')}</p>
           </div>
         </div>
 
@@ -126,53 +132,61 @@ export default function Properties() {
             <div className="flex flex-col lg:flex-row gap-4">
               {/* Search */}
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search by location, city, or property name..."
+                  placeholder={t('browse.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
               </div>
 
               {/* Property Type */}
-              <Select value={propertyType} onValueChange={(val) => {
-                setPropertyType(val);
-                setSearchParams(prev => {
-                  const newParams = new URLSearchParams(prev);
-                  if (val === 'all') newParams.delete('type');
-                  else newParams.set('type', val);
-                  return newParams;
-                });
-              }}>
+              <Select
+                value={propertyType}
+                onValueChange={(val) => {
+                  setPropertyType(val);
+                  setSearchParams((prev) => {
+                    const newParams = new URLSearchParams(prev);
+                    if (val === 'all') newParams.delete('type');
+                    else newParams.set('type', val);
+                    return newParams;
+                  });
+                }}
+              >
                 <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder="Type" />
+                  <SelectValue placeholder={t('browse.typePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="rent">For Rent</SelectItem>
-                  <SelectItem value="sale">For Sale</SelectItem>
+                  <SelectItem value="all">{t('browse.allTypes')}</SelectItem>
+                  <SelectItem value="rent">{t('listing.forRent')}</SelectItem>
+                  <SelectItem value="sale">{t('listing.forSale')}</SelectItem>
                 </SelectContent>
               </Select>
 
               {/* City Filter */}
-              <Select value={selectedCity} onValueChange={(val) => {
-                setSelectedCity(val);
-                setSearchParams(prev => {
-                  const newParams = new URLSearchParams(prev);
-                  if (val === 'all') newParams.delete('city');
-                  else newParams.set('city', val);
-                  return newParams;
-                });
-              }}>
+              <Select
+                value={selectedCity}
+                onValueChange={(val) => {
+                  setSelectedCity(val);
+                  setSearchParams((prev) => {
+                    const newParams = new URLSearchParams(prev);
+                    if (val === 'all') newParams.delete('city');
+                    else newParams.set('city', val);
+                    return newParams;
+                  });
+                }}
+              >
                 <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder="City" />
+                  <SelectValue placeholder={t('browse.cityPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
+                  <SelectItem value="all">{t('browse.allCities')}</SelectItem>
                   {uniqueCities.map((city) => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                    <SelectItem key={city} value={city}>
+                      {city}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -180,12 +194,12 @@ export default function Properties() {
               {/* Sort */}
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder="Sort by" />
+                  <SelectValue placeholder={t('browse.sortPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="newest">{t('browse.sortNewest')}</SelectItem>
+                  <SelectItem value="price-low">{t('browse.sortPriceLow')}</SelectItem>
+                  <SelectItem value="price-high">{t('browse.sortPriceHigh')}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -194,12 +208,14 @@ export default function Properties() {
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-2 rounded ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  aria-label={t('browse.ariaGridView')}
                 >
                   <Grid className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
                   className={`p-2 rounded ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  aria-label={t('browse.ariaListView')}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -209,10 +225,10 @@ export default function Properties() {
             {/* Active Filters */}
             {hasActiveFilters && (
               <div className="flex items-center gap-2 mt-4 flex-wrap">
-                <span className="text-sm text-muted-foreground">Active filters:</span>
+                <span className="text-sm text-muted-foreground">{t('browse.activeFilters')}</span>
                 {searchQuery && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full text-sm">
-                    Search: {searchQuery}
+                    {t('browse.searchChipPrefix')} {searchQuery}
                     <button onClick={() => setSearchQuery('')}>
                       <X className="w-3 h-3" />
                     </button>
@@ -220,17 +236,14 @@ export default function Properties() {
                 )}
                 {propertyType !== 'all' && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full text-sm">
-                    {propertyType === 'rent' ? 'For Rent' : 'For Sale'}
+                    {propertyType === 'rent' ? t('listing.forRent') : t('listing.forSale')}
                     <button onClick={() => setPropertyType('all')}>
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
-                <button
-                  onClick={clearFilters}
-                  className="text-sm text-primary hover:underline"
-                >
-                  Clear all
+                <button onClick={clearFilters} className="text-sm text-primary hover:underline">
+                  {tCommon('actions.clearAll')}
                 </button>
               </div>
             )}
@@ -241,7 +254,12 @@ export default function Properties() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-6">
             <p className="text-muted-foreground">
-              Showing <span className="font-medium text-foreground">{properties.length}</span> properties
+              <Trans
+                i18nKey="browse.showingCount"
+                t={t}
+                values={{ count: filteredProperties.length }}
+                components={{ strong: <span className="font-medium text-foreground" /> }}
+              />
             </p>
           </div>
 
@@ -255,22 +273,22 @@ export default function Properties() {
                 </div>
               ))}
             </div>
-          ) : properties.length === 0 ? (
+          ) : filteredProperties.length === 0 ? (
             <div className="text-center py-16">
               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
                 <Search className="w-8 h-8 text-muted-foreground" />
               </div>
               <h3 className="font-display text-xl font-semibold text-foreground mb-2">
-                No properties found
+                {t('browse.noResultsTitle')}
               </h3>
-              <p className="text-muted-foreground mb-6">
-                Try adjusting your search or filter criteria
-              </p>
-              <Button onClick={clearFilters}>Clear Filters</Button>
+              <p className="text-muted-foreground mb-6">{t('browse.noResultsSubtitle')}</p>
+              <Button onClick={clearFilters}>{tCommon('actions.clearFilters')}</Button>
             </div>
           ) : (
-            <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-              {properties.map((property) => (
+            <div
+              className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}
+            >
+              {filteredProperties.map((property) => (
                 <PropertyCard key={property.id} property={property} />
               ))}
             </div>

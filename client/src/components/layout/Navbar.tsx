@@ -1,9 +1,17 @@
-import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, User, LogOut, LayoutDashboard, Building2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useBroker } from '@/contexts/BrokerContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Menu,
+  X,
+  LogOut,
+  LayoutDashboard,
+  Building2,
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
+import { useBroker } from "@/contexts/BrokerContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavbarProps {
   links?: { href: string; label: string }[];
@@ -16,31 +24,37 @@ export function Navbar({ links, transparent }: NavbarProps) {
   const navigate = useNavigate();
   const { broker } = useBroker();
   const { user, signOut } = useAuth();
+  const { t } = useTranslation("common");
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/home');
+    navigate("/home");
   };
 
   const defaultLinks = [
-    { href: '/home', label: 'Home' },
-    { href: '/properties', label: 'Properties' },
-    { href: '/properties?type=sale', label: 'Buy' },
-    { href: '/properties?type=rent', label: 'Rent' },
+    { href: "/home", label: t("nav.home") },
+    { href: "/properties", label: t("nav.properties") },
+    { href: "/properties?type=sale", label: t("nav.buy") },
+    { href: "/properties?type=rent", label: t("nav.rent") },
   ];
 
   const navLinks = links || defaultLinks;
 
   const isActive = (path: string) => {
-    if (path.includes('?')) {
+    if (path.includes("?")) {
       return location.pathname + location.search === path;
     }
     return location.pathname === path && !location.search;
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${transparent ? 'bg-transparent border-none' : 'glass border-b border-border/50'
-      }`}>
+    <nav
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+        transparent
+          ? "bg-transparent border-none"
+          : "glass border-b border-border/50"
+      }`}
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center h-16 lg:h-20">
           {/* Logo */}
@@ -50,7 +64,7 @@ export function Navbar({ links, transparent }: NavbarProps) {
                 <Building2 className="w-5 h-5 text-accent-foreground" />
               </div>
               <span className="font-display text-xl font-semibold text-foreground">
-                {broker?.platform_name || 'Broker'}
+                {broker?.platform_name || t("brand.name")}
               </span>
             </Link>
           </div>
@@ -61,10 +75,9 @@ export function Navbar({ links, transparent }: NavbarProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`font-body text-sm font-medium transition-colors duration-200 hover:text-primary ${isActive(link.href)
-                  ? 'text-primary'
-                  : 'text-muted-foreground'
-                  }`}
+                className={`font-body text-sm font-medium transition-colors duration-200 hover:text-primary ${
+                  isActive(link.href) ? "text-primary" : "text-muted-foreground"
+                }`}
               >
                 {link.label}
               </Link>
@@ -73,27 +86,29 @@ export function Navbar({ links, transparent }: NavbarProps) {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden lg:flex flex-1 items-center justify-end gap-4">
+            <LanguageSwitcher />
             {user ? (
               <>
                 <Button variant="ghost" size="sm" asChild>
                   <Link to="/dashboard">
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                    Dashboard
+                    <LayoutDashboard className="w-4 h-4 me-2" />
+                    {t("nav.dashboard")}
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleSignOut}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
+                  <LogOut className="w-4 h-4 me-2" />
+                  {t("nav.signOut")}
                 </Button>
               </>
             ) : (
-              !['/home', '/properties'].includes(location.pathname) && !location.pathname.startsWith('/properties/') && (
+              !["/home", "/properties"].includes(location.pathname) &&
+              !location.pathname.startsWith("/properties/") && (
                 <>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link to="/login">Sign In</Link>
+                    <Link to="/login">{t("nav.signIn")}</Link>
                   </Button>
                   <Button variant="default" size="sm" asChild>
-                    <Link to="/register">Get Started</Link>
+                    <Link to="/register">{t("nav.getStarted")}</Link>
                   </Button>
                 </>
               )
@@ -105,9 +120,13 @@ export function Navbar({ links, transparent }: NavbarProps) {
             <button
               className="p-2 text-foreground"
               onClick={() => setIsOpen(!isOpen)}
-              aria-label="Toggle menu"
+              aria-label={t("nav.toggleMenu")}
             >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
@@ -115,28 +134,34 @@ export function Navbar({ links, transparent }: NavbarProps) {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="lg:hidden absolute top-full left-0 right-0 bg-background border-b border-border shadow-lg">
+        <div className="lg:hidden absolute top-full inset-x-0 bg-background border-b border-border shadow-lg">
           <div className="container mx-auto px-4 py-4 space-y-4">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 to={link.href}
-                className={`block py-2 font-body text-base font-medium transition-colors ${isActive(link.href)
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                className={`block py-2 font-body text-base font-medium transition-colors ${
+                  isActive(link.href)
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
                 onClick={() => setIsOpen(false)}
               >
                 {link.label}
               </Link>
             ))}
             <div className="pt-4 border-t border-border space-y-2">
+              <LanguageSwitcher variant="outline" className="w-full justify-center" />
               {user ? (
                 <>
-                  <Button variant="ghost" className="w-full justify-start" asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    asChild
+                  >
                     <Link to="/dashboard" onClick={() => setIsOpen(false)}>
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
-                      Dashboard
+                      <LayoutDashboard className="w-4 h-4 me-2" />
+                      {t("nav.dashboard")}
                     </Link>
                   </Button>
                   <Button
@@ -147,21 +172,22 @@ export function Navbar({ links, transparent }: NavbarProps) {
                       handleSignOut();
                     }}
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
+                    <LogOut className="w-4 h-4 me-2" />
+                    {t("nav.signOut")}
                   </Button>
                 </>
               ) : (
-                !['/home', '/properties'].includes(location.pathname) && !location.pathname.startsWith('/properties/') && (
+                !["/home", "/properties"].includes(location.pathname) &&
+                !location.pathname.startsWith("/properties/") && (
                   <>
                     <Button variant="ghost" className="w-full" asChild>
                       <Link to="/login" onClick={() => setIsOpen(false)}>
-                        Sign In
+                        {t("nav.signIn")}
                       </Link>
                     </Button>
                     <Button className="w-full" asChild>
                       <Link to="/register" onClick={() => setIsOpen(false)}>
-                        Get Started
+                        {t("nav.getStarted")}
                       </Link>
                     </Button>
                   </>

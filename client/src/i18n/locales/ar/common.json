@@ -1,0 +1,70 @@
+{
+  "brand": {
+    "name": "منصة بروكر",
+    "tagline": "موقع للوسطاء العقاريين"
+  },
+  "nav": {
+    "features": "الميزات",
+    "pricing": "الأسعار",
+    "about": "عننا",
+    "contact": "اتصل بنا",
+    "login": "تسجيل الدخول",
+    "getStarted": "ابدأ الآن",
+    "home": "الرئيسية",
+    "properties": "العقارات",
+    "buy": "شراء",
+    "rent": "إيجار",
+    "signIn": "تسجيل الدخول",
+    "dashboard": "لوحة التحكم",
+    "signOut": "تسجيل الخروج",
+    "toggleMenu": "تبديل القائمة"
+  },
+  "footer": {
+    "description": "المنصة الشاملة التي تتيح للوسطاء العقاريين إدارة أعمالهم، وعرض العقارات، والتواصل مع العملاء.",
+    "contactUs": "اتصل بنا",
+    "privacyPolicy": "سياسة الخصوصية",
+    "termsOfService": "الشروط والأحكام",
+    "rightsReserved": "جميع الحقوق محفوظة.",
+    "socialFacebook": "فيسبوك",
+    "socialInstagram": "إنستغرام",
+    "socialTwitter": "إكس (تويتر)",
+    "socialLinkedIn": "لينكد إن"
+  },
+  "actions": {
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "saveChanges": "حفظ التغييرات",
+    "saving": "جاري الحفظ",
+    "update": "تحديث",
+    "updating": "جاري التحديث",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "view": "عرض",
+    "search": "بحث",
+    "submit": "إرسال",
+    "loading": "جاري التحميل",
+    "clearAll": "مسح الكل",
+    "clearFilters": "مسح الفلترة"
+  },
+  "language": {
+    "switcher": "اللغة",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "errors": {
+    "generic": "حدث خطأ ما",
+    "tryAgain": "يرجى المحاولة مرة أخرى"
+  },
+  "notFound": {
+    "code": "404",
+    "message": "عفوا! لم يتم العثور على الصفحة",
+    "returnHome": "العودة إلى الرئيسية"
+  },
+  "brokerNotFound": {
+    "code": "404",
+    "title": "هذا الموقع غير موجود",
+    "message": "لا يوجد وسيط مسجل على \"{{subdomain}}\". يرجى التحقق من العنوان الذي أدخلته.",
+    "messageGeneric": "لا يوجد وسيط مسجل على هذا العنوان. يرجى التحقق من العنوان الذي أدخلته.",
+    "goToMain": "الذهاب إلى الموقع الرئيسي"
+  }
+}

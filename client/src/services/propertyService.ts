@@ -27,8 +27,10 @@ export const propertyService = {
         return response.data.data; // Backend returns { status: 'success', data: [...] }
     },
 
-    async getById(id: string): Promise<Property> {
-        const response = await api.get(`/properties/${id}`);
+    async getById(id: string, opts?: { signal?: AbortSignal }): Promise<Property> {
+        const response = await api.get(`/properties/${id}`, {
+            signal: opts?.signal,
+        });
         return response.data.data;
     },
 

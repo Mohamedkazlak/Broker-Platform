@@ -1,0 +1,37 @@
+{
+  "hero": {
+    "headlinePart1": "Get in",
+    "headlineHighlight": "Touch",
+    "subheadline": "Interested in starting your own property platform or have questions about our plans? Our team is here to help you get started every step of the way."
+  },
+  "info": {
+    "heading": "Contact Information",
+    "description": "Reach out to our platform support team. We're here to help!",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "hoursLabel": "Business Hours",
+    "hoursValueLine1": "Sun - Thu: 9:00 AM - 5:00 PM",
+    "hoursValueLine2": "Fri & Sat: Closed"
+  },
+  "form": {
+    "heading": "Send Us a Message",
+    "nameLabel": "Full Name *",
+    "namePlaceholder": "John Doe",
+    "emailLabel": "Email *",
+    "emailPlaceholder": "you@example.com",
+    "phoneLabel": "Phone (Optional)",
+    "phonePlaceholder": "+1 (555) 000-0000",
+    "subjectLabel": "Subject *",
+    "subjectPlaceholder": "Property inquiry",
+    "messageLabel": "Message *",
+    "messagePlaceholder": "Tell us how we can help you...",
+    "sending": "Sending...",
+    "sendButton": "Send Message"
+  },
+  "toasts": {
+    "sentTitle": "Message sent!",
+    "sentDescription": "We'll get back to you as soon as possible.",
+    "errorTitle": "Error sending message",
+    "errorDescription": "Please try again later."
+  }
+}

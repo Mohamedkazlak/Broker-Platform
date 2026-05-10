@@ -1,0 +1,44 @@
+{
+  "hero": {
+    "badge": "Launch your real estate website in minutes",
+    "headlinePart1": "Your Own Real Estate",
+    "headlineHighlight": "Website",
+    "subheadline": "Create a professional branded website for your real estate business. Showcase properties, connect with clients, all under your own subdomain.",
+    "ctaButton": "Create Your Website"
+  },
+  "features": {
+    "heading": "Everything you need to showcase properties",
+    "subheading": "A complete platform designed specifically for real estate brokers",
+    "items": {
+      "subdomain": {
+        "title": "Your Own Subdomain",
+        "description": "Get a professional website at yourname.platform.com with your branding front and center"
+      },
+      "propertyManagement": {
+        "title": "Property Management",
+        "description": "Easy-to-use dashboard to add, edit, and manage all your property listings"
+      },
+      "leadManagement": {
+        "title": "Lead Management",
+        "description": "Receive and manage inquiries from potential clients directly in your dashboard"
+      },
+      "instantSetup": {
+        "title": "Instant Setup",
+        "description": "Launch your website in minutes, no technical knowledge required"
+      },
+      "mobileResponsive": {
+        "title": "Mobile Responsive",
+        "description": "Beautiful on all devices - desktop, tablet, and mobile"
+      },
+      "seoOptimized": {
+        "title": "SEO Optimized",
+        "description": "Built with best practices to help potential clients find your listings"
+      }
+    }
+  },
+  "finalCta": {
+    "heading": "Ready to grow your real estate business?",
+    "subheading": "Join hundreds of brokers who trust our platform to showcase their properties",
+    "button": "Get Started Now"
+  }
+}

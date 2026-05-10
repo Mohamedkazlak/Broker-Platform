@@ -1,0 +1,37 @@
+{
+  "hero": {
+    "headlinePart1": "اتصل",
+    "headlineHighlight": "بنا",
+    "subheadline": "هل ترغب في إنشاء منصة عقارية خاصة بك أو لديك أسئلة حول خططنا؟ فريقنا جاهز لمساعدتك في كل خطوة من خطوات البدء."
+  },
+  "info": {
+    "heading": "معلومات الاتصال",
+    "description": "اتصل بفريق دعم المنصة لدينا. نحن هنا لمساعدتك!",
+    "phoneLabel": "رقم الهاتف",
+    "emailLabel": "البريد الإلكتروني",
+    "hoursLabel": "ساعات العمل",
+    "hoursValueLine1": "الأحد - الخميس: 9:00 ص - 5:00 م",
+    "hoursValueLine2": "الجمعة والسبت: مغلق"
+  },
+  "form": {
+    "heading": "أرسل لنا رسالة",
+    "nameLabel": "الاسم الكامل *",
+    "namePlaceholder": "   ",
+    "emailLabel": "البريد الإلكتروني *",
+    "emailPlaceholder": "   ",
+    "phoneLabel": "رقم الهاتف (اختياري)",
+    "phonePlaceholder": "   ",
+    "subjectLabel": "الموضوع *",
+    "subjectPlaceholder": "   ",
+    "messageLabel": "الرسالة *",
+    "messagePlaceholder": "   ",
+    "sending": "جاري الإرسال...",
+    "sendButton": "إرسال الرسالة"
+  },
+  "toasts": {
+    "sentTitle": "تم إرسال الرسالة!",
+    "sentDescription": "سنتواصل معك في أقرب وقت ممكن.",
+    "errorTitle": "خطأ في إرسال الرسالة",
+    "errorDescription": "يرجى المحاولة مرة أخرى لاحقا."
+  }
+}

@@ -1,29 +1,21 @@
 import { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, Loader2 } from 'lucide-react';
-
+import { Phone, Mail, Clock, Send, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
+
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useBroker } from '@/contexts/BrokerContext';
 import { useToast } from '@/hooks/use-toast';
-
-const contactSchema = z.object({
-  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
-  email: z.string().trim().email('Please enter a valid email').max(255),
-  phone: z.string().trim().optional(),
-  subject: z.string().trim().min(5, 'Subject must be at least 5 characters').max(200),
-  message: z.string().trim().min(10, 'Message must be at least 10 characters').max(1000),
-});
-
 import { PublicNavbar } from '@/components/layout/PublicNavbar';
 import api from '@/lib/api';
 
 export default function Contact() {
-  const { broker } = useBroker();
   const { toast } = useToast();
+  const { t } = useTranslation('contact');
+  const { t: tVal } = useTranslation('validation');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
@@ -32,6 +24,14 @@ export default function Contact() {
     phone: '',
     subject: '',
     message: '',
+  });
+
+  const contactSchema = z.object({
+    name: z.string().trim().min(2, tVal('contact.nameMin')).max(100),
+    email: z.string().trim().email(tVal('contact.emailInvalid')).max(255),
+    phone: z.string().trim().optional(),
+    subject: z.string().trim().min(5, tVal('contact.subjectMin')).max(200),
+    message: z.string().trim().min(10, tVal('contact.messageMin')).max(1000),
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -64,21 +64,21 @@ export default function Contact() {
         email: formData.email,
         phone: formData.phone || null,
         subject: formData.subject,
-        message: formData.message
+        message: formData.message,
       });
 
       toast({
-        title: 'Message sent!',
-        description: "We'll get back to you as soon as possible.",
+        title: t('toasts.sentTitle'),
+        description: t('toasts.sentDescription'),
       });
 
       setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
     } catch (error) {
       console.error('Failed to send message:', error);
       toast({
-        title: 'Error sending message',
-        description: "Please try again later.",
-        variant: "destructive",
+        title: t('toasts.errorTitle'),
+        description: t('toasts.errorDescription'),
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -91,21 +91,18 @@ export default function Contact() {
 
       {/* Hero Section */}
       <section className="relative gradient-hero pt-16">
-
-        {/* Hero Content */}
         <div className="container mx-auto px-4 py-24 text-center">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-            Get in <span className="text-accent">Touch</span>
+            {t('hero.headlinePart1')}{' '}
+            <span className="text-accent">{t('hero.headlineHighlight')}</span>
           </h1>
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
-            Interested in starting your own property platform or have questions about our plans?
-            Our team is here to help you get started every step of the way.
+            {t('hero.subheadline')}
           </p>
         </div>
       </section>
 
       <main>
-
         {/* Content */}
         <section className="py-24">
           <div className="container mx-auto px-4">
@@ -114,21 +111,18 @@ export default function Contact() {
               <div className="space-y-8">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-foreground mb-4">
-                    Contact Information
+                    {t('info.heading')}
                   </h2>
-                  <p className="text-muted-foreground">
-                    Reach out to our platform support team. We're here to help!
-                  </p>
+                  <p className="text-muted-foreground">{t('info.description')}</p>
                 </div>
 
                 <div className="space-y-6">
-
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center shrink-0">
                       <Phone className="w-5 h-5 text-accent" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground">Phone</h3>
+                      <h3 className="font-medium text-foreground">{t('info.phoneLabel')}</h3>
                       <a
                         href="tel:12345"
                         className="text-muted-foreground hover:text-primary mt-1 block"
@@ -143,7 +137,7 @@ export default function Contact() {
                       <Mail className="w-5 h-5 text-accent" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground">Email</h3>
+                      <h3 className="font-medium text-foreground">{t('info.emailLabel')}</h3>
                       <a
                         href="mailto:info@broker-platform.eg"
                         className="text-muted-foreground hover:text-primary mt-1 block"
@@ -158,11 +152,11 @@ export default function Contact() {
                       <Clock className="w-5 h-5 text-accent" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground">Business Hours</h3>
+                      <h3 className="font-medium text-foreground">{t('info.hoursLabel')}</h3>
                       <p className="text-muted-foreground mt-1">
-                        Sun - Thu: 9:00 AM - 5:00 PM
+                        {t('info.hoursValueLine1')}
                         <br />
-                        Fri & Sat: Closed
+                        {t('info.hoursValueLine2')}
                       </p>
                     </div>
                   </div>
@@ -173,18 +167,18 @@ export default function Contact() {
               <div className="lg:col-span-2">
                 <div className="bg-card rounded-2xl border border-border p-8 shadow-card">
                   <h2 className="font-display text-2xl font-bold text-foreground mb-6">
-                    Send Us a Message
+                    {t('form.heading')}
                   </h2>
 
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Full Name *</Label>
+                        <Label htmlFor="name">{t('form.nameLabel')}</Label>
                         <Input
                           id="name"
                           name="name"
                           type="text"
-                          placeholder="John Doe"
+                          placeholder={t('form.namePlaceholder')}
                           value={formData.name}
                           onChange={handleChange}
                           className={errors.name ? 'border-destructive' : ''}
@@ -195,12 +189,12 @@ export default function Contact() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
+                        <Label htmlFor="email">{t('form.emailLabel')}</Label>
                         <Input
                           id="email"
                           name="email"
                           type="email"
-                          placeholder="you@example.com"
+                          placeholder={t('form.emailPlaceholder')}
                           value={formData.email}
                           onChange={handleChange}
                           className={errors.email ? 'border-destructive' : ''}
@@ -213,24 +207,24 @@ export default function Contact() {
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="phone">Phone (Optional)</Label>
+                        <Label htmlFor="phone">{t('form.phoneLabel')}</Label>
                         <Input
                           id="phone"
                           name="phone"
                           type="tel"
-                          placeholder="+1 (555) 000-0000"
+                          placeholder={t('form.phonePlaceholder')}
                           value={formData.phone}
                           onChange={handleChange}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="subject">Subject *</Label>
+                        <Label htmlFor="subject">{t('form.subjectLabel')}</Label>
                         <Input
                           id="subject"
                           name="subject"
                           type="text"
-                          placeholder="Property inquiry"
+                          placeholder={t('form.subjectPlaceholder')}
                           value={formData.subject}
                           onChange={handleChange}
                           className={errors.subject ? 'border-destructive' : ''}
@@ -242,11 +236,11 @@ export default function Contact() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="message">Message *</Label>
+                      <Label htmlFor="message">{t('form.messageLabel')}</Label>
                       <Textarea
                         id="message"
                         name="message"
-                        placeholder="Tell us how we can help you..."
+                        placeholder={t('form.messagePlaceholder')}
                         rows={5}
                         value={formData.message}
                         onChange={handleChange}
@@ -267,12 +261,12 @@ export default function Contact() {
                       {isLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Sending...
+                          {t('form.sending')}
                         </>
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
-                          Send Message
+                          {t('form.sendButton')}
                         </>
                       )}
                     </Button>

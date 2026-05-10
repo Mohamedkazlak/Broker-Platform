@@ -1,0 +1,29 @@
+{
+  "contact": {
+    "nameMin": "يجب أن يكون الاسم أطول من 2 حرف",
+    "emailInvalid": "يرجى إدخال بريد إلكتروني صالح",
+    "subjectMin": "يجب أن يكون الموضوع أطول من 5 حرف",
+    "messageMin": "يجب أن يكون الرسالة أطول من 10 أحرف"
+  },
+  "auth": {
+    "emailInvalid": "يرجى إدخال بريد إلكتروني صالح",
+    "passwordMin": "يجب أن يكون كلمة المرور أطول من 6 أحرف",
+    "emailRequired": "البريد الإلكتروني مطلوب",
+    "passwordRequired": "كلمة المرور مطلوبة",
+    "confirmPasswordRequired": "تأكيد كلمة المرور مطلوب",
+    "firstNameRequired": "الاسم الأول مطلوب",
+    "firstNameMin": "يجب أن يكون الاسم الأول أطول من 2 حرف",
+    "lastNameRequired": "الاسم الأخير مطلوب",
+    "lastNameMin": "يجب أن يكون الاسم الأخير أطول من 2 حرف",
+    "platformNameRequired": "اسم المنصة مطلوب",
+    "platformNameMin": "يجب أن يكون اسم المنصة أطول من 3 حرف",
+    "subdomainRequired": "الاسم الفرعي مطلوب",
+    "subdomainMin": "يجب أن يكون الاسم الفرعي أطول من 3 حرف",
+    "subdomainFormat": "يجب أن يحتوي الاسم الفرعي على أحرف صغيرة وأرقام وشرطات فقط",
+    "phoneRequired": "رقم الهاتف مطلوب",
+    "phoneMin": "يرجى إدخال رقم هاتف صالح",
+    "whatsappRequired": "رقم الواتساب مطلوب",
+    "whatsappMin": "يرجى إدخال رقم واتساب صالح",
+    "passwordMismatch": "كلمتا المرور غير متطابقتين"
+  }
+}

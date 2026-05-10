@@ -1,0 +1,69 @@
+{
+  "hero": {
+    "badgeSuffix": "Real Estate Website",
+    "headlinePart1": "Find Your",
+    "headlineHighlight": "Perfect",
+    "headlinePart2": "Place to Call Home",
+    "subheadline": "Discover exceptional properties handpicked by our trusted brokers. Your dream home is just a search away.",
+    "typeAll": "All",
+    "typeRent": "Rent",
+    "typeBuy": "Buy",
+    "locationPlaceholder": "Enter location, city, or neighborhood...",
+    "searchButton": "Search",
+    "statsProperties": "Properties",
+    "statsCities": "Cities",
+    "statsSalesVolume": "Sales Volume",
+    "scroll": "Scroll"
+  },
+  "featured": {
+    "eyebrow": "Featured Listings",
+    "heading": "Discover Exceptional Properties",
+    "description": "Handpicked properties that represent the finest in real estate. Each listing has been carefully selected by our expert team.",
+    "viewAll": "View All Properties"
+  },
+  "services": {
+    "eyebrow": "What We Offer",
+    "heading": "Comprehensive Real Estate Services",
+    "description": "From finding your dream home to securing the best investment, we provide end-to-end real estate solutions.",
+    "items": {
+      "sales": {
+        "title": "Property Sales",
+        "description": "Expert guidance through every step of buying or selling your property."
+      },
+      "rentals": {
+        "title": "Rental Services",
+        "description": "Find the perfect rental property with our curated selection."
+      },
+      "market": {
+        "title": "Market Analysis",
+        "description": "Stay informed with our comprehensive market insights and valuations."
+      },
+      "secure": {
+        "title": "Secure Transactions",
+        "description": "Safe and transparent dealings with verified legal documentation."
+      },
+      "agents": {
+        "title": "Expert Agents",
+        "description": "Work with experienced professionals who know the local market."
+      },
+      "premium": {
+        "title": "Premium Listings",
+        "description": "Access to exclusive properties not available elsewhere."
+      }
+    }
+  },
+  "cta": {
+    "badge": "Start Your Journey Today",
+    "headlinePart1": "Ready to Find Your",
+    "headlineHighlight": "Dream Property?",
+    "subheadline": "Whether you're buying, selling, or renting, our expert team is here to make your real estate journey seamless and successful.",
+    "browseButton": "Browse Properties",
+    "contactButton": "Contact Us",
+    "trust": {
+      "licensed": "Licensed & Insured",
+      "experience": "10+ Years Experience",
+      "clients": "1000+ Happy Clients",
+      "support": "24/7 Support"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "brand": {
+    "name": "Broker Platform",
+    "tagline": "Website for brokers"
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "about": "About Us",
+    "contact": "Contact",
+    "login": "Log In",
+    "getStarted": "Get Started",
+    "home": "Home",
+    "properties": "Properties",
+    "buy": "Buy",
+    "rent": "Rent",
+    "signIn": "Sign In",
+    "dashboard": "Dashboard",
+    "signOut": "Sign Out",
+    "toggleMenu": "Toggle menu"
+  },
+  "footer": {
+    "description": "The comprehensive platform for real estate brokers to manage their business, showcase properties, and connect with clients.",
+    "contactUs": "Contact Us",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "rightsReserved": "All rights reserved.",
+    "socialFacebook": "Facebook",
+    "socialInstagram": "Instagram",
+    "socialTwitter": "X (Twitter)",
+    "socialLinkedIn": "LinkedIn"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "update": "Update",
+    "updating": "Updating...",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "submit": "Submit",
+    "loading": "Loading...",
+    "clearAll": "Clear all",
+    "clearFilters": "Clear Filters"
+  },
+  "language": {
+    "switcher": "Language",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "errors": {
+    "generic": "An unexpected error occurred.",
+    "tryAgain": "Please try again later."
+  },
+  "notFound": {
+    "code": "404",
+    "message": "Oops! Page not found",
+    "returnHome": "Return to Home"
+  },
+  "brokerNotFound": {
+    "code": "404",
+    "title": "This site doesn't exist",
+    "message": "There is no broker registered at \"{{subdomain}}\". Please double-check the address you typed.",
+    "messageGeneric": "There is no broker registered at this address. Please double-check the address you typed.",
+    "goToMain": "Go to the main site"
+  }
+}

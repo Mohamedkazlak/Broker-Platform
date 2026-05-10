@@ -1,4 +1,4 @@
-import { analyticsModel } from '../models/analyticsModel.js';
+import { analyticsModel } from "../models/analyticsModel.js";
 
 /**
  * POST /api/analytics/pageview
@@ -10,14 +10,15 @@ export const recordView = async (req, res, next) => {
 
     if (!broker_id || !path) {
       return res.status(400).json({
-        status: 'error',
-        error: 'Missing required fields: broker_id, path',
+        status: "error",
+        error: "Missing required fields: broker_id, path",
       });
     }
 
-    const viewer_ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
-      || req.socket?.remoteAddress
-      || null;
+    const viewer_ip =
+      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+      req.socket?.remoteAddress ||
+      null;
 
     const data = await analyticsModel.recordView({
       broker_id,
@@ -26,7 +27,7 @@ export const recordView = async (req, res, next) => {
       viewer_ip,
     });
 
-    res.status(201).json({ status: 'success', data });
+    res.status(201).json({ status: "success", data });
   } catch (error) {
     next(error);
   }
@@ -45,7 +46,7 @@ export const getViews = async (req, res, next) => {
       analyticsModel.getTotalViews(req.brokerId),
     ]);
 
-    res.json({ status: 'success', data, total });
+    res.json({ status: "success", data, total });
   } catch (error) {
     next(error);
   }
@@ -66,10 +67,12 @@ export const getSummary = async (req, res, next) => {
     const percentVsLastMonth =
       viewsLastMonth > 0
         ? Math.round(((viewsThisMonth - viewsLastMonth) / viewsLastMonth) * 100)
-        : (viewsThisMonth > 0 ? 100 : 0);
+        : viewsThisMonth > 0
+          ? 100
+          : 0;
 
     res.json({
-      status: 'success',
+      status: "success",
       data: {
         viewsThisMonth,
         viewsLastMonth,
@@ -91,9 +94,12 @@ export const getTopProperties = async (req, res, next) => {
   try {
     const limit = parseInt(req.query.limit, 10) || 10;
     const days = parseInt(req.query.days, 10) || 30;
-    const data = await analyticsModel.getTopProperties(req.brokerId, { limit, days });
+    const data = await analyticsModel.getTopProperties(req.brokerId, {
+      limit,
+      days,
+    });
 
-    res.json({ status: 'success', data });
+    res.json({ status: "success", data });
   } catch (error) {
     next(error);
   }
