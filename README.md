@@ -9,6 +9,7 @@ Welcome to the **Broker Platform Main** repository! This is a complete, multi-te
 - **Property Management:** Dedicated pages and workflows to add, update, rent, or sell properties with rich descriptions, specs, and images.
 - **Dynamic Content & Theming:** Custom tenant-facing landing pages show personalized hero backgrounds, broker details, and curated property lists based on active subscriptions.
 - **Analytics & Insights:** Granular reporting metrics built directly into the broker dashboards.
+- **Arabic Localization (i18n):** Full Arabic language support across the dashboard, home, pricing, property, and tenant-facing pages with right-to-left (RTL) layout handling for a native Arabic browsing experience.
 
 ## Project Screenshots
 
