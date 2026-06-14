@@ -1,6 +1,12 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -101,6 +107,14 @@ app.use("/api/{*path}", (req, res) => {
     .status(404)
     .json({ status: "error", error: `Route ${req.originalUrl} not found` });
 });
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../client/dist")));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../client/dist", "index.html"));
+  });
+}
 
 // Global error handler (must be last)
 app.use(errorHandler);
