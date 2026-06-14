@@ -23,8 +23,18 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Property } from "@/components/properties/PropertyCard";
+import { PropertyWhatsAppButton } from "@/components/properties/PropertyWhatsAppButton";
 import { useBroker } from "@/contexts/BrokerContext";
+import { usePropertyDisplayText } from "@/hooks/usePropertyDisplayText";
 import { amenityStoredToKey, translatedAmenityLabel } from "@/utils/amenities";
+import {
+  translatedBuildingType,
+  translatedContractDuration,
+  translatedFinishing,
+  translatedFurnished,
+  translatedStatus,
+  translatedVillaLevels,
+} from "@/utils/propertyLabels";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80";
@@ -32,22 +42,21 @@ const DEFAULT_IMAGE =
 export default function PropertyDetails() {
   const { id } = useParams();
   const { broker } = useBroker();
-  const { t, i18n } = useTranslation("property");
+  const { t, i18n } = useTranslation(["property", "governorates"]);
+  const tGov = i18n.getFixedT(i18n.language, "governorates");
   const isRtl = i18n.dir() === "rtl";
   const localeNum = isRtl ? "ar-EG" : "en-US";
   const badgeCase = isRtl
     ? "normal-case tracking-normal text-sm"
     : "uppercase text-sm tracking-wide";
 
-  const buildingTypeLabel = (bt: string | undefined) => {
-    if (!bt) return null;
-    return t(`listing.buildingTypes.${bt}`, { defaultValue: bt });
-  };
   const [property, setProperty] = useState<
     (Property & { media?: { url: string; type: "image" | "video" }[] }) | null
   >(null);
   const [fetchLoading, setFetchLoading] = useState(Boolean(id));
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+
+  const displayText = usePropertyDisplayText(property, i18n.language);
 
   useEffect(() => {
     if (!id) {
@@ -151,43 +160,6 @@ export default function PropertyDetails() {
       : formatted;
   };
 
-  const toTitleCase = (value: string) =>
-    value
-      .replace(/-/g, " ")
-      .split(" ")
-      .filter(Boolean)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-
-  const furnishedLabel = (value: Property["furnished"]) => {
-    if (typeof value === "boolean") {
-      return value
-        ? t("listing.furnishedLabels.furnished")
-        : t("listing.furnishedLabels.unfurnished");
-    }
-    if (!value) return t("listing.furnishedLabels.unfurnished");
-    if (value === "furnished") return t("listing.furnishedLabels.furnished");
-    if (value === "unfurnished")
-      return t("listing.furnishedLabels.unfurnished");
-    if (value === "semi-furnished")
-      return t("listing.furnishedLabels.semiFurnished");
-    return toTitleCase(value);
-  };
-
-  const finishingLabel = (value?: string | null) => {
-    if (!value) return "";
-    const key = `listing.finishingLabels.${value}`;
-    const translated = t(key);
-    return translated === key ? toTitleCase(value) : translated;
-  };
-
-  const statusLabel = (value?: string | null) => {
-    if (!value) return "";
-    const key = `listing.statusLabels.${value}`;
-    const translated = t(key);
-    return translated === key ? toTitleCase(value) : translated;
-  };
-
   if (fetchLoading || !id) {
     return (
       <div className="min-h-screen bg-background">
@@ -253,7 +225,7 @@ export default function PropertyDetails() {
             <img
               key={mediaList[currentMediaIndex].url}
               src={mediaList[currentMediaIndex].url}
-              alt={property.title}
+              alt={displayText.title}
               className="max-w-full max-h-full w-auto h-auto object-contain"
             />
           )}
@@ -343,15 +315,11 @@ export default function PropertyDetails() {
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
                     <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-                      {property.title}
+                      {displayText.title}
                     </h1>
                     <div className="flex items-center gap-2 mt-2 text-muted-foreground">
                       <MapPin className="w-5 h-5 text-accent" />
-                      <span>
-                        {property.location}
-                        {property.city && `, ${property.city}`}
-                        {property.country && `, ${property.country}`}
-                      </span>
+                      <span>{displayText.location}</span>
                     </div>
                   </div>
                   <div className="text-end">
@@ -451,9 +419,11 @@ export default function PropertyDetails() {
                             {property.villa_levels}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {property.villa_levels === 1
-                              ? t("details.levelSingle")
-                              : t("details.levelPlural")}
+                            {translatedVillaLevels(t, property.villa_levels) ??
+                              (property.villa_levels === 1 ||
+                              property.villa_levels === "1"
+                                ? t("details.levelSingle")
+                                : t("details.levelPlural"))}
                           </p>
                         </div>
                       </div>
@@ -465,7 +435,7 @@ export default function PropertyDetails() {
                       </div>
                       <div>
                         <p className="font-medium text-foreground">
-                          {finishingLabel(property.finishing)}
+                          {translatedFinishing(t, property.finishing)}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {t("details.typeOfFinishing")}
@@ -479,7 +449,7 @@ export default function PropertyDetails() {
                     </div>
                     <div>
                       <p className="font-medium text-foreground">
-                        {furnishedLabel(property.furnished)}
+                        {translatedFurnished(t, property.furnished)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {t("details.typeOfFurnishing")}
@@ -496,7 +466,7 @@ export default function PropertyDetails() {
                 </h2>
                 <div className="prose prose-gray max-w-none">
                   <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
-                    {property.description}
+                    {displayText.description}
                   </p>
                 </div>
               </div>
@@ -561,7 +531,7 @@ export default function PropertyDetails() {
                           <img
                             key={media.url}
                             src={media.url}
-                            alt={`${property.title} ${index + 1}`}
+                            alt={`${displayText.title} ${index + 1}`}
                             className="w-full h-full object-cover"
                           />
                         )}
@@ -597,6 +567,9 @@ export default function PropertyDetails() {
                         {t("details.callAgent")}
                       </a>
                     </Button>
+                    {property.id && (
+                      <PropertyWhatsAppButton propertyId={property.id} />
+                    )}
                     <Button
                       variant="outline"
                       size="lg"
@@ -637,7 +610,7 @@ export default function PropertyDetails() {
                         <span
                           className={`font-medium text-foreground ${isRtl ? "" : "capitalize"}`}
                         >
-                          {buildingTypeLabel(property.building_type)}
+                          {translatedBuildingType(t, property.building_type)}
                         </span>
                       </li>
                     ) : null}
@@ -648,7 +621,7 @@ export default function PropertyDetails() {
                       <span
                         className={`font-medium text-foreground ${isRtl ? "" : "capitalize"}`}
                       >
-                        {statusLabel(property.status)}
+                        {translatedStatus(t, property.status)}
                       </span>
                     </li>
                     <li className="flex justify-between">
@@ -656,9 +629,33 @@ export default function PropertyDetails() {
                         {t("details.quickFactsFurnished")}
                       </span>
                       <span className="font-medium text-foreground">
-                        {furnishedLabel(property.furnished)}
+                        {translatedFurnished(t, property.furnished)}
                       </span>
                     </li>
+                    {property.finishing ? (
+                      <li className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          {t("details.quickFactsFinishing")}
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {translatedFinishing(t, property.finishing)}
+                        </span>
+                      </li>
+                    ) : null}
+                    {property.property_type === "rent" &&
+                    property.contract_duration ? (
+                      <li className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          {t("details.quickFactsContractDuration")}
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {translatedContractDuration(
+                            t,
+                            property.contract_duration,
+                          )}
+                        </span>
+                      </li>
+                    ) : null}
                     {property.area_sqft && (
                       <li className="flex justify-between">
                         <span className="text-muted-foreground">

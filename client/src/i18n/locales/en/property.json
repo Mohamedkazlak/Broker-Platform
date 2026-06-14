@@ -8,6 +8,9 @@
     "priceSuffixMonthShort": "/mo",
     "ariaFavorite": "Save to favorites",
     "ariaShare": "Share listing",
+    "ariaWhatsApp": "Contact on WhatsApp about this property",
+    "whatsapp": "WhatsApp",
+    "whatsappInquiry": "Hi, I'm interested in this property: {{url}}",
     "beds": "Beds",
     "bed": "Bed",
     "baths": "Baths",
@@ -35,6 +38,20 @@
       "sold": "Sold",
       "rented": "Rented"
     },
+    "contractDurationLabels": {
+      "1": "1 month",
+      "2": "2 months",
+      "3": "3 months",
+      "6": "6 months",
+      "12": "1 year",
+      "24": "2 years",
+      "60": "5 years"
+    },
+    "villaLevelLabels": {
+      "1": "1 level",
+      "2": "2 levels",
+      "3": "3 levels"
+    },
     "amenityLabels": {
       "elevator": "Elevator",
       "parking": "Parking",
@@ -50,7 +67,40 @@
       "smartHome": "Smart Home"
     },
     "areaUnit": "m²",
-    "areaUnitSqft": "sq ft"
+    "areaUnitSqft": "sq ft",
+    "areaLabels": {
+      "maadi": "Maadi",
+      "newCairo": "New Cairo",
+      "fifthSettlement": "Fifth Settlement",
+      "zamalek": "Zamalek",
+      "heliopolis": "Heliopolis",
+      "nasrCity": "Nasr City",
+      "sixthOctober": "6th of October",
+      "sheikhZayed": "Sheikh Zayed",
+      "mokattam": "Mokattam",
+      "downtown": "Downtown",
+      "gardenCity": "Garden City",
+      "rehab": "Rehab",
+      "madinaty": "Madinaty",
+      "dokki": "Dokki",
+      "mohandessin": "Mohandessin",
+      "agouza": "Agouza",
+      "giza": "Giza",
+      "cairo": "Cairo",
+      "alexandria": "Alexandria",
+      "newCapital": "New Administrative Capital"
+    },
+    "countryLabels": {
+      "egypt": "Egypt",
+      "saudiArabia": "Saudi Arabia",
+      "uae": "United Arab Emirates",
+      "kuwait": "Kuwait",
+      "qatar": "Qatar",
+      "bahrain": "Bahrain",
+      "oman": "Oman",
+      "jordan": "Jordan",
+      "lebanon": "Lebanon"
+    }
   },
   "browse": {
     "heading": "Browse Properties",
@@ -83,6 +133,9 @@
     "plusUtilities": "+ utilities",
     "levelSingle": "Level",
     "levelPlural": "Levels",
+    "levelCountSingle": "{{count}} level",
+    "levelCountPlural": "{{count}} levels",
+    "contractDuration": "Contract duration",
     "apartmentLevel": "Apartment Level",
     "typeOfFinishing": "Type of Finishing",
     "typeOfFurnishing": "Type of Furnishing",
@@ -99,6 +152,8 @@
     "quickFactsBuilding": "Building type",
     "quickFactsStatus": "Status",
     "quickFactsFurnished": "Furnished",
+    "quickFactsFinishing": "Finishing",
+    "quickFactsContractDuration": "Contract duration",
     "quickFactsPricePerSqft": "Price/Sq Ft"
   }
 }

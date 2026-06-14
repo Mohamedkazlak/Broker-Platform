@@ -8,6 +8,9 @@
     "priceSuffixMonthShort": "/شهر",
     "ariaFavorite": "إضافة إلى المفضلة",
     "ariaShare": "مشاركة العقار",
+    "ariaWhatsApp": "تواصل عبر واتساب بخصوص هذا العقار",
+    "whatsapp": "واتساب",
+    "whatsappInquiry": "مرحباً، أنا مهتم بهذا العقار: {{url}}",
     "beds": "غرف",
     "bed": "غرفة",
     "baths": "حمامات",
@@ -35,6 +38,20 @@
       "sold": "مباع",
       "rented": "مؤجر"
     },
+    "contractDurationLabels": {
+      "1": "شهر واحد",
+      "2": "شهرين",
+      "3": "ثلاثة أشهر",
+      "6": "ستة أشهر",
+      "12": "سنة واحدة",
+      "24": "سنتين",
+      "60": "خمس سنوات"
+    },
+    "villaLevelLabels": {
+      "1": "دور واحد",
+      "2": "دورين",
+      "3": "ثلاثة أدوار"
+    },
     "amenityLabels": {
       "elevator": "المصعد",
       "parking": "الجراج",
@@ -50,7 +67,40 @@
       "smartHome": "منزل ذكي"
     },
     "areaUnit": "م²",
-    "areaUnitSqft": "م²"
+    "areaUnitSqft": "م²",
+    "areaLabels": {
+      "maadi": "المعادي",
+      "newCairo": "القاهرة الجديدة",
+      "fifthSettlement": "التجمع الخامس",
+      "zamalek": "الزمالك",
+      "heliopolis": "مصر الجديدة",
+      "nasrCity": "مدينة نصر",
+      "sixthOctober": "السادس من أكتوبر",
+      "sheikhZayed": "الشيخ زايد",
+      "mokattam": "المقطم",
+      "downtown": "وسط البلد",
+      "gardenCity": "جاردن سيتي",
+      "rehab": "الرحاب",
+      "madinaty": "مدينتي",
+      "dokki": "الدقي",
+      "mohandessin": "المهندسين",
+      "agouza": "العجوزة",
+      "giza": "الجيزة",
+      "cairo": "القاهرة",
+      "alexandria": "الإسكندرية",
+      "newCapital": "العاصمة الإدارية"
+    },
+    "countryLabels": {
+      "egypt": "مصر",
+      "saudiArabia": "السعودية",
+      "uae": "الإمارات",
+      "kuwait": "الكويت",
+      "qatar": "قطر",
+      "bahrain": "البحرين",
+      "oman": "عمان",
+      "jordan": "الأردن",
+      "lebanon": "لبنان"
+    }
   },
   "browse": {
     "heading": "تصفح العقارات",
@@ -83,6 +133,9 @@
     "plusUtilities": "+ الخدمات",
     "levelSingle": "دور",
     "levelPlural": "أدوار",
+    "levelCountSingle": "{{count}} دور",
+    "levelCountPlural": "{{count}} أدوار",
+    "contractDuration": "مدة العقد",
     "apartmentLevel": "دور الشقة",
     "typeOfFinishing": "نوع التشطيب",
     "typeOfFurnishing": "نوع العفش",
@@ -99,6 +152,8 @@
     "quickFactsBuilding": "نوع المبنى",
     "quickFactsStatus": "الحالة",
     "quickFactsFurnished": "العفش",
+    "quickFactsFinishing": "التشطيب",
+    "quickFactsContractDuration": "مدة العقد",
     "quickFactsPricePerSqft": "السعر/م²"
   }
 }

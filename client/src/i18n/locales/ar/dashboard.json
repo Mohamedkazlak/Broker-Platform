@@ -1,4 +1,13 @@
 {
+  "copyLink": {
+    "label": "موقعك العام",
+    "button": "نسخ الرابط",
+    "copied": "تم النسخ!",
+    "toastTitle": "تم نسخ الرابط",
+    "toastDescription": "رابط موقعك جاهز للمشاركة على واتساب أو أي مكان آخر.",
+    "toastErrorTitle": "تعذر النسخ",
+    "toastErrorDescription": "يرجى نسخ الرابط يدوياً."
+  },
   "sidebar": {
     "dashboard": "لوحة التحكم",
     "properties": "العقارات",
@@ -201,6 +210,7 @@
     "email": "البريد الإلكتروني",
     "phone": "رقم الهاتف",
     "whatsapp": "رقم الواتساب",
+    "governorate": "المحافظة",
     "platformHeading": "المنصة الشخصية",
     "platformDescription": "تحديث اسم المنصة والرابط",
     "platformName": "اسم المنصة",
@@ -211,11 +221,33 @@
     "confirmPassword": "تأكيد كلمة المرور",
     "changePassword": "تغيير كلمة المرور",
     "updating": "جاري التحديث...",
+    "branding": {
+      "heading": "تخصيص الصفحة",
+      "description": "خصص صورة خلفية الصفحة الرئيسية وأيقونة المنصة.",
+      "upgradeDescription": "قم بالترقية إلى باقة Plus أو Pro أو Ultra لتخصيص خلفية الصفحة الرئيسية وأيقونة المنصة.",
+      "upgradeCta": "ترقية الباقة",
+      "backgroundLabel": "خلفية الصفحة الرئيسية",
+      "backgroundHint": "يُفضل صورة أفقية عريضة (1920×1080 أو أكبر).",
+      "iconLabel": "أيقونة المنصة",
+      "iconHint": "صورة مربعة تظهر في شريط التنقل. يُفضل 256×256 بكسل.",
+      "uploadBackground": "رفع الخلفية",
+      "uploadIcon": "رفع الأيقونة",
+      "remove": "إزالة",
+      "noBackground": "لم يتم اختيار صورة خلفية",
+      "noChanges": "اختر صورة جديدة للرفع",
+      "errors": {
+        "invalidType": "يرجى رفع صورة بصيغة JPEG أو PNG أو WebP أو GIF.",
+        "tooLarge": "يجب أن يكون حجم الصورة 5 ميجابايت أو أقل."
+      }
+    },
     "toasts": {
       "personalUpdated": "تم تحديث المعلومات الشخصية بنجاح",
       "platformUpdated": "تم تحديث المنصة الشخصية بنجاح",
+      "brandingUpdated": "تم تحديث التخصيص بنجاح",
       "passwordUpdated": "تم تغيير كلمة المرور بنجاح",
       "errorSaving": "فشل حفظ المعلومات",
+      "governorateRequired": "يرجى اختيار محافظة صالحة",
+      "phoneInvalid": "يرجى إدخال أرقام هاتف وواتساب صالحة",
       "errorPassword": "فشل تغيير كلمة المرور",
       "passwordTooShort": "يجب أن تكون كلمة المرور أطول من 6 أحرف",
       "passwordsDontMatch": "كلمتا المرور غير متطابقتين"

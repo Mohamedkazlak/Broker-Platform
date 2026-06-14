@@ -24,6 +24,8 @@
     "phoneMin": "يرجى إدخال رقم هاتف صالح",
     "whatsappRequired": "رقم الواتساب مطلوب",
     "whatsappMin": "يرجى إدخال رقم واتساب صالح",
+    "governorateRequired": "المحافظة مطلوبة",
+    "governorateInvalid": "يرجى اختيار محافظة صالحة",
     "passwordMismatch": "كلمتا المرور غير متطابقتين"
   }
 }

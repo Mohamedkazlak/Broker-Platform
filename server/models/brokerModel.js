@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../config/supabase.js';
+import { supabaseAdmin } from "../config/supabase.js";
 
 /**
  * Broker database operations.
@@ -8,14 +8,14 @@ import { supabaseAdmin } from '../config/supabase.js';
 
 /** Columns safe to expose on public subdomain lookup (no password hash). */
 const BROKER_PUBLIC_FIELDS =
-  'id, first_name, last_name, platform_name, subdomain, email, phone_number, whatsapp_number, package, package_limit, created_at, updated_at';
+  "id, first_name, last_name, platform_name, subdomain, email, phone_number, whatsapp_number, governorate, package, package_limit, hero_background_url, platform_icon_url, created_at, updated_at";
 
 export const brokerModel = {
   async findBySubdomain(subdomain) {
     const { data, error } = await supabaseAdmin
-      .from('brokers')
+      .from("brokers")
       .select(BROKER_PUBLIC_FIELDS)
-      .eq('subdomain', subdomain)
+      .eq("subdomain", subdomain)
       .maybeSingle();
 
     if (error) throw error;
@@ -24,9 +24,9 @@ export const brokerModel = {
 
   async findById(id) {
     const { data, error } = await supabaseAdmin
-      .from('brokers')
-      .select('*')
-      .eq('id', id)
+      .from("brokers")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) throw error;
@@ -35,9 +35,9 @@ export const brokerModel = {
 
   async findByEmail(email) {
     const { data, error } = await supabaseAdmin
-      .from('brokers')
-      .select('id')
-      .eq('email', email)
+      .from("brokers")
+      .select("id")
+      .eq("email", email)
       .maybeSingle();
 
     if (error) throw error;
@@ -46,7 +46,7 @@ export const brokerModel = {
 
   async create(brokerData) {
     const { data, error } = await supabaseAdmin
-      .from('brokers')
+      .from("brokers")
       .insert(brokerData)
       .select()
       .single();
@@ -57,9 +57,9 @@ export const brokerModel = {
 
   async update(id, updates) {
     const { data, error } = await supabaseAdmin
-      .from('brokers')
+      .from("brokers")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 

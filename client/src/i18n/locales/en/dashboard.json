@@ -1,4 +1,13 @@
 {
+  "copyLink": {
+    "label": "Your public website",
+    "button": "Copy Link",
+    "copied": "Copied!",
+    "toastTitle": "Link copied",
+    "toastDescription": "Your website link is ready to share on WhatsApp or anywhere else.",
+    "toastErrorTitle": "Could not copy",
+    "toastErrorDescription": "Please copy the link manually."
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "properties": "Properties",
@@ -201,6 +210,7 @@
     "email": "Email",
     "phone": "Phone Number",
     "whatsapp": "WhatsApp Number",
+    "governorate": "Governorate",
     "platformHeading": "Platform Settings",
     "platformDescription": "Configure your platform name and domain",
     "platformName": "Platform Name",
@@ -211,11 +221,33 @@
     "confirmPassword": "Confirm Password",
     "changePassword": "Change Password",
     "updating": "Updating...",
+    "branding": {
+      "heading": "Page Branding",
+      "description": "Customize your homepage background image and platform icon.",
+      "upgradeDescription": "Upgrade to Plus, Pro, or Ultra to customize your homepage background and platform icon.",
+      "upgradeCta": "Upgrade Plan",
+      "backgroundLabel": "Homepage Background",
+      "backgroundHint": "Recommended: wide landscape image (1920×1080 or larger).",
+      "iconLabel": "Platform Icon",
+      "iconHint": "Square image shown in your site navigation. Recommended: 256×256 px.",
+      "uploadBackground": "Upload Background",
+      "uploadIcon": "Upload Icon",
+      "remove": "Remove",
+      "noBackground": "No background image selected",
+      "noChanges": "Select a new image to upload",
+      "errors": {
+        "invalidType": "Please upload a JPEG, PNG, WebP, or GIF image.",
+        "tooLarge": "Image must be 5 MB or smaller."
+      }
+    },
     "toasts": {
       "personalUpdated": "Personal info updated successfully",
       "platformUpdated": "Platform settings updated successfully",
+      "brandingUpdated": "Branding updated successfully",
       "passwordUpdated": "Password changed successfully",
       "errorSaving": "Error saving",
+      "governorateRequired": "Please select a valid governorate",
+      "phoneInvalid": "Please enter valid phone and WhatsApp numbers",
       "errorPassword": "Error changing password",
       "passwordTooShort": "Password must be at least 6 characters",
       "passwordsDontMatch": "Passwords do not match"

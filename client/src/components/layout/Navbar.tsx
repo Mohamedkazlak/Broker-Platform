@@ -1,17 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Menu,
-  X,
-  LogOut,
-  LayoutDashboard,
-  Building2,
-} from "lucide-react";
+import { Menu, X, LogOut, LayoutDashboard, Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { useBroker } from "@/contexts/BrokerContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { hasBrandingAccess } from "@/lib/brokerBranding";
 
 interface NavbarProps {
   links?: { href: string; label: string }[];
@@ -47,12 +42,22 @@ export function Navbar({ links, transparent }: NavbarProps) {
     return location.pathname === path && !location.search;
   };
 
+  const showCustomIcon =
+    broker && hasBrandingAccess(broker.package) && broker.platform_icon_url;
+
+  const linkClass = (href: string) =>
+    `font-body text-sm font-medium transition-colors duration-200 ${
+      isActive(href)
+        ? "text-accent"
+        : "text-primary-foreground/70 hover:text-accent"
+    }`;
+
   return (
     <nav
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
         transparent
           ? "bg-transparent border-none"
-          : "glass border-b border-border/50"
+          : "bg-primary text-primary-foreground border-b border-primary-foreground/10"
       }`}
     >
       <div className="container mx-auto px-4">
@@ -60,10 +65,18 @@ export function Navbar({ links, transparent }: NavbarProps) {
           {/* Logo */}
           <div className="flex flex-1 items-center justify-start">
             <Link to="/home" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-accent-foreground" />
+              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center overflow-hidden">
+                {showCustomIcon ? (
+                  <img
+                    src={broker.platform_icon_url!}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Building2 className="w-5 h-5 text-accent-foreground" />
+                )}
               </div>
-              <span className="font-display text-xl font-semibold text-foreground">
+              <span className="font-display text-xl font-semibold">
                 {broker?.platform_name || t("brand.name")}
               </span>
             </Link>
@@ -75,9 +88,7 @@ export function Navbar({ links, transparent }: NavbarProps) {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`font-body text-sm font-medium transition-colors duration-200 hover:text-primary ${
-                  isActive(link.href) ? "text-primary" : "text-muted-foreground"
-                }`}
+                className={linkClass(link.href)}
               >
                 {link.label}
               </Link>
@@ -86,16 +97,25 @@ export function Navbar({ links, transparent }: NavbarProps) {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden lg:flex flex-1 items-center justify-end gap-4">
-            <LanguageSwitcher />
+            <LanguageSwitcher className="text-primary-foreground/70 hover:text-accent hover:bg-primary-foreground/10" />
             {user ? (
               <>
-                <Button variant="ghost" size="sm" asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary-foreground/70 hover:text-accent hover:bg-primary-foreground/10"
+                  asChild
+                >
                   <Link to="/dashboard">
                     <LayoutDashboard className="w-4 h-4 me-2" />
                     {t("nav.dashboard")}
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                <Button
+                  variant="hero-outline"
+                  size="sm"
+                  onClick={handleSignOut}
+                >
                   <LogOut className="w-4 h-4 me-2" />
                   {t("nav.signOut")}
                 </Button>
@@ -104,10 +124,15 @@ export function Navbar({ links, transparent }: NavbarProps) {
               !["/home", "/properties"].includes(location.pathname) &&
               !location.pathname.startsWith("/properties/") && (
                 <>
-                  <Button variant="ghost" size="sm" asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary-foreground/70 hover:text-accent hover:bg-primary-foreground/10"
+                    asChild
+                  >
                     <Link to="/login">{t("nav.signIn")}</Link>
                   </Button>
-                  <Button variant="default" size="sm" asChild>
+                  <Button variant="gold" size="sm" asChild>
                     <Link to="/register">{t("nav.getStarted")}</Link>
                   </Button>
                 </>
@@ -118,7 +143,7 @@ export function Navbar({ links, transparent }: NavbarProps) {
           {/* Mobile Menu Button */}
           <div className="flex flex-1 justify-end lg:hidden">
             <button
-              className="p-2 text-foreground"
+              className="p-2 text-primary-foreground"
               onClick={() => setIsOpen(!isOpen)}
               aria-label={t("nav.toggleMenu")}
             >
@@ -134,7 +159,7 @@ export function Navbar({ links, transparent }: NavbarProps) {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="lg:hidden absolute top-full inset-x-0 bg-background border-b border-border shadow-lg">
+        <div className="lg:hidden absolute top-full inset-x-0 bg-primary text-primary-foreground border-b border-primary-foreground/10 shadow-lg">
           <div className="container mx-auto px-4 py-4 space-y-4">
             {navLinks.map((link) => (
               <Link
@@ -142,21 +167,24 @@ export function Navbar({ links, transparent }: NavbarProps) {
                 to={link.href}
                 className={`block py-2 font-body text-base font-medium transition-colors ${
                   isActive(link.href)
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-accent"
+                    : "text-primary-foreground/70 hover:text-accent"
                 }`}
                 onClick={() => setIsOpen(false)}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="pt-4 border-t border-border space-y-2">
-              <LanguageSwitcher variant="outline" className="w-full justify-center" />
+            <div className="pt-4 border-t border-primary-foreground/10 space-y-2">
+              <LanguageSwitcher
+                variant="ghost"
+                className="w-full justify-center text-primary-foreground/70 hover:text-accent hover:bg-primary-foreground/10"
+              />
               {user ? (
                 <>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start"
+                    className="w-full justify-start text-primary-foreground/70 hover:text-accent hover:bg-primary-foreground/10"
                     asChild
                   >
                     <Link to="/dashboard" onClick={() => setIsOpen(false)}>
@@ -165,7 +193,7 @@ export function Navbar({ links, transparent }: NavbarProps) {
                     </Link>
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="hero-outline"
                     className="w-full justify-start"
                     onClick={() => {
                       setIsOpen(false);
@@ -180,12 +208,16 @@ export function Navbar({ links, transparent }: NavbarProps) {
                 !["/home", "/properties"].includes(location.pathname) &&
                 !location.pathname.startsWith("/properties/") && (
                   <>
-                    <Button variant="ghost" className="w-full" asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full text-primary-foreground/70 hover:text-accent hover:bg-primary-foreground/10"
+                      asChild
+                    >
                       <Link to="/login" onClick={() => setIsOpen(false)}>
                         {t("nav.signIn")}
                       </Link>
                     </Button>
-                    <Button className="w-full" asChild>
+                    <Button variant="gold" className="w-full" asChild>
                       <Link to="/register" onClick={() => setIsOpen(false)}>
                         {t("nav.getStarted")}
                       </Link>

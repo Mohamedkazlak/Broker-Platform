@@ -66,5 +66,9 @@
     "message": "There is no broker registered at \"{{subdomain}}\". Please double-check the address you typed.",
     "messageGeneric": "There is no broker registered at this address. Please double-check the address you typed.",
     "goToMain": "Go to the main site"
+  },
+  "phone": {
+    "countryLabel": "Country code",
+    "numberPlaceholder": "Phone number"
   }
 }

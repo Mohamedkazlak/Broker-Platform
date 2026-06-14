@@ -5,11 +5,11 @@ import React, {
   useState,
   useRef,
   useCallback,
-} from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useBroker } from './BrokerContext';
-import { acceptRelayedSession } from '@/lib/sessionRelay';
+} from "react";
+import { User, Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { useBroker } from "./BrokerContext";
+import { acceptRelayedSession } from "@/lib/sessionRelay";
 
 interface Profile {
   id: string;
@@ -23,10 +23,17 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  role: 'admin' | 'editor' | null;
+  role: "admin" | "editor" | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; subdomain?: string }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: Error | null; subdomain?: string }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+  ) => Promise<{ error: Error | null }>;
   registerBroker: (data: {
     email: string;
     password: string;
@@ -36,7 +43,8 @@ interface AuthContextType {
     subdomain: string;
     phone: string;
     whatsapp: string;
-  }) => Promise<{ error: Error | null; subdomain?: string }>;
+    governorate: string;
+  }) => Promise<{ error: Error | null; subdomain?: string; brokerId?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -48,8 +56,12 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   signIn: async () => ({ error: null, subdomain: undefined }),
   signUp: async () => ({ error: null }),
-  registerBroker: async () => ({ error: null, subdomain: undefined }),
-  signOut: async () => { },
+  registerBroker: async () => ({
+    error: null,
+    subdomain: undefined,
+    brokerId: undefined,
+  }),
+  signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -59,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<'admin' | 'editor' | null>(null);
+  const [role, setRole] = useState<"admin" | "editor" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const profileLoadsRef = useRef<Map<string, Promise<void>>>(new Map());
@@ -74,17 +86,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     p = (async () => {
       try {
         const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
           .maybeSingle();
 
         if (profileError) throw profileError;
         setProfile(profileData as Profile | null);
 
-        setRole('admin');
+        setRole("admin");
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error("Error fetching profile:", error);
       } finally {
         profileLoadsRef.current.delete(userId);
         setIsLoading(false);
@@ -96,8 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const STORAGE_KEY = 'broker_platform_server_started_at';
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const STORAGE_KEY = "broker_platform_server_started_at";
 
     let healthInflight: Promise<void> | null = null;
 
@@ -105,7 +117,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!healthInflight) {
         healthInflight = (async () => {
           try {
-            const res = await fetch(`${apiUrl}/health`, { credentials: 'include' });
+            const res = await fetch(`${apiUrl}/health`, {
+              credentials: "include",
+            });
             const json = await res.json();
             const serverAt = json?.serverStartedAt;
             if (serverAt == null) return;
@@ -117,7 +131,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setSession(null);
               setProfile(null);
               setRole(null);
-              const port = window.location.port ? `:${window.location.port}` : '';
+              const port = window.location.port
+                ? `:${window.location.port}`
+                : "";
               window.location.href = `http://localhost${port}/login`;
               return;
             }
@@ -132,27 +148,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return healthInflight;
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
 
-        if (session?.user) {
-          queueMicrotask(() => {
-            void fetchProfile(session.user.id);
-          });
-          void checkServerRestart();
-        } else {
-          setProfile(null);
-          setRole(null);
-        }
-      },
-    );
+      if (session?.user) {
+        queueMicrotask(() => {
+          void fetchProfile(session.user.id);
+        });
+        void checkServerRestart();
+      } else {
+        setProfile(null);
+        setRole(null);
+      }
+    });
 
     async function initSession() {
       await acceptRelayedSession();
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
 
@@ -171,11 +189,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const response = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
@@ -183,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        return { error: new Error(data.error || 'Login failed') };
+        return { error: new Error(data.error || "Login failed") };
       }
 
       // Establish session in browser
@@ -194,15 +213,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: null, subdomain: data.broker?.subdomain };
     } catch (error) {
       const err = error as Error;
-      return { error: new Error(err.message || 'Network error during login') };
+      return { error: new Error(err.message || "Network error during login") };
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
     if (!broker) {
-      // If no broker context, we can't join one. 
+      // If no broker context, we can't join one.
       // This path might be deprecated for "Join Broker" content.
-      return { error: new Error('Broker not found') };
+      return { error: new Error("Broker not found") };
     }
 
     const { error } = await supabase.auth.signUp({
@@ -213,7 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           broker_id: broker.id,
           full_name: fullName,
-          role: 'editor',
+          role: "editor",
         },
       },
     });
@@ -229,13 +248,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     subdomain: string;
     phone: string;
     whatsapp: string;
+    governorate: string;
   }) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const apiUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const response = await fetch(`${apiUrl}/auth/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ formData }),
       });
@@ -243,7 +264,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        return { error: new Error(data.error || 'Failed to register platform') };
+        return {
+          error: new Error(data.error || "Failed to register platform"),
+        };
       }
 
       // Establish session in browser after successful registration
@@ -251,10 +274,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await supabase.auth.setSession(data.session);
       }
 
-      return { error: null, subdomain: data.broker?.subdomain };
+      return {
+        error: null,
+        subdomain: data.broker?.subdomain,
+        brokerId: data.broker?.id,
+      };
     } catch (error) {
       const err = error as Error;
-      return { error: new Error(err.message || 'Network error during registration') };
+      return {
+        error: new Error(err.message || "Network error during registration"),
+      };
     }
   };
 

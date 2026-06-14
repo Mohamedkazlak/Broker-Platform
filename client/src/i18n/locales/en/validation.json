@@ -24,6 +24,8 @@
     "phoneMin": "Please enter a valid phone number",
     "whatsappRequired": "WhatsApp number is required",
     "whatsappMin": "Please enter a valid WhatsApp number",
+    "governorateRequired": "Governorate is required",
+    "governorateInvalid": "Please select a valid governorate",
     "passwordMismatch": "Passwords don't match"
   }
 }

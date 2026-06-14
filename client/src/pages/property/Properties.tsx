@@ -1,51 +1,58 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Grid, List, X } from 'lucide-react';
-import { useTranslation, Trans } from 'react-i18next';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
-import { PropertyCard, Property } from '@/components/properties/PropertyCard';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Search, Grid, List, X } from "lucide-react";
+import { useTranslation, Trans } from "react-i18next";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { PropertyCard, Property } from "@/components/properties/PropertyCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useBroker } from '@/contexts/BrokerContext';
-import { propertyService } from '@/services/propertyService';
+} from "@/components/ui/select";
+import { useBroker } from "@/contexts/BrokerContext";
+import { propertyService } from "@/services/propertyService";
+import { translatedGovernorate } from "@/utils/propertyLabels";
 
 export default function Properties() {
   const { broker, isLoading: brokerLoading } = useBroker();
-  const { t } = useTranslation('property');
-  const { t: tCommon } = useTranslation('common');
+  const { t, i18n } = useTranslation(["property", "governorates"]);
+  const tGov = i18n.getFixedT(i18n.language, "governorates");
+  const { t: tCommon } = useTranslation("common");
   const [searchParams, setSearchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [propertyType, setPropertyType] = useState(searchParams.get('type') || 'all');
-  const [sortBy, setSortBy] = useState('newest');
-  const [priceRange, setPriceRange] = useState('all');
-  const [selectedCity, setSelectedCity] = useState(searchParams.get('city') || 'all');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [propertyType, setPropertyType] = useState(
+    searchParams.get("type") || "all",
+  );
+  const [sortBy, setSortBy] = useState("newest");
+  const [priceRange, setPriceRange] = useState("all");
+  const [selectedCity, setSelectedCity] = useState(
+    searchParams.get("city") || "all",
+  );
 
   const [baseProperties, setBaseProperties] = useState<Property[]>([]);
 
   const uniqueCities = useMemo(
-    () => [...new Set(baseProperties.map((p) => p.city).filter(Boolean))].sort(),
+    () =>
+      [...new Set(baseProperties.map((p) => p.city).filter(Boolean))].sort(),
     [baseProperties],
   );
 
   const filteredProperties = useMemo(() => {
     let filtered = [...baseProperties];
 
-    if (propertyType !== 'all') {
+    if (propertyType !== "all") {
       filtered = filtered.filter((p) => p.property_type === propertyType);
     }
 
-    if (selectedCity !== 'all') {
+    if (selectedCity !== "all") {
       filtered = filtered.filter((p) => p.city === selectedCity);
     }
 
@@ -59,9 +66,9 @@ export default function Properties() {
       );
     }
 
-    if (sortBy === 'price-low') {
+    if (sortBy === "price-low") {
       filtered.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price-high') {
+    } else if (sortBy === "price-high") {
       filtered.sort((a, b) => b.price - a.price);
     } else {
       filtered.sort((a, b) => {
@@ -75,9 +82,9 @@ export default function Properties() {
   }, [baseProperties, propertyType, selectedCity, searchQuery, sortBy]);
 
   useEffect(() => {
-    setSearchQuery(searchParams.get('q') || '');
-    setPropertyType(searchParams.get('type') || 'all');
-    setSelectedCity(searchParams.get('city') || 'all');
+    setSearchQuery(searchParams.get("q") || "");
+    setPropertyType(searchParams.get("type") || "all");
+    setSelectedCity(searchParams.get("city") || "all");
   }, [searchParams]);
 
   /** One network fetch per tenant — filters/sort/search applied in memory after load. */
@@ -87,8 +94,11 @@ export default function Properties() {
     async function fetchProperties() {
       setIsLoading(true);
       try {
-        const filters: { status?: string; broker_id?: string } = { status: 'active' };
-        if (broker?.id && broker.id !== 'demo-broker-id') filters.broker_id = broker.id;
+        const filters: { status?: string; broker_id?: string } = {
+          status: "active",
+        };
+        if (broker?.id && broker.id !== "demo-broker-id")
+          filters.broker_id = broker.id;
         const apiData = await propertyService.getAll(filters);
         setBaseProperties(Array.isArray(apiData) ? apiData : []);
       } finally {
@@ -100,16 +110,19 @@ export default function Properties() {
   }, [brokerLoading, broker?.id]);
 
   const clearFilters = () => {
-    setSearchQuery('');
-    setPropertyType('all');
-    setSortBy('newest');
-    setPriceRange('all');
-    setSelectedCity('all');
+    setSearchQuery("");
+    setPropertyType("all");
+    setSortBy("newest");
+    setPriceRange("all");
+    setSelectedCity("all");
     setSearchParams({});
   };
 
   const hasActiveFilters =
-    searchQuery || propertyType !== 'all' || priceRange !== 'all' || selectedCity !== 'all';
+    searchQuery ||
+    propertyType !== "all" ||
+    priceRange !== "all" ||
+    selectedCity !== "all";
 
   return (
     <div className="min-h-screen bg-background">
@@ -120,9 +133,11 @@ export default function Properties() {
         <div className="bg-primary py-16">
           <div className="container mx-auto px-4">
             <h1 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground">
-              {t('browse.heading')}
+              {t("browse.heading")}
             </h1>
-            <p className="mt-2 text-primary-foreground/80">{t('browse.subheading')}</p>
+            <p className="mt-2 text-primary-foreground/80">
+              {t("browse.subheading")}
+            </p>
           </div>
         </div>
 
@@ -135,7 +150,7 @@ export default function Properties() {
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder={t('browse.searchPlaceholder')}
+                  placeholder={t("browse.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="ps-10"
@@ -149,19 +164,19 @@ export default function Properties() {
                   setPropertyType(val);
                   setSearchParams((prev) => {
                     const newParams = new URLSearchParams(prev);
-                    if (val === 'all') newParams.delete('type');
-                    else newParams.set('type', val);
+                    if (val === "all") newParams.delete("type");
+                    else newParams.set("type", val);
                     return newParams;
                   });
                 }}
               >
                 <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder={t('browse.typePlaceholder')} />
+                  <SelectValue placeholder={t("browse.typePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('browse.allTypes')}</SelectItem>
-                  <SelectItem value="rent">{t('listing.forRent')}</SelectItem>
-                  <SelectItem value="sale">{t('listing.forSale')}</SelectItem>
+                  <SelectItem value="all">{t("browse.allTypes")}</SelectItem>
+                  <SelectItem value="rent">{t("listing.forRent")}</SelectItem>
+                  <SelectItem value="sale">{t("listing.forSale")}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -172,20 +187,20 @@ export default function Properties() {
                   setSelectedCity(val);
                   setSearchParams((prev) => {
                     const newParams = new URLSearchParams(prev);
-                    if (val === 'all') newParams.delete('city');
-                    else newParams.set('city', val);
+                    if (val === "all") newParams.delete("city");
+                    else newParams.set("city", val);
                     return newParams;
                   });
                 }}
               >
                 <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder={t('browse.cityPlaceholder')} />
+                  <SelectValue placeholder={t("browse.cityPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t('browse.allCities')}</SelectItem>
+                  <SelectItem value="all">{t("browse.allCities")}</SelectItem>
                   {uniqueCities.map((city) => (
                     <SelectItem key={city} value={city}>
-                      {city}
+                      {translatedGovernorate(tGov, city)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -194,28 +209,34 @@ export default function Properties() {
               {/* Sort */}
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder={t('browse.sortPlaceholder')} />
+                  <SelectValue placeholder={t("browse.sortPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="newest">{t('browse.sortNewest')}</SelectItem>
-                  <SelectItem value="price-low">{t('browse.sortPriceLow')}</SelectItem>
-                  <SelectItem value="price-high">{t('browse.sortPriceHigh')}</SelectItem>
+                  <SelectItem value="newest">
+                    {t("browse.sortNewest")}
+                  </SelectItem>
+                  <SelectItem value="price-low">
+                    {t("browse.sortPriceLow")}
+                  </SelectItem>
+                  <SelectItem value="price-high">
+                    {t("browse.sortPriceHigh")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
               {/* View Toggle */}
               <div className="flex items-center gap-1 border border-input rounded-lg p-1">
                 <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                  aria-label={t('browse.ariaGridView')}
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  aria-label={t("browse.ariaGridView")}
                 >
                   <Grid className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                  aria-label={t('browse.ariaListView')}
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 rounded ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  aria-label={t("browse.ariaListView")}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -225,25 +246,32 @@ export default function Properties() {
             {/* Active Filters */}
             {hasActiveFilters && (
               <div className="flex items-center gap-2 mt-4 flex-wrap">
-                <span className="text-sm text-muted-foreground">{t('browse.activeFilters')}</span>
+                <span className="text-sm text-muted-foreground">
+                  {t("browse.activeFilters")}
+                </span>
                 {searchQuery && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full text-sm">
-                    {t('browse.searchChipPrefix')} {searchQuery}
-                    <button onClick={() => setSearchQuery('')}>
+                    {t("browse.searchChipPrefix")} {searchQuery}
+                    <button onClick={() => setSearchQuery("")}>
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
-                {propertyType !== 'all' && (
+                {propertyType !== "all" && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full text-sm">
-                    {propertyType === 'rent' ? t('listing.forRent') : t('listing.forSale')}
-                    <button onClick={() => setPropertyType('all')}>
+                    {propertyType === "rent"
+                      ? t("listing.forRent")
+                      : t("listing.forSale")}
+                    <button onClick={() => setPropertyType("all")}>
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
-                <button onClick={clearFilters} className="text-sm text-primary hover:underline">
-                  {tCommon('actions.clearAll')}
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {tCommon("actions.clearAll")}
                 </button>
               </div>
             )}
@@ -258,7 +286,9 @@ export default function Properties() {
                 i18nKey="browse.showingCount"
                 t={t}
                 values={{ count: filteredProperties.length }}
-                components={{ strong: <span className="font-medium text-foreground" /> }}
+                components={{
+                  strong: <span className="font-medium text-foreground" />,
+                }}
               />
             </p>
           </div>
@@ -279,14 +309,18 @@ export default function Properties() {
                 <Search className="w-8 h-8 text-muted-foreground" />
               </div>
               <h3 className="font-display text-xl font-semibold text-foreground mb-2">
-                {t('browse.noResultsTitle')}
+                {t("browse.noResultsTitle")}
               </h3>
-              <p className="text-muted-foreground mb-6">{t('browse.noResultsSubtitle')}</p>
-              <Button onClick={clearFilters}>{tCommon('actions.clearFilters')}</Button>
+              <p className="text-muted-foreground mb-6">
+                {t("browse.noResultsSubtitle")}
+              </p>
+              <Button onClick={clearFilters}>
+                {tCommon("actions.clearFilters")}
+              </Button>
             </div>
           ) : (
             <div
-              className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}
+              className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
             >
               {filteredProperties.map((property) => (
                 <PropertyCard key={property.id} property={property} />

@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "../config/supabase.js";
 import { brokerModel } from "../models/brokerModel.js";
 import { profileModel } from "../models/profileModel.js";
+import { isValidGovernorate } from "../constants/governorates.js";
 
 /** Shared anon client for password sign-in (no per-request allocation). */
 const anonAuthClient = createClient(
@@ -35,6 +36,7 @@ export const register = async (req, res, next) => {
       subdomain,
       phone,
       whatsapp,
+      governorate,
     } = formData;
 
     // Validate required fields
@@ -44,12 +46,20 @@ export const register = async (req, res, next) => {
       !firstName ||
       !lastName ||
       !platformName ||
-      !subdomain
+      !subdomain ||
+      !governorate
     ) {
       return res.status(400).json({
         status: "error",
         error:
-          "Missing required fields: email, password, firstName, lastName, platformName, subdomain",
+          "Missing required fields: email, password, firstName, lastName, platformName, subdomain, governorate",
+      });
+    }
+
+    if (!isValidGovernorate(governorate)) {
+      return res.status(400).json({
+        status: "error",
+        error: "Invalid governorate",
       });
     }
 
@@ -87,7 +97,8 @@ export const register = async (req, res, next) => {
 
     // 2. Create broker record (default package: free; user can change on /subscription)
     const pkg = formData.package || "free";
-    const packageLimits = { free: 5, plus: 10, pro: 50, ultra: 100 };
+    // ultra is effectively unlimited; large sentinel keeps the numeric column valid
+    const packageLimits = { free: 3, plus: 10, pro: 50, ultra: 999999 };
     const broker = await brokerModel.create({
       first_name: firstName,
       last_name: lastName,
@@ -96,6 +107,7 @@ export const register = async (req, res, next) => {
       email,
       phone_number: phone || "",
       whatsapp_number: whatsapp || "",
+      governorate,
       password: "managed-by-supabase-auth", // Auth is handled by Supabase
       package: pkg,
       package_limit: packageLimits[pkg] ?? 5,
@@ -161,8 +173,9 @@ export const login = async (req, res, next) => {
 
     let broker = null;
     try {
-      const brokerData =
-        await profileModel.findBrokerForLoginRedirect(data.user.id);
+      const brokerData = await profileModel.findBrokerForLoginRedirect(
+        data.user.id,
+      );
       if (brokerData) {
         broker = {
           id: brokerData.id,

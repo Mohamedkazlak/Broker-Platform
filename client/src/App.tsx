@@ -100,6 +100,7 @@ const App = ({ lang }: AppProps) => (
                       />
                       <Route path="insights" element={<DashboardInsights />} />
                       <Route path="settings" element={<DashboardSettings />} />
+                      <Route path="subscription" element={<Subscription />} />
                     </Route>
                     <Route path="/" element={<Index />} />
                     <Route path="*" element={<NotFound />} />

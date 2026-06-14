@@ -132,7 +132,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <DashboardSidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <DashboardSidebar
+        sidebarOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
@@ -294,7 +297,11 @@ export default function Dashboard() {
                       <td className="px-4 lg:px-6 py-4 text-end">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label="actions">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="actions"
+                            >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>

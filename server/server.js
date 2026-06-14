@@ -12,6 +12,7 @@ import propertyRoutes from "./routes/propertyRoutes.js";
 import brokerRoutes from "./routes/brokerRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
+import translateRoutes from "./routes/translateRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -49,11 +50,7 @@ app.use(
       return cb(new Error(`Origin ${origin} not allowed by CORS`));
     },
     credentials: true,
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Tenant-Subdomain",
-    ],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Tenant-Subdomain"],
   }),
 );
 
@@ -77,6 +74,7 @@ app.use("/api/properties", propertyRoutes);
 app.use("/api/brokers", brokerRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/translate", translateRoutes);
 
 // Server start time — client uses this to detect restarts and force re-login
 const serverStartedAt = Date.now();

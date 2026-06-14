@@ -1,22 +1,21 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Home,
-  Building2,
-  TrendingUp,
-  Settings,
-  LogOut,
-} from "lucide-react";
+import { Home, Building2, TrendingUp, Settings, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBroker } from "@/contexts/BrokerContext";
+import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
+import { CopyBrokerLinkButton } from "@/components/dashboard/CopyBrokerLinkButton";
 
 interface DashboardSidebarProps {
   sidebarOpen: boolean;
   onClose: () => void;
 }
 
-export function DashboardSidebar({ sidebarOpen, onClose }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  sidebarOpen,
+  onClose,
+}: DashboardSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, role, signOut } = useAuth();
@@ -25,9 +24,22 @@ export function DashboardSidebar({ sidebarOpen, onClose }: DashboardSidebarProps
   const { t: tCommon } = useTranslation("common");
 
   const links = [
-    { to: "/dashboard", label: t("sidebar.dashboard"), icon: Home, exact: true },
-    { to: "/dashboard/properties", label: t("sidebar.properties"), icon: Building2 },
-    { to: "/dashboard/insights", label: t("sidebar.insights"), icon: TrendingUp },
+    {
+      to: "/dashboard",
+      label: t("sidebar.dashboard"),
+      icon: Home,
+      exact: true,
+    },
+    {
+      to: "/dashboard/properties",
+      label: t("sidebar.properties"),
+      icon: Building2,
+    },
+    {
+      to: "/dashboard/insights",
+      label: t("sidebar.insights"),
+      icon: TrendingUp,
+    },
     { to: "/dashboard/settings", label: t("sidebar.settings"), icon: Settings },
   ];
 
@@ -83,9 +95,21 @@ export function DashboardSidebar({ sidebarOpen, onClose }: DashboardSidebarProps
             })}
           </nav>
 
-          {/* Language switcher */}
-          <div className="px-4 pb-2">
-            <LanguageSwitcher variant="outline" className="w-full justify-center" />
+          <div className="px-4 pb-4 space-y-2 border-t border-sidebar-border pt-4">
+            <CopyBrokerLinkButton />
+            <LanguageSwitcher
+              variant="outline"
+              className="w-full justify-center"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-4 h-4" />
+              {tCommon("nav.signOut")}
+            </Button>
           </div>
 
           {/* User */}
@@ -106,13 +130,6 @@ export function DashboardSidebar({ sidebarOpen, onClose }: DashboardSidebarProps
                   {role || t("sidebar.defaultRole")}
                 </p>
               </div>
-              <button
-                onClick={handleSignOut}
-                className="p-2 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors"
-                aria-label={tCommon("nav.signOut")}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>

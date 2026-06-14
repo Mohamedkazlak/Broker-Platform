@@ -15,7 +15,7 @@
       "description": "Great for getting started and exploring the platform",
       "features": [
         "Custom subdomain",
-        "Up to 5 property listings",
+        "Up to 3 property listings",
         "Mobile responsive website"
       ]
     },
@@ -25,14 +25,14 @@
       "description": "Great for getting started and exploring the platform",
       "features": [
         "Standard subdomain",
-        "Up to 5 property listings",
+        "Up to 3 property listings",
         "Standard responsive website",
         "Community support"
       ]
     },
     "plus": {
       "name": "Plus Package",
-      "price": "1,000",
+      "price": "300",
       "description": "Perfect for individual brokers starting out",
       "features": [
         "Custom subdomain",
@@ -43,23 +43,23 @@
     },
     "pro": {
       "name": "Pro Package",
-      "price": "2,000",
+      "price": "1,000",
       "description": "Best for growing real estate businesses",
       "features": [
         "Everything in Plus",
         "Up to 50 property listings",
-        "Full customization",
-        "Analytics dashboard"
+        "Custom domain name (e.g. ahmed.com)",
+        "Full customization"
       ]
     },
     "ultra": {
       "name": "Ultra Package",
-      "price": "4,000",
+      "price": "5,000",
       "description": "For agencies and top-tier brokers",
       "features": [
         "Everything in Pro",
         "Unlimited property listings",
-        "Custom domain",
+        "Dedicated mobile app for your website",
         "Dedicated manager"
       ]
     }
@@ -84,7 +84,7 @@
     "selectPlan": "Select Plan",
     "starterFeatures": [
       "Standard subdomain",
-      "Up to 5 property listings",
+      "Up to 3 property listings",
       "Standard responsive website",
       "Community support"
     ],
@@ -97,13 +97,13 @@
     "proFeatures": [
       "Everything in Plus",
       "Up to 50 property listings",
-      "Full customization",
-      "Analytics dashboard"
+      "Custom domain name (e.g. ahmed.com)",
+      "Full customization"
     ],
     "ultraFeatures": [
       "Everything in Pro",
       "Unlimited property listings",
-      "Custom domain",
+      "Dedicated mobile app for your website",
       "Dedicated manager"
     ],
     "toasts": {

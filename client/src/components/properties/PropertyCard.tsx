@@ -1,13 +1,16 @@
-import { Link } from 'react-router-dom';
-import { MapPin, Bed, Bath, Square, Heart } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Badge } from '@/components/ui/badge';
+import { Link } from "react-router-dom";
+import { MapPin, Bed, Bath, Square, Heart } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Badge } from "@/components/ui/badge";
+import { PropertyWhatsAppButton } from "@/components/properties/PropertyWhatsAppButton";
+import { usePropertyDisplayText } from "@/hooks/usePropertyDisplayText";
+import { translatedFurnished } from "@/utils/propertyLabels";
 
 export interface Property {
   id: string;
   title: string;
   description: string | null;
-  property_type: 'rent' | 'sale';
+  property_type: "rent" | "sale";
   price: number;
   currency: string;
   location: string;
@@ -16,7 +19,7 @@ export interface Property {
   bedrooms: number | null;
   bathrooms: number | null;
   area_sqft: number | null;
-  furnished: boolean | 'furnished' | 'unfurnished' | 'semi-furnished';
+  furnished: boolean | "furnished" | "unfurnished" | "semi-furnished";
   featured: boolean;
   status: string;
   image_url?: string;
@@ -25,7 +28,7 @@ export interface Property {
   property_code?: string;
   contract_duration?: string | null;
   price_negotiable?: boolean;
-  building_type?: 'apartment' | 'villa' | 'commercial' | string;
+  building_type?: "apartment" | "villa" | "commercial" | string;
   apartment_level?: number | string | null;
   villa_levels?: number | string | null;
   finishing?: string | null;
@@ -38,31 +41,44 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property }: PropertyCardProps) {
-  const { t, i18n } = useTranslation('property');
-  const localeNum = i18n.language?.startsWith('ar') ? 'ar-EG' : 'en-US';
-  const badgeCase = i18n.language?.startsWith('ar') ? 'normal-case tracking-normal' : 'uppercase tracking-wide';
+  const { t, i18n } = useTranslation(["property", "governorates"]);
+  const tGov = i18n.getFixedT(i18n.language, "governorates");
+  const localeNum = i18n.language?.startsWith("ar") ? "ar-EG" : "en-US";
+  const badgeCase = i18n.language?.startsWith("ar")
+    ? "normal-case tracking-normal"
+    : "uppercase tracking-wide";
 
   const furnishingChipLabel = (): string | null => {
     const f = property.furnished;
-    if (typeof f === 'boolean')
-      return f ? t('listing.furnishedLabels.furnished') : null;
-    if (!f || f === 'unfurnished') return null;
-    if (f === 'furnished') return t('listing.furnishedLabels.furnished');
-    if (f === 'semi-furnished') return t('listing.furnishedLabels.semiFurnished');
-    return null;
+    if (typeof f === "boolean") return f ? translatedFurnished(t, f) : null;
+    if (!f || f === "unfurnished") return null;
+    return translatedFurnished(t, f);
   };
 
   const furnishingChip = furnishingChipLabel();
 
-  const formatPrice = (price: number, currency: string, type: 'rent' | 'sale') => {
-    const formatted = new Intl.NumberFormat(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
+  const displayText = usePropertyDisplayText(property, i18n.language, {
+    includeDescription: false,
+  });
 
-    return type === 'rent' ? `${formatted}${t('listing.priceSuffixMonthShort')}` : formatted;
+  const formatPrice = (
+    price: number,
+    currency: string,
+    type: "rent" | "sale",
+  ) => {
+    const formatted = new Intl.NumberFormat(
+      i18n.language === "ar" ? "ar-EG" : "en-US",
+      {
+        style: "currency",
+        currency: currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      },
+    ).format(price);
+
+    return type === "rent"
+      ? `${formatted}${t("listing.priceSuffixMonthShort")}`
+      : formatted;
   };
 
   return (
@@ -75,9 +91,9 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <img
           src={
             property.image_url ||
-            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80'
+            "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80"
           }
-          alt={property.title}
+          alt={displayText.title}
           className="property-image w-full h-full object-cover"
         />
 
@@ -87,37 +103,47 @@ export function PropertyCard({ property }: PropertyCardProps) {
         {/* Badges */}
         <div className="absolute top-4 start-4 flex gap-2">
           <Badge
-            className={`${property.property_type === 'rent'
-              ? 'bg-navy text-primary-foreground'
-              : 'bg-accent text-accent-foreground'
-              } font-medium text-xs ${badgeCase}`}
+            className={`${
+              property.property_type === "rent"
+                ? "bg-navy text-primary-foreground"
+                : "bg-accent text-accent-foreground"
+            } font-medium text-xs ${badgeCase}`}
           >
-            {property.property_type === 'rent' ? t('listing.forRent') : t('listing.forSale')}
+            {property.property_type === "rent"
+              ? t("listing.forRent")
+              : t("listing.forSale")}
           </Badge>
           {property.featured && (
             <Badge
-              className={`bg-accent text-accent-foreground font-medium text-xs ${i18n.language?.startsWith('ar') ? 'normal-case tracking-normal' : ''}`}
+              className={`bg-accent text-accent-foreground font-medium text-xs ${i18n.language?.startsWith("ar") ? "normal-case tracking-normal" : ""}`}
             >
-              {t('listing.featured')}
+              {t("listing.featured")}
             </Badge>
           )}
         </div>
 
-        {/* Favorite Button */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-          }}
-          className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md hover:bg-white transition-colors group/fav"
-          aria-label={t('listing.ariaFavorite')}
-        >
-          <Heart className="w-5 h-5 text-muted-foreground group-hover/fav:text-destructive transition-colors" />
-        </button>
+        {/* Actions */}
+        <div className="absolute top-4 end-4 flex flex-col gap-2">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+            }}
+            className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md hover:bg-white transition-colors group/fav"
+            aria-label={t("listing.ariaFavorite")}
+          >
+            <Heart className="w-5 h-5 text-muted-foreground group-hover/fav:text-destructive transition-colors" />
+          </button>
+          <PropertyWhatsAppButton propertyId={property.id} variant="icon" />
+        </div>
 
         {/* Price */}
         <div className="absolute bottom-4 start-4">
           <p className="text-2xl font-display font-bold text-white">
-            {formatPrice(property.price, property.currency, property.property_type)}
+            {formatPrice(
+              property.price,
+              property.currency,
+              property.property_type,
+            )}
           </p>
         </div>
       </div>
@@ -127,14 +153,11 @@ export function PropertyCard({ property }: PropertyCardProps) {
         {/* Title & Location */}
         <div>
           <h3 className="font-display text-lg font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-            {property.title}
+            {displayText.title}
           </h3>
           <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground">
             <MapPin className="w-4 h-4 text-accent" />
-            <span className="text-sm line-clamp-1">
-              {property.location}
-              {property.city && `, ${property.city}`}
-            </span>
+            <span className="text-sm line-clamp-1">{displayText.location}</span>
           </div>
         </div>
 
@@ -144,10 +167,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
             <div className="flex items-center gap-1.5">
               <Bed className="w-4 h-4" />
               <span className="text-sm">
-                {property.bedrooms}{' '}
-                {property.building_type === 'commercial'
-                  ? t('listing.offices')
-                  : t('listing.beds')}
+                {property.bedrooms}{" "}
+                {property.building_type === "commercial"
+                  ? t("listing.offices")
+                  : t("listing.beds")}
               </span>
             </div>
           )}
@@ -155,7 +178,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
             <div className="flex items-center gap-1.5">
               <Bath className="w-4 h-4" />
               <span className="text-sm">
-                {property.bathrooms} {t('listing.baths')}
+                {property.bathrooms} {t("listing.baths")}
               </span>
             </div>
           )}
@@ -163,7 +186,8 @@ export function PropertyCard({ property }: PropertyCardProps) {
             <div className="flex items-center gap-1.5">
               <Square className="w-4 h-4" />
               <span className="text-sm">
-                {property.area_sqft.toLocaleString(localeNum)} {t('listing.areaUnit')}
+                {property.area_sqft.toLocaleString(localeNum)}{" "}
+                {t("listing.areaUnit")}
               </span>
             </div>
           )}

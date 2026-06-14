@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  Menu,
-  ArrowLeft,
-  Upload,
-} from "lucide-react";
+import { Menu, ArrowLeft, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,10 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import { propertyService } from "@/services/propertyService";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import {
-  AMENITY_KEYS,
-  normalizeAmenityPersistedList,
-} from "@/utils/amenities";
+import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
+import { AMENITY_KEYS, normalizeAmenityPersistedList } from "@/utils/amenities";
 
 export default function DashboardAddProperty() {
   const { id: editId } = useParams();
@@ -99,7 +93,8 @@ export default function DashboardAddProperty() {
         if (cancelled) return;
         setForm({
           property_code:
-            (p as { property_code?: string }).property_code ?? generatePropertyCode(),
+            (p as { property_code?: string }).property_code ??
+            generatePropertyCode(),
           title: p.title,
           description: p.description ?? "",
           property_type: p.property_type,
@@ -109,12 +104,14 @@ export default function DashboardAddProperty() {
           city: p.city ?? "",
           country: p.country ?? "",
           building_type:
-            (p.building_type as "apartment" | "villa" | "commercial") ?? "apartment",
+            (p.building_type as "apartment" | "villa" | "commercial") ??
+            "apartment",
           apartment_level:
             p.apartment_level != null ? String(p.apartment_level) : "",
           villa_levels: p.villa_levels != null ? String(p.villa_levels) : "",
           finishing:
-            (p.finishing as "" | "economic" | "medium" | "luxury" | "ultra") ?? "",
+            (p.finishing as "" | "economic" | "medium" | "luxury" | "ultra") ??
+            "",
           contract_duration:
             (p as { contract_duration?: string }).contract_duration ?? "",
           price_negotiable: p.price_negotiable ?? false,
@@ -122,8 +119,11 @@ export default function DashboardAddProperty() {
           bathrooms: p.bathrooms != null ? String(p.bathrooms) : "",
           area_sqft: p.area_sqft != null ? String(p.area_sqft) : "",
           furnished:
-            (p.furnished as "" | "furnished" | "unfurnished" | "semi-furnished") ??
-            "",
+            (p.furnished as
+              | ""
+              | "furnished"
+              | "unfurnished"
+              | "semi-furnished") ?? "",
           featured: p.featured ?? false,
           status: p.status ?? "active",
           image_url: p.image_url ?? "",
@@ -266,7 +266,9 @@ export default function DashboardAddProperty() {
         city: form.city || null,
         country: form.country || null,
         building_type: form.building_type,
-        apartment_level: form.apartment_level ? Number(form.apartment_level) : null,
+        apartment_level: form.apartment_level
+          ? Number(form.apartment_level)
+          : null,
         villa_levels: form.villa_levels ? Number(form.villa_levels) : null,
         finishing: form.finishing || null,
         contract_duration: form.contract_duration || null,
@@ -327,7 +329,10 @@ export default function DashboardAddProperty() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <DashboardSidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <DashboardSidebar
+        sidebarOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main Content */}
       <main className="flex-1 min-w-0">
@@ -347,7 +352,9 @@ export default function DashboardAddProperty() {
               </Link>
             </Button>
             <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
-              {isEdit ? t("addProperty.headingEdit") : t("addProperty.headingAdd")}
+              {isEdit
+                ? t("addProperty.headingEdit")
+                : t("addProperty.headingAdd")}
             </h1>
           </div>
         </header>
@@ -483,17 +490,33 @@ export default function DashboardAddProperty() {
                   >
                     <SelectTrigger>
                       <SelectValue
-                        placeholder={t("addProperty.fields.contractDurationPlaceholder")}
+                        placeholder={t(
+                          "addProperty.fields.contractDurationPlaceholder",
+                        )}
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">{t("addProperty.fields.months1")}</SelectItem>
-                      <SelectItem value="2">{t("addProperty.fields.months2")}</SelectItem>
-                      <SelectItem value="3">{t("addProperty.fields.months3")}</SelectItem>
-                      <SelectItem value="6">{t("addProperty.fields.months6")}</SelectItem>
-                      <SelectItem value="12">{t("addProperty.fields.year1")}</SelectItem>
-                      <SelectItem value="24">{t("addProperty.fields.years2")}</SelectItem>
-                      <SelectItem value="60">{t("addProperty.fields.years5")}</SelectItem>
+                      <SelectItem value="1">
+                        {t("addProperty.fields.months1")}
+                      </SelectItem>
+                      <SelectItem value="2">
+                        {t("addProperty.fields.months2")}
+                      </SelectItem>
+                      <SelectItem value="3">
+                        {t("addProperty.fields.months3")}
+                      </SelectItem>
+                      <SelectItem value="6">
+                        {t("addProperty.fields.months6")}
+                      </SelectItem>
+                      <SelectItem value="12">
+                        {t("addProperty.fields.year1")}
+                      </SelectItem>
+                      <SelectItem value="24">
+                        {t("addProperty.fields.years2")}
+                      </SelectItem>
+                      <SelectItem value="60">
+                        {t("addProperty.fields.years5")}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -558,7 +581,9 @@ export default function DashboardAddProperty() {
                     type="number"
                     min={1}
                     max={99}
-                    placeholder={t("addProperty.fields.apartmentLevelPlaceholder")}
+                    placeholder={t(
+                      "addProperty.fields.apartmentLevelPlaceholder",
+                    )}
                     value={form.apartment_level}
                     onChange={(e) =>
                       handleChange("apartment_level", e.target.value)
@@ -577,19 +602,28 @@ export default function DashboardAddProperty() {
                   >
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="1" id="villa-1" />
-                      <Label htmlFor="villa-1" className="font-normal cursor-pointer">
+                      <Label
+                        htmlFor="villa-1"
+                        className="font-normal cursor-pointer"
+                      >
                         {t("addProperty.fields.level1")}
                       </Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="2" id="villa-2" />
-                      <Label htmlFor="villa-2" className="font-normal cursor-pointer">
+                      <Label
+                        htmlFor="villa-2"
+                        className="font-normal cursor-pointer"
+                      >
                         {t("addProperty.fields.level2")}
                       </Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="3" id="villa-3" />
-                      <Label htmlFor="villa-3" className="font-normal cursor-pointer">
+                      <Label
+                        htmlFor="villa-3"
+                        className="font-normal cursor-pointer"
+                      >
                         {t("addProperty.fields.level3")}
                       </Label>
                     </div>
@@ -634,7 +668,9 @@ export default function DashboardAddProperty() {
                 <div className="space-y-2">
                   <Label
                     htmlFor={
-                      form.building_type === "commercial" ? "offices" : "bedrooms"
+                      form.building_type === "commercial"
+                        ? "offices"
+                        : "bedrooms"
                     }
                   >
                     {form.building_type === "commercial"
@@ -643,7 +679,9 @@ export default function DashboardAddProperty() {
                   </Label>
                   <Input
                     id={
-                      form.building_type === "commercial" ? "offices" : "bedrooms"
+                      form.building_type === "commercial"
+                        ? "offices"
+                        : "bedrooms"
                     }
                     type="number"
                     min="0"
@@ -666,7 +704,9 @@ export default function DashboardAddProperty() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="area_sqft">{t("addProperty.fields.area")}</Label>
+                  <Label htmlFor="area_sqft">
+                    {t("addProperty.fields.area")}
+                  </Label>
                   <Input
                     id="area_sqft"
                     type="number"
@@ -714,7 +754,10 @@ export default function DashboardAddProperty() {
                   checked={form.featured}
                   onCheckedChange={(v) => handleChange("featured", v)}
                 />
-                <Label htmlFor="featured" className="font-normal cursor-pointer">
+                <Label
+                  htmlFor="featured"
+                  className="font-normal cursor-pointer"
+                >
                   {t("addProperty.fields.featuredListing")}
                 </Label>
               </div>
@@ -732,7 +775,9 @@ export default function DashboardAddProperty() {
                 </Label>
                 <Input
                   id="location"
-                  placeholder={t("addProperty.fields.locationAddressPlaceholder")}
+                  placeholder={t(
+                    "addProperty.fields.locationAddressPlaceholder",
+                  )}
                   value={form.location}
                   onChange={(e) => handleChange("location", e.target.value)}
                   required
@@ -742,15 +787,17 @@ export default function DashboardAddProperty() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="city">{t("addProperty.fields.city")}</Label>
-                  <Input
+                  <GovernorateSelect
                     id="city"
-                    placeholder={t("addProperty.fields.cityPlaceholder")}
                     value={form.city}
-                    onChange={(e) => handleChange("city", e.target.value)}
+                    onChange={(value) => handleChange("city", value)}
+                    placeholder={t("addProperty.fields.cityPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="country">{t("addProperty.fields.country")}</Label>
+                  <Label htmlFor="country">
+                    {t("addProperty.fields.country")}
+                  </Label>
                   <Input
                     id="country"
                     placeholder={t("addProperty.fields.countryPlaceholder")}
@@ -986,14 +1033,16 @@ export default function DashboardAddProperty() {
                 asChild
                 disabled={submitting}
               >
-                <Link to="/dashboard/properties">{tCommon("actions.cancel")}</Link>
+                <Link to="/dashboard/properties">
+                  {tCommon("actions.cancel")}
+                </Link>
               </Button>
               <Button type="submit" disabled={submitting}>
                 {submitting
                   ? uploadProgress || t("addProperty.submit.saving")
                   : isEdit
-                  ? t("addProperty.submit.update")
-                  : t("addProperty.submit.save")}
+                    ? t("addProperty.submit.update")
+                    : t("addProperty.submit.save")}
               </Button>
             </div>
           </form>
