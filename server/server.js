@@ -147,5 +147,5 @@ app.use(errorHandler);
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
   console.log(`📡 API available at http://localhost:${PORT}/api`);
-  console.log(`🔧 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV || "production"}`);
 });
