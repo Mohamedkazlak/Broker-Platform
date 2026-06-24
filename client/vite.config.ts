@@ -69,30 +69,6 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
-    build: {
-      rollupOptions: {
-        output: {
-          // Split large third-party libraries into separate, long-lived cache
-          // chunks so the main app bundle stays small and vendor code isn't
-          // re-downloaded on every app deploy. Each library is only fetched by
-          // the routes that actually import it (e.g. charts on the insights page).
-          manualChunks: (id) => {
-            if (!id.includes("node_modules")) return undefined;
-            if (
-              /[\\/](react(?:-dom)?|react-router|@remix-run|scheduler|lucide-react)[\\/]/.test(
-                id,
-              )
-            )
-              return "react-vendor";
-            if (id.includes("@supabase")) return "supabase";
-            if (id.includes("framer-motion")) return "motion";
-            if (id.includes("recharts") || id.includes("d3-")) return "charts";
-            if (id.includes("i18next")) return "i18n";
-            if (id.includes("@radix-ui")) return "radix";
-            return "vendor";
-          },
-        },
-      },
-    },
+    build: {},
   };
 });
