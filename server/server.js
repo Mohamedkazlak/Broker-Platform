@@ -45,7 +45,7 @@ app.use(helmet());
 // CORS — allow the main host and ANY *.localhost / *.myflat.com / *.lovable.app
 // subdomain on any port (covers 5173, 8080, 3000, etc).
 const subdomainOriginPattern =
-  /^https?:\/\/([a-z0-9-]+\.)*(localhost|myflat\.com|lovable\.app)(:\d+)?$/i;
+  /^https?:\/\/([a-z0-9-]+\.)*(localhost|myflat\.com|.app|onrender\.com)(:\d+)?$/i;
 const explicitOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
