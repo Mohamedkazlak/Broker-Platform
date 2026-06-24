@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: (id) => {
             if (!id.includes("node_modules")) return undefined;
             if (
-              /[\\/](react(?:-dom)?|react-router|@remix-run|scheduler)[\\/]/.test(
+              /[\\/](react(?:-dom)?|react-router|@remix-run|scheduler|lucide-react)[\\/]/.test(
                 id,
               )
             )
