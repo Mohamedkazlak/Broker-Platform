@@ -1,4 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
+import { buildTenantUrl } from "@/utils/tenant";
 
 /**
  * Cross-subdomain session relay.
@@ -12,12 +13,21 @@ import { supabase } from '@/integrations/supabase/client';
 /** Build a redirect URL that carries the current session tokens. */
 export async function buildSubdomainRedirect(
   subdomain: string,
-  path: string = '/dashboard'
+  path: string = "/dashboard",
+  lang?: string,
 ): Promise<string> {
-  const port = window.location.port ? `:${window.location.port}` : '';
-  const base = `http://${subdomain}.localhost${port}${path}`;
+  const language =
+    lang ||
+    localStorage.getItem("i18nextLng") ||
+    document.documentElement.lang ||
+    "en";
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const localizedPath = `/${language}${normalizedPath}`;
+  const base = buildTenantUrl(subdomain, localizedPath);
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (session) {
     const params = new URLSearchParams({
       access_token: session.access_token,
@@ -39,8 +49,8 @@ export async function acceptRelayedSession(): Promise<boolean> {
   if (!hash) return false;
 
   const params = new URLSearchParams(hash);
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
 
   if (!accessToken || !refreshToken) return false;
 
@@ -51,7 +61,7 @@ export async function acceptRelayedSession(): Promise<boolean> {
   });
 
   // Clean the tokens from the URL (security)
-  window.history.replaceState(null, '', window.location.pathname);
+  window.history.replaceState(null, "", window.location.pathname);
 
   return !error;
 }

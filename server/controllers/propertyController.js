@@ -35,6 +35,34 @@ export const getAll = async (req, res, next) => {
 };
 
 /**
+ * GET /api/properties/stats
+ * Public — hero stats for the current tenant subdomain.
+ */
+export const getHeroStats = async (req, res, next) => {
+  try {
+    if (!req.subdomain) {
+      return res
+        .status(400)
+        .json({ status: "error", error: "Subdomain required" });
+    }
+
+    const broker = await getBrokerBySubdomainCached(req.subdomain, () =>
+      brokerModel.findBySubdomain(req.subdomain),
+    );
+    if (!broker) {
+      return res
+        .status(404)
+        .json({ status: "error", error: "Tenant not found" });
+    }
+
+    const stats = await propertyModel.getHeroStats(broker.id);
+    res.json({ status: "success", data: stats });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/properties/:id
  * Public — returns a single property by ID.
  */
@@ -100,12 +128,10 @@ export const update = async (req, res, next) => {
     );
 
     if (!data) {
-      return res
-        .status(404)
-        .json({
-          status: "error",
-          error: "Property not found or not owned by you",
-        });
+      return res.status(404).json({
+        status: "error",
+        error: "Property not found or not owned by you",
+      });
     }
 
     res.json({ status: "success", data });

@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import {
   Home,
   Building2,
-  Users,
-  TrendingUp,
+  DollarSign,
+  MapPin,
   Plus,
   Search,
   MoreVertical,
@@ -26,8 +26,12 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Property } from "@/components/properties/PropertyCard";
 import { propertyService } from "@/services/propertyService";
-import { analyticsService } from "@/services/analyticsService";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import {
+  computeMonthlyRevenue,
+  countActiveCities,
+  formatRevenue,
+} from "@/utils/formatRevenue";
 
 export default function Dashboard() {
   const { profile, isLoading } = useAuth();
@@ -35,14 +39,12 @@ export default function Dashboard() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [viewsThisMonth, setViewsThisMonth] = useState(0);
-  const [percentVsLastMonth, setPercentVsLastMonth] = useState(0);
-  const [insightsTotal, setInsightsTotal] = useState(0);
-
   const activeCount = properties.filter((p) => p.status === "active").length;
   const totalCount = properties.length;
   const activePct =
     totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0;
+  const activeCities = countActiveCities(properties);
+  const monthlyRevenue = computeMonthlyRevenue(properties);
 
   const stats = [
     {
@@ -58,19 +60,20 @@ export default function Dashboard() {
       change: t("overview.stats.activeListingsChange", { percent: activePct }),
     },
     {
-      label: t("overview.stats.totalInsights"),
-      value: insightsTotal.toString(),
-      icon: Users,
-      change: t("overview.stats.totalInsightsChange"),
+      label: t("overview.stats.activeCities"),
+      value: activeCities.toString(),
+      icon: MapPin,
+      change: t("overview.stats.activeCitiesChange", { count: activeCities }),
     },
     {
-      label: t("overview.stats.viewsThisMonth"),
-      value: viewsThisMonth.toString(),
-      icon: TrendingUp,
-      change: t("overview.stats.viewsThisMonthChange", {
-        sign: percentVsLastMonth >= 0 ? "+" : "",
-        percent: percentVsLastMonth,
-      }),
+      label: t("overview.stats.monthlyRevenue"),
+      value: formatRevenue(
+        monthlyRevenue.total,
+        monthlyRevenue.currency,
+        i18n.language,
+      ),
+      icon: DollarSign,
+      change: t("overview.stats.monthlyRevenueChange"),
     },
   ];
 
@@ -79,17 +82,11 @@ export default function Dashboard() {
     let cancelled = false;
     (async () => {
       try {
-        const [propsRes, summaryRes] = await Promise.all([
-          propertyService.getAll({ broker_id: profile.broker_id }),
-          analyticsService.getSummary().catch(() => null),
-        ]);
+        const propsRes = await propertyService.getAll({
+          broker_id: profile.broker_id,
+        });
         if (cancelled) return;
         setProperties(Array.isArray(propsRes) ? propsRes : []);
-        if (summaryRes) {
-          setViewsThisMonth(summaryRes.viewsThisMonth);
-          setPercentVsLastMonth(summaryRes.percentVsLastMonth);
-          setInsightsTotal(summaryRes.total);
-        }
       } catch (e) {
         if (!cancelled) setProperties([]);
       }

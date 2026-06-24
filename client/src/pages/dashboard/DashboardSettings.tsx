@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,24 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBroker } from "@/contexts/BrokerContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, User, Building2, Lock, Palette } from "lucide-react";
+import api from "@/lib/api";
+import { buildSubdomainRedirect } from "@/lib/sessionRelay";
+import { useSubdomainAvailability } from "@/hooks/useSubdomainAvailability";
+import {
+  ArrowLeft,
+  Save,
+  User,
+  Building2,
+  Lock,
+  Palette,
+  Check,
+  Loader2,
+} from "lucide-react";
 import {
   BrandingFields,
   type BrandingFiles,
 } from "@/components/settings/BrandingFields";
+import { AccountDetails } from "@/components/settings/AccountDetails";
 import { hasBrandingAccess, uploadBrokerBranding } from "@/lib/brokerBranding";
 import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
@@ -31,7 +44,7 @@ const DashboardSettings = () => {
   const { toast } = useToast();
   const { profile, user } = useAuth();
   const { broker } = useBroker();
-  const { t } = useTranslation("dashboard");
+  const { t, i18n } = useTranslation("dashboard");
   const { t: tCommon } = useTranslation("common");
 
   const fullNameParts = (profile?.full_name || "").split(" ");
@@ -49,6 +62,28 @@ const DashboardSettings = () => {
     platform_name: broker?.platform_name || "",
     domain: broker?.subdomain || "",
   });
+  const [currentSubdomain, setCurrentSubdomain] = useState(
+    broker?.subdomain || "",
+  );
+
+  useEffect(() => {
+    if (!broker?.subdomain) return;
+    setCurrentSubdomain(broker.subdomain);
+    setPlatformForm((prev) => ({
+      ...prev,
+      domain: broker.subdomain,
+    }));
+  }, [broker?.subdomain]);
+
+  const normalizedDomain = platformForm.domain.trim().toLowerCase();
+  const isOwnSubdomain =
+    normalizedDomain.length > 0 && normalizedDomain === currentSubdomain;
+  const { status: liveSubdomainStatus } = useSubdomainAvailability(
+    !isOwnSubdomain ? platformForm.domain : "",
+  );
+  const subdomainStatus = isOwnSubdomain ? "current" : liveSubdomainStatus;
+  const subdomainChanged = normalizedDomain !== currentSubdomain;
+  const canSavePlatform = !subdomainChanged || subdomainStatus === "available";
 
   const [passwordForm, setPasswordForm] = useState({
     new_password: "",
@@ -139,20 +174,70 @@ const DashboardSettings = () => {
   };
 
   const handleSavePlatform = async () => {
+    if (!normalizedDomain) {
+      toast({
+        title: t("settings.toasts.errorSaving"),
+        description: t("settings.subdomain.required"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (subdomainChanged && subdomainStatus !== "available") {
+      const messageKey =
+        subdomainStatus === "taken" ||
+        subdomainStatus === "reserved" ||
+        subdomainStatus === "invalid"
+          ? (`settings.subdomain.${subdomainStatus}` as const)
+          : "settings.subdomain.unavailable";
+      toast({
+        title: t("settings.toasts.errorSaving"),
+        description: t(messageKey),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSavingPlatform(true);
     try {
-      if (broker && broker.id !== "demo-broker-id") {
-        const { error } = await supabase
-          .from("brokers")
-          .update({
-            platform_name: platformForm.platform_name,
-            subdomain: platformForm.domain,
-          })
-          .eq("id", broker.id);
-
-        if (error) throw error;
+      if (subdomainChanged) {
+        const { data } = await api.get("/brokers/check-subdomain", {
+          params: { subdomain: normalizedDomain },
+        });
+        if (!data?.available) {
+          const reason = data?.reason;
+          const messageKey =
+            reason === "taken" || reason === "reserved" || reason === "invalid"
+              ? (`settings.subdomain.${reason}` as const)
+              : "settings.subdomain.unavailable";
+          toast({
+            title: t("settings.toasts.errorSaving"),
+            description: t(messageKey),
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
+      if (broker && broker.id !== "demo-broker-id") {
+        await api.patch(`/brokers/${broker.id}`, {
+          platform_name: platformForm.platform_name,
+          subdomain: normalizedDomain,
+        });
+      }
+
+      if (subdomainChanged) {
+        toast({ title: t("settings.toasts.platformUpdated") });
+        const url = await buildSubdomainRedirect(
+          normalizedDomain,
+          "/dashboard/settings",
+          i18n.language,
+        );
+        window.location.href = url;
+        return;
+      }
+
+      setCurrentSubdomain(normalizedDomain);
       toast({ title: t("settings.toasts.platformUpdated") });
     } catch (err: any) {
       toast({
@@ -254,6 +339,8 @@ const DashboardSettings = () => {
             </p>
           </div>
         </div>
+
+        <AccountDetails />
 
         <Card>
           <CardHeader>
@@ -380,16 +467,31 @@ const DashboardSettings = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="domain">{t("settings.domain")}</Label>
-              <Input
-                id="domain"
-                value={platformForm.domain}
-                onChange={(e) =>
-                  setPlatformForm((p) => ({ ...p, domain: e.target.value }))
-                }
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="domain"
+                  dir="ltr"
+                  value={platformForm.domain}
+                  onChange={(e) =>
+                    setPlatformForm((p) => ({
+                      ...p,
+                      domain: e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]/g, ""),
+                    }))
+                  }
+                />
+                <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                  {t("settings.subdomain.suffix")}
+                </span>
+              </div>
+              <SubdomainStatusLine status={subdomainStatus} />
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSavePlatform} disabled={savingPlatform}>
+              <Button
+                onClick={handleSavePlatform}
+                disabled={savingPlatform || !canSavePlatform}
+              >
                 <Save className="h-4 w-4 me-2" />
                 {savingPlatform
                   ? tCommon("actions.saving")
@@ -497,5 +599,42 @@ const DashboardSettings = () => {
     </div>
   );
 };
+
+function SubdomainStatusLine({ status }: { status: string }) {
+  const { t } = useTranslation("dashboard");
+
+  if (status === "checking") {
+    return (
+      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        {t("settings.subdomain.checking")}
+      </p>
+    );
+  }
+  if (status === "current") {
+    return (
+      <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Check className="w-3.5 h-3.5" />
+        {t("settings.subdomain.current")}
+      </p>
+    );
+  }
+  if (status === "available") {
+    return (
+      <p className="flex items-center gap-1.5 text-sm text-green-600">
+        <Check className="w-3.5 h-3.5" />
+        {t("settings.subdomain.available")}
+      </p>
+    );
+  }
+  if (status === "taken" || status === "reserved" || status === "invalid") {
+    return (
+      <p className="text-sm text-destructive">
+        {t(`settings.subdomain.${status}`)}
+      </p>
+    );
+  }
+  return null;
+}
 
 export default DashboardSettings;

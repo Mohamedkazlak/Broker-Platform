@@ -6,11 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useBroker } from "@/contexts/BrokerContext";
 import { DEFAULT_HERO_IMAGE, hasBrandingAccess } from "@/lib/brokerBranding";
+import { useBrokerHeroStats } from "@/hooks/useBrokerHeroStats";
 
 export function HeroSection() {
-  const { broker } = useBroker();
+  const { broker, isLoading: brokerLoading } = useBroker();
   const { t } = useTranslation("home");
   const navigate = useNavigate();
+  const { display: heroStats } = useBrokerHeroStats(
+    broker?.package,
+    brokerLoading,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [propertyType, setPropertyType] = useState<"all" | "rent" | "sale">(
     "all",
@@ -30,11 +35,21 @@ export function HeroSection() {
     { value: "sale", label: t("hero.typeBuy") },
   ];
 
-  const stats = [
-    { icon: Home, value: "2000+", label: t("hero.statsProperties") },
-    { icon: MapPin, value: "20+", label: t("hero.statsCities") },
-    { icon: DollarSign, value: "$100M+", label: t("hero.statsSalesVolume") },
-  ];
+  const stats = heroStats
+    ? [
+        {
+          icon: Home,
+          value: heroStats.properties,
+          label: t("hero.statsProperties"),
+        },
+        { icon: MapPin, value: heroStats.cities, label: t("hero.statsCities") },
+        {
+          icon: DollarSign,
+          value: heroStats.salesVolume,
+          label: t("hero.statsSalesVolume"),
+        },
+      ]
+    : [];
 
   const heroImage =
     broker && hasBrandingAccess(broker.package) && broker.hero_background_url
@@ -133,25 +148,27 @@ export function HeroSection() {
           </div>
         </form>
 
-        {/* Stats */}
-        <div
-          className="hero-text mt-16 flex flex-wrap justify-center gap-8 lg:gap-16"
-          style={{ animationDelay: "0.8s", opacity: 0 }}
-        >
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <stat.icon className="w-5 h-5 text-accent" />
-                <span className="text-3xl font-display font-bold text-primary-foreground">
-                  {stat.value}
+        {/* Stats — shown for paid brokers with 20+ properties and 2+ cities */}
+        {stats.length > 0 && (
+          <div
+            className="hero-text mt-16 flex flex-wrap justify-center gap-8 lg:gap-16"
+            style={{ animationDelay: "0.8s", opacity: 0 }}
+          >
+            {stats.map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <stat.icon className="w-5 h-5 text-accent" />
+                  <span className="text-3xl font-display font-bold text-primary-foreground">
+                    {stat.value}
+                  </span>
+                </div>
+                <span className="text-sm text-primary-foreground/70">
+                  {stat.label}
                 </span>
               </div>
-              <span className="text-sm text-primary-foreground/70">
-                {stat.label}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Scroll Indicator */}

@@ -66,4 +66,4 @@ Here are previews of the platform to give you an idea of the polished UI and use
    ```
 
 > [!TIP]
-> Ensure you have your `client/.env` and `server/.env` configured according to standard platform templates (e.g., Supabase Keys, server URLs, Subdomain base URLs).
+> Ensure you have a root `.env` configured (see `.env.example` for required variables: Supabase keys, server URL, etc.).

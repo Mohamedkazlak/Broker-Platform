@@ -3,6 +3,7 @@ import { supabaseAdmin } from "../config/supabase.js";
 import { brokerModel } from "../models/brokerModel.js";
 import { profileModel } from "../models/profileModel.js";
 import { isValidGovernorate } from "../constants/governorates.js";
+import { createPendingSubdomain } from "../utils/subdomainGenerator.js";
 
 /** Shared anon client for password sign-in (no per-request allocation). */
 const anonAuthClient = createClient(
@@ -33,7 +34,6 @@ export const register = async (req, res, next) => {
       firstName,
       lastName,
       platformName,
-      subdomain,
       phone,
       whatsapp,
       governorate,
@@ -46,13 +46,12 @@ export const register = async (req, res, next) => {
       !firstName ||
       !lastName ||
       !platformName ||
-      !subdomain ||
       !governorate
     ) {
       return res.status(400).json({
         status: "error",
         error:
-          "Missing required fields: email, password, firstName, lastName, platformName, subdomain, governorate",
+          "Missing required fields: email, password, firstName, lastName, platformName, governorate",
       });
     }
 
@@ -63,18 +62,7 @@ export const register = async (req, res, next) => {
       });
     }
 
-    const subNormalized = subdomain.toLowerCase().trim();
-    const [existingBroker, existingEmail] = await Promise.all([
-      brokerModel.findBySubdomain(subNormalized),
-      brokerModel.findByEmail(email),
-    ]);
-
-    if (existingBroker) {
-      return res.status(409).json({
-        status: "error",
-        error: "This subdomain is already taken",
-      });
-    }
+    const existingEmail = await brokerModel.findByEmail(email);
 
     if (existingEmail) {
       return res.status(409).json({
@@ -95,7 +83,8 @@ export const register = async (req, res, next) => {
 
     const userId = authData.user.id;
 
-    // 2. Create broker record (default package: free; user can change on /subscription)
+    // 2. Create broker record. Subdomain is assigned later: auto-generated on
+    // free-plan selection, or chosen on domain setup for paid plans.
     const pkg = formData.package || "free";
     // ultra is effectively unlimited; large sentinel keeps the numeric column valid
     const packageLimits = { free: 3, plus: 10, pro: 50, ultra: 999999 };
@@ -103,7 +92,7 @@ export const register = async (req, res, next) => {
       first_name: firstName,
       last_name: lastName,
       platform_name: platformName,
-      subdomain: subNormalized,
+      subdomain: createPendingSubdomain(),
       email,
       phone_number: phone || "",
       whatsapp_number: whatsapp || "",
@@ -111,6 +100,10 @@ export const register = async (req, res, next) => {
       password: "managed-by-supabase-auth", // Auth is handled by Supabase
       package: pkg,
       package_limit: packageLimits[pkg] ?? 5,
+      // New signups start unconfirmed: they must pick a plan (and later pay)
+      // before going live. The column default is 'active' only so pre-existing
+      // rows stay untouched by the migration; we override it explicitly here.
+      subscription_status: "pending",
     });
 
     // 3. Create profile record (links auth user to broker)

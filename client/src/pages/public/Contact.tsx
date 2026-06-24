@@ -1,43 +1,45 @@
-import { useState } from 'react';
-import { Phone, Mail, Clock, Send, Loader2 } from 'lucide-react';
-import { z } from 'zod';
-import { useTranslation } from 'react-i18next';
+import { useState } from "react";
+import { Phone, Mail, Clock, Send, Loader2 } from "lucide-react";
+import { z } from "zod";
+import { useTranslation } from "react-i18next";
 
-import { Footer } from '@/components/layout/Footer';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { PublicNavbar } from '@/components/layout/PublicNavbar';
-import api from '@/lib/api';
+import { Footer } from "@/components/layout/Footer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { PublicNavbar } from "@/components/layout/PublicNavbar";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Contact() {
   const { toast } = useToast();
-  const { t } = useTranslation('contact');
-  const { t: tVal } = useTranslation('validation');
+  const { t } = useTranslation("contact");
+  const { t: tVal } = useTranslation("validation");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: '',
+    name: "",
+    email: "",
+    phone: "",
+    subject: "",
+    message: "",
   });
 
   const contactSchema = z.object({
-    name: z.string().trim().min(2, tVal('contact.nameMin')).max(100),
-    email: z.string().trim().email(tVal('contact.emailInvalid')).max(255),
+    name: z.string().trim().min(2, tVal("contact.nameMin")).max(100),
+    email: z.string().trim().email(tVal("contact.emailInvalid")).max(255),
     phone: z.string().trim().optional(),
-    subject: z.string().trim().min(5, tVal('contact.subjectMin')).max(200),
-    message: z.string().trim().min(10, tVal('contact.messageMin')).max(1000),
+    subject: z.string().trim().min(5, tVal("contact.subjectMin")).max(200),
+    message: z.string().trim().min(10, tVal("contact.messageMin")).max(1000),
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: '' }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,26 +61,28 @@ export default function Contact() {
     }
 
     try {
-      await api.post('/contact', {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || null,
-        subject: formData.subject,
-        message: formData.message,
+      const { error } = await supabase.from("contact_messages").insert({
+        name: result.data.name,
+        email: result.data.email,
+        phone: result.data.phone || null,
+        subject: result.data.subject,
+        message: result.data.message,
       });
+
+      if (error) throw error;
 
       toast({
-        title: t('toasts.sentTitle'),
-        description: t('toasts.sentDescription'),
+        title: t("toasts.sentTitle"),
+        description: t("toasts.sentDescription"),
       });
 
-      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error("Failed to send message:", error);
       toast({
-        title: t('toasts.errorTitle'),
-        description: t('toasts.errorDescription'),
-        variant: 'destructive',
+        title: t("toasts.errorTitle"),
+        description: t("toasts.errorDescription"),
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -93,11 +97,11 @@ export default function Contact() {
       <section className="relative gradient-hero pt-16">
         <div className="container mx-auto px-4 py-24 text-center">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-primary-foreground mb-4">
-            {t('hero.headlinePart1')}{' '}
-            <span className="text-accent">{t('hero.headlineHighlight')}</span>
+            {t("hero.headlinePart1")}{" "}
+            <span className="text-accent">{t("hero.headlineHighlight")}</span>
           </h1>
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
-            {t('hero.subheadline')}
+            {t("hero.subheadline")}
           </p>
         </div>
       </section>
@@ -111,9 +115,11 @@ export default function Contact() {
               <div className="space-y-8">
                 <div>
                   <h2 className="font-display text-2xl font-bold text-foreground mb-4">
-                    {t('info.heading')}
+                    {t("info.heading")}
                   </h2>
-                  <p className="text-muted-foreground">{t('info.description')}</p>
+                  <p className="text-muted-foreground">
+                    {t("info.description")}
+                  </p>
                 </div>
 
                 <div className="space-y-6">
@@ -122,7 +128,9 @@ export default function Contact() {
                       <Phone className="w-5 h-5 text-accent" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground">{t('info.phoneLabel')}</h3>
+                      <h3 className="font-medium text-foreground">
+                        {t("info.phoneLabel")}
+                      </h3>
                       <a
                         href="tel:12345"
                         className="text-muted-foreground hover:text-primary mt-1 block"
@@ -137,7 +145,9 @@ export default function Contact() {
                       <Mail className="w-5 h-5 text-accent" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground">{t('info.emailLabel')}</h3>
+                      <h3 className="font-medium text-foreground">
+                        {t("info.emailLabel")}
+                      </h3>
                       <a
                         href="mailto:info@broker-platform.eg"
                         className="text-muted-foreground hover:text-primary mt-1 block"
@@ -152,11 +162,13 @@ export default function Contact() {
                       <Clock className="w-5 h-5 text-accent" />
                     </div>
                     <div>
-                      <h3 className="font-medium text-foreground">{t('info.hoursLabel')}</h3>
+                      <h3 className="font-medium text-foreground">
+                        {t("info.hoursLabel")}
+                      </h3>
                       <p className="text-muted-foreground mt-1">
-                        {t('info.hoursValueLine1')}
+                        {t("info.hoursValueLine1")}
                         <br />
-                        {t('info.hoursValueLine2')}
+                        {t("info.hoursValueLine2")}
                       </p>
                     </div>
                   </div>
@@ -167,87 +179,97 @@ export default function Contact() {
               <div className="lg:col-span-2">
                 <div className="bg-card rounded-2xl border border-border p-8 shadow-card">
                   <h2 className="font-display text-2xl font-bold text-foreground mb-6">
-                    {t('form.heading')}
+                    {t("form.heading")}
                   </h2>
 
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="name">{t('form.nameLabel')}</Label>
+                        <Label htmlFor="name">{t("form.nameLabel")}</Label>
                         <Input
                           id="name"
                           name="name"
                           type="text"
-                          placeholder={t('form.namePlaceholder')}
+                          placeholder={t("form.namePlaceholder")}
                           value={formData.name}
                           onChange={handleChange}
-                          className={errors.name ? 'border-destructive' : ''}
+                          className={errors.name ? "border-destructive" : ""}
                         />
                         {errors.name && (
-                          <p className="text-sm text-destructive">{errors.name}</p>
+                          <p className="text-sm text-destructive">
+                            {errors.name}
+                          </p>
                         )}
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="email">{t('form.emailLabel')}</Label>
+                        <Label htmlFor="email">{t("form.emailLabel")}</Label>
                         <Input
                           id="email"
                           name="email"
                           type="email"
-                          placeholder={t('form.emailPlaceholder')}
+                          placeholder={t("form.emailPlaceholder")}
                           value={formData.email}
                           onChange={handleChange}
-                          className={errors.email ? 'border-destructive' : ''}
+                          className={errors.email ? "border-destructive" : ""}
                         />
                         {errors.email && (
-                          <p className="text-sm text-destructive">{errors.email}</p>
+                          <p className="text-sm text-destructive">
+                            {errors.email}
+                          </p>
                         )}
                       </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="phone">{t('form.phoneLabel')}</Label>
+                        <Label htmlFor="phone">{t("form.phoneLabel")}</Label>
                         <Input
                           id="phone"
                           name="phone"
                           type="tel"
-                          placeholder={t('form.phonePlaceholder')}
+                          placeholder={t("form.phonePlaceholder")}
                           value={formData.phone}
                           onChange={handleChange}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="subject">{t('form.subjectLabel')}</Label>
+                        <Label htmlFor="subject">
+                          {t("form.subjectLabel")}
+                        </Label>
                         <Input
                           id="subject"
                           name="subject"
                           type="text"
-                          placeholder={t('form.subjectPlaceholder')}
+                          placeholder={t("form.subjectPlaceholder")}
                           value={formData.subject}
                           onChange={handleChange}
-                          className={errors.subject ? 'border-destructive' : ''}
+                          className={errors.subject ? "border-destructive" : ""}
                         />
                         {errors.subject && (
-                          <p className="text-sm text-destructive">{errors.subject}</p>
+                          <p className="text-sm text-destructive">
+                            {errors.subject}
+                          </p>
                         )}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="message">{t('form.messageLabel')}</Label>
+                      <Label htmlFor="message">{t("form.messageLabel")}</Label>
                       <Textarea
                         id="message"
                         name="message"
-                        placeholder={t('form.messagePlaceholder')}
+                        placeholder={t("form.messagePlaceholder")}
                         rows={5}
                         value={formData.message}
                         onChange={handleChange}
-                        className={errors.message ? 'border-destructive' : ''}
+                        className={errors.message ? "border-destructive" : ""}
                       />
                       {errors.message && (
-                        <p className="text-sm text-destructive">{errors.message}</p>
+                        <p className="text-sm text-destructive">
+                          {errors.message}
+                        </p>
                       )}
                     </div>
 
@@ -261,12 +283,12 @@ export default function Contact() {
                       {isLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          {t('form.sending')}
+                          {t("form.sending")}
                         </>
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
-                          {t('form.sendButton')}
+                          {t("form.sendButton")}
                         </>
                       )}
                     </Button>

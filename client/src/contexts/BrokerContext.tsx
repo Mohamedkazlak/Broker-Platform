@@ -1,5 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Broker, getSubdomainFromHost, getBrokerBySubdomain, demoBroker } from '@/lib/broker';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import {
+  Broker,
+  getSubdomainFromHost,
+  getBrokerBySubdomain,
+} from "@/lib/broker";
 
 interface BrokerContextType {
   broker: Broker | null;
@@ -24,7 +28,7 @@ export function BrokerProvider({ children }: { children: React.ReactNode }) {
     async function loadBroker() {
       try {
         const subdomain = getSubdomainFromHost();
-        
+
         if (!subdomain) {
           // Main domain — no broker needed
           setBroker(null);
@@ -33,7 +37,7 @@ export function BrokerProvider({ children }: { children: React.ReactNode }) {
         }
 
         const brokerData = await getBrokerBySubdomain(subdomain);
-        
+
         if (brokerData) {
           setBroker(brokerData);
         } else {
@@ -42,8 +46,8 @@ export function BrokerProvider({ children }: { children: React.ReactNode }) {
           setBroker(null);
         }
       } catch (err) {
-        console.error('Failed to load broker:', err);
-        setError('Failed to load broker configuration');
+        console.error("Failed to load broker:", err);
+        setError("Failed to load broker configuration");
         setBroker(null);
       } finally {
         setIsLoading(false);

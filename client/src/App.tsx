@@ -19,6 +19,10 @@ const Contact = lazy(() => import("./pages/public/Contact"));
 const Pricing = lazy(() => import("./pages/public/Pricing"));
 const Auth = lazy(() => import("./pages/auth/Auth"));
 const Subscription = lazy(() => import("./pages/dashboard/Subscription"));
+const SelectPlan = lazy(() => import("./pages/onboarding/SelectPlan"));
+const DomainSetup = lazy(() => import("./pages/onboarding/DomainSetup"));
+const Payment = lazy(() => import("./pages/onboarding/Payment"));
+const BrandingSetup = lazy(() => import("./pages/onboarding/BrandingSetup"));
 
 const Index = lazy(() => import("./pages/public/Index"));
 const Properties = lazy(() => import("./pages/property/Properties"));
@@ -114,6 +118,18 @@ const App = ({ lang }: AppProps) => (
                     <Route path="register" element={<Auth />} />
                     <Route path="login" element={<Auth />} />
                     <Route path="subscription" element={<Subscription />} />
+                    {/* Authenticated onboarding steps on the main host (after
+                        registration): pick a plan, then — for paid plans —
+                        configure a domain before relaying to the dashboard. */}
+                    <Route element={<ProtectedRoute />}>
+                      <Route path="select-plan" element={<SelectPlan />} />
+                      <Route path="domain-setup" element={<DomainSetup />} />
+                      <Route path="payment" element={<Payment />} />
+                      <Route
+                        path="branding-setup"
+                        element={<BrandingSetup />}
+                      />
+                    </Route>
                     <Route path="*" element={<NotFound />} />
                   </Route>
                 )}

@@ -16,92 +16,143 @@ export type Database = {
     Tables: {
       brokers: {
         Row: {
-          id: string;
-          first_name: string;
-          last_name: string;
-          platform_name: string;
-          subdomain: string;
+          billing_amount: number | null;
+          created_at: string;
+          custom_domain: string | null;
+          domain_type: string;
           email: string;
-          phone_number: string;
-          whatsapp_number: string;
+          first_name: string;
           governorate: string | null;
-          password: string;
+          hero_background_url: string | null;
+          id: string;
+          is_active: boolean;
+          last_name: string;
+          next_billing_date: string | null;
           package: Database["public"]["Enums"]["subscription_plan_enum"];
           package_limit: number;
-          hero_background_url: string | null;
+          password: string;
+          phone_number: string;
           platform_icon_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          first_name: string;
-          last_name: string;
           platform_name: string;
           subdomain: string;
-          email: string;
-          phone_number: string;
+          subscription_status: string;
+          updated_at: string;
           whatsapp_number: string;
-          governorate: string | null;
-          password: string;
+        };
+        Insert: {
+          billing_amount?: number | null;
+          created_at?: string;
+          custom_domain?: string | null;
+          domain_type?: string;
+          email: string;
+          first_name: string;
+          governorate?: string | null;
+          hero_background_url?: string | null;
+          id?: string;
+          is_active?: boolean;
+          last_name: string;
+          next_billing_date?: string | null;
           package?: Database["public"]["Enums"]["subscription_plan_enum"];
           package_limit?: number;
-          hero_background_url?: string | null;
+          password: string;
+          phone_number: string;
           platform_icon_url?: string | null;
-          created_at?: string;
+          platform_name: string;
+          subdomain: string;
+          subscription_status?: string;
           updated_at?: string;
+          whatsapp_number: string;
         };
         Update: {
-          id?: string;
-          first_name?: string;
-          last_name?: string;
-          platform_name?: string;
-          subdomain?: string;
+          billing_amount?: number | null;
+          created_at?: string;
+          custom_domain?: string | null;
+          domain_type?: string;
           email?: string;
-          phone_number?: string;
-          whatsapp_number?: string;
+          first_name?: string;
           governorate?: string | null;
-          password?: string;
+          hero_background_url?: string | null;
+          id?: string;
+          is_active?: boolean;
+          last_name?: string;
+          next_billing_date?: string | null;
           package?: Database["public"]["Enums"]["subscription_plan_enum"];
           package_limit?: number;
-          hero_background_url?: string | null;
+          password?: string;
+          phone_number?: string;
           platform_icon_url?: string | null;
-          created_at?: string;
+          platform_name?: string;
+          subdomain?: string;
+          subscription_status?: string;
           updated_at?: string;
+          whatsapp_number?: string;
+        };
+        Relationships: [];
+      };
+      contact_messages: {
+        Row: {
+          created_at: string;
+          email: string;
+          id: string;
+          message: string;
+          name: string;
+          phone: string | null;
+          read: boolean;
+          subject: string;
+        };
+        Insert: {
+          created_at?: string;
+          email: string;
+          id?: string;
+          message: string;
+          name: string;
+          phone?: string | null;
+          read?: boolean;
+          subject: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
+          id?: string;
+          message?: string;
+          name?: string;
+          phone?: string | null;
+          read?: boolean;
+          subject?: string;
         };
         Relationships: [];
       };
       profiles: {
         Row: {
-          id: string;
           broker_id: string | null;
-          full_name: string | null;
-          email: string;
-          phone_number: string | null;
           created_at: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          phone_number: string | null;
           updated_at: string;
         };
         Insert: {
-          id: string;
           broker_id?: string | null;
-          full_name?: string | null;
-          email: string;
-          phone_number?: string | null;
           created_at?: string;
+          email: string;
+          full_name?: string | null;
+          id: string;
+          phone_number?: string | null;
           updated_at?: string;
         };
         Update: {
-          id?: string;
           broker_id?: string | null;
-          full_name?: string | null;
-          email?: string;
-          phone_number?: string | null;
           created_at?: string;
+          email?: string;
+          full_name?: string | null;
+          id?: string;
+          phone_number?: string | null;
           updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "profiles_broker_id_fkey";
+            foreignKeyName: "profiles_tenant_id_fkey";
             columns: ["broker_id"];
             isOneToOne: false;
             referencedRelation: "brokers";
@@ -109,197 +160,106 @@ export type Database = {
           },
         ];
       };
-
       properties: {
         Row: {
-          id: string;
+          amenities: Json;
+          apartment_level: number | null;
+          area_sqft: number;
+          bathrooms: number;
+          bedrooms: number;
           broker_id: string;
+          building_type: Database["public"]["Enums"]["building_type_enum"];
+          city: string;
+          contract_duration: string | null;
+          country: string | null;
+          created_at: string;
+          currency: string;
+          description: string;
+          featured: boolean;
+          finishing: Database["public"]["Enums"]["finishing_enum"];
+          furnished: Database["public"]["Enums"]["furnished_enum"];
+          id: string;
+          image_url: string | null;
+          image_urls: string[] | null;
+          location: string;
+          price: number;
+          price_negotiable: boolean;
           property_code: string;
-          title: string;
-          description: string | null;
           property_type: Database["public"]["Enums"]["property_type_enum"];
           status: Database["public"]["Enums"]["property_status_enum"];
-          price: number;
-          currency: string;
-          price_negotiable: boolean;
-          contract_duration: string | null;
-          location: string;
-          city: string | null;
-          country: string | null;
-          building_type: Database["public"]["Enums"]["building_type_enum"];
-          apartment_level: number | null;
-          villa_levels: number | null;
-          finishing: Database["public"]["Enums"]["finishing_enum"] | null;
-          bedrooms: number | null;
-          bathrooms: number | null;
-          area_sqft: number | null;
-          furnished: Database["public"]["Enums"]["furnished_enum"] | null;
-          amenities: Json | null;
-          featured: boolean;
-          image_url: string | null;
-          created_at: string;
+          title: string;
           updated_at: string;
+          video_urls: string[] | null;
+          villa_levels: number | null;
         };
         Insert: {
-          id?: string;
+          amenities?: Json;
+          apartment_level?: number | null;
+          area_sqft: number;
+          bathrooms: number;
+          bedrooms: number;
           broker_id: string;
+          building_type: Database["public"]["Enums"]["building_type_enum"];
+          city: string;
+          contract_duration?: string | null;
+          country?: string | null;
+          created_at?: string;
+          currency?: string;
+          description: string;
+          featured?: boolean;
+          finishing: Database["public"]["Enums"]["finishing_enum"];
+          furnished: Database["public"]["Enums"]["furnished_enum"];
+          id?: string;
+          image_url?: string | null;
+          image_urls?: string[] | null;
+          location: string;
+          price: number;
+          price_negotiable?: boolean;
           property_code: string;
-          title: string;
-          description?: string | null;
           property_type: Database["public"]["Enums"]["property_type_enum"];
           status?: Database["public"]["Enums"]["property_status_enum"];
-          price: number;
-          currency?: string;
-          price_negotiable?: boolean;
-          contract_duration?: string | null;
-          location: string;
-          city?: string | null;
-          country?: string | null;
-          building_type: Database["public"]["Enums"]["building_type_enum"];
-          apartment_level?: number | null;
-          villa_levels?: number | null;
-          finishing?: Database["public"]["Enums"]["finishing_enum"] | null;
-          bedrooms?: number | null;
-          bathrooms?: number | null;
-          area_sqft?: number | null;
-          furnished?: Database["public"]["Enums"]["furnished_enum"] | null;
-          amenities?: Json | null;
-          featured?: boolean;
-          image_url?: string | null;
-          created_at?: string;
+          title: string;
           updated_at?: string;
+          video_urls?: string[] | null;
+          villa_levels?: number | null;
         };
         Update: {
-          id?: string;
+          amenities?: Json;
+          apartment_level?: number | null;
+          area_sqft?: number;
+          bathrooms?: number;
+          bedrooms?: number;
           broker_id?: string;
+          building_type?: Database["public"]["Enums"]["building_type_enum"];
+          city?: string;
+          contract_duration?: string | null;
+          country?: string | null;
+          created_at?: string;
+          currency?: string;
+          description?: string;
+          featured?: boolean;
+          finishing?: Database["public"]["Enums"]["finishing_enum"];
+          furnished?: Database["public"]["Enums"]["furnished_enum"];
+          id?: string;
+          image_url?: string | null;
+          image_urls?: string[] | null;
+          location?: string;
+          price?: number;
+          price_negotiable?: boolean;
           property_code?: string;
-          title?: string;
-          description?: string | null;
           property_type?: Database["public"]["Enums"]["property_type_enum"];
           status?: Database["public"]["Enums"]["property_status_enum"];
-          price?: number;
-          currency?: string;
-          price_negotiable?: boolean;
-          contract_duration?: string | null;
-          location?: string;
-          city?: string | null;
-          country?: string | null;
-          building_type?: Database["public"]["Enums"]["building_type_enum"];
-          apartment_level?: number | null;
-          villa_levels?: number | null;
-          finishing?: Database["public"]["Enums"]["finishing_enum"] | null;
-          bedrooms?: number | null;
-          bathrooms?: number | null;
-          area_sqft?: number | null;
-          furnished?: Database["public"]["Enums"]["furnished_enum"] | null;
-          amenities?: Json | null;
-          featured?: boolean;
-          image_url?: string | null;
-          created_at?: string;
+          title?: string;
           updated_at?: string;
+          video_urls?: string[] | null;
+          villa_levels?: number | null;
         };
         Relationships: [
           {
-            foreignKeyName: "properties_broker_id_fkey";
+            foreignKeyName: "properties_tenant_id_fkey";
             columns: ["broker_id"];
             isOneToOne: false;
             referencedRelation: "brokers";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      contact_messages: {
-        Row: {
-          id: string;
-          broker_id: string;
-          property_id: string | null;
-          name: string;
-          email: string;
-          phone: string | null;
-          subject: string;
-          message: string;
-          read: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          broker_id: string;
-          property_id?: string | null;
-          name: string;
-          email: string;
-          phone?: string | null;
-          subject: string;
-          message: string;
-          read?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          broker_id?: string;
-          property_id?: string | null;
-          name?: string;
-          email?: string;
-          phone?: string | null;
-          subject?: string;
-          message?: string;
-          read?: boolean;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "contact_messages_broker_id_fkey";
-            columns: ["broker_id"];
-            isOneToOne: false;
-            referencedRelation: "brokers";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "contact_messages_property_id_fkey";
-            columns: ["property_id"];
-            isOneToOne: false;
-            referencedRelation: "properties";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      page_views: {
-        Row: {
-          id: string;
-          broker_id: string;
-          property_id: string | null;
-          path: string;
-          viewer_ip: string | null;
-          viewed_at: string;
-        };
-        Insert: {
-          id?: string;
-          broker_id: string;
-          property_id?: string | null;
-          path: string;
-          viewer_ip?: string | null;
-          viewed_at?: string;
-        };
-        Update: {
-          id?: string;
-          broker_id?: string;
-          property_id?: string | null;
-          path?: string;
-          viewer_ip?: string | null;
-          viewed_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "page_views_broker_id_fkey";
-            columns: ["broker_id"];
-            isOneToOne: false;
-            referencedRelation: "brokers";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "page_views_property_id_fkey";
-            columns: ["property_id"];
-            isOneToOne: false;
-            referencedRelation: "properties";
             referencedColumns: ["id"];
           },
         ];
@@ -309,15 +269,15 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      get_auth_broker_id: { Args: Record<string, never>; Returns: string };
+      get_auth_broker_id: { Args: never; Returns: string };
     };
     Enums: {
-      subscription_plan_enum: "free" | "plus" | "pro" | "ultra";
-      property_type_enum: "rent" | "sale";
-      property_status_enum: "active" | "sold" | "rented" | "draft";
       building_type_enum: "apartment" | "villa" | "commercial";
       finishing_enum: "economic" | "medium" | "luxury" | "ultra";
       furnished_enum: "furnished" | "unfurnished" | "semi-furnished";
+      property_status_enum: "active" | "sold" | "rented" | "draft";
+      property_type_enum: "rent" | "sale";
+      subscription_plan_enum: "free" | "plus" | "pro" | "ultra";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -448,12 +408,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      subscription_plan_enum: ["free", "plus", "pro", "ultra"],
-      property_type_enum: ["rent", "sale"],
-      property_status_enum: ["active", "sold", "rented", "draft"],
       building_type_enum: ["apartment", "villa", "commercial"],
       finishing_enum: ["economic", "medium", "luxury", "ultra"],
       furnished_enum: ["furnished", "unfurnished", "semi-furnished"],
+      property_status_enum: ["active", "sold", "rented", "draft"],
+      property_type_enum: ["rent", "sale"],
+      subscription_plan_enum: ["free", "plus", "pro", "ultra"],
     },
   },
 } as const;

@@ -82,6 +82,8 @@
     "recommended": "RECOMMENDED",
     "currencyShort": "EGP/mo",
     "selectPlan": "Select Plan",
+    "listingLimit": "Up to {{count}} listings",
+    "unlimitedListings": "Unlimited listings",
     "starterFeatures": [
       "Standard subdomain",
       "Up to 3 property listings",

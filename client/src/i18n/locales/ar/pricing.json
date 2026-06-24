@@ -82,6 +82,8 @@
     "recommended": "موصى به",
     "currencyShort": "EGP/شهر",
     "selectPlan": "اختر الباقة",
+    "listingLimit": "ما يصل إلى {{count}} عقار",
+    "unlimitedListings": "عقارات غير محدودة",
     "starterFeatures": [
       "اسم فرعي مخصص",
       "ما يصل إلى 3 عقارات معروضة",

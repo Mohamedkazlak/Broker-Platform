@@ -126,4 +126,40 @@ export const propertyModel = {
     if (error) throw error;
     return count;
   },
+
+  /**
+   * Aggregate stats for a broker's public homepage hero.
+   * Excludes draft listings. Sales volume is the sum of sold property prices
+   * plus active sale listings as an estimated pipeline value.
+   */
+  async getHeroStats(brokerId) {
+    const { data, error } = await supabaseAdmin
+      .from("properties")
+      .select("city, price, status, property_type")
+      .eq("broker_id", brokerId)
+      .neq("status", "draft");
+
+    if (error) throw error;
+
+    const rows = data ?? [];
+    const cities = new Set(
+      rows.map((row) => row.city?.trim().toLowerCase()).filter(Boolean),
+    );
+
+    let salesVolume = 0;
+    for (const row of rows) {
+      const price = Number(row.price) || 0;
+      if (row.status === "sold") {
+        salesVolume += price;
+      } else if (row.status === "active" && row.property_type === "sale") {
+        salesVolume += price;
+      }
+    }
+
+    return {
+      propertyCount: rows.length,
+      cityCount: cities.size,
+      salesVolume,
+    };
+  },
 };

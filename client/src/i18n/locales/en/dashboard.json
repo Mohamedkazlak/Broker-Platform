@@ -25,10 +25,10 @@
       "totalPropertiesChange": "{{count}} total",
       "activeListings": "Active Listings",
       "activeListingsChange": "{{percent}}% of total",
-      "totalInsights": "Total Insights",
-      "totalInsightsChange": "from analytics",
-      "viewsThisMonth": "Views This Month",
-      "viewsThisMonthChange": "{{sign}}{{percent}}% vs last month"
+      "activeCities": "Active Cities",
+      "activeCitiesChange": "{{count}} cities with listings",
+      "monthlyRevenue": "Monthly Revenue",
+      "monthlyRevenueChange": "sold sales + monthly rent"
     },
     "recentPropertiesHeading": "Recent Properties",
     "searchPlaceholder": "Search properties...",
@@ -194,11 +194,10 @@
     "barActive": "Active",
     "barSold": "Sold",
     "barRented": "Rented",
-    "viewsHeading": "Website Views This Month",
-    "dayLabel": "Day {{day}}",
-    "mostViewedTitle": "Most Viewed Properties",
-    "mostViewedSubtitle": "Views in the last 30 days",
-    "noProperties": "No properties yet"
+    "revenueHeading": "Revenue",
+    "totalRevenue": "Total Revenue",
+    "sellingRevenue": "Selling Revenue",
+    "rentingRevenue": "Renting Revenue"
   },
   "settings": {
     "heading": "Settings",
@@ -215,6 +214,17 @@
     "platformDescription": "Configure your platform name and domain",
     "platformName": "Platform Name",
     "domain": "Domain Name",
+    "subdomain": {
+      "suffix": ".myflat.com",
+      "checking": "Checking availability…",
+      "available": "Available",
+      "current": "This is your current subdomain",
+      "taken": "This subdomain is already taken",
+      "reserved": "This subdomain name isn't available",
+      "invalid": "3–63 lowercase letters, numbers, or hyphens",
+      "required": "Please enter a subdomain",
+      "unavailable": "This subdomain isn't available"
+    },
     "passwordHeading": "Change Password",
     "passwordDescription": "Update your account password",
     "newPassword": "New Password",
@@ -225,7 +235,7 @@
       "heading": "Page Branding",
       "description": "Customize your homepage background image and platform icon.",
       "upgradeDescription": "Upgrade to Plus, Pro, or Ultra to customize your homepage background and platform icon.",
-      "upgradeCta": "Upgrade Plan",
+      "upgradeCta": "Change plan",
       "backgroundLabel": "Homepage Background",
       "backgroundHint": "Recommended: wide landscape image (1920×1080 or larger).",
       "iconLabel": "Platform Icon",
@@ -239,6 +249,26 @@
         "invalidType": "Please upload a JPEG, PNG, WebP, or GIF image.",
         "tooLarge": "Image must be 5 MB or smaller."
       }
+    },
+    "account": {
+      "heading": "Account Details",
+      "description": "Your current plan, domain, and billing status.",
+      "planLabel": "Plan",
+      "planPrice": "{{price}} EGP/mo",
+      "domainLabel": "Domain",
+      "badgeSubdomain": "Subdomain",
+      "badgeCustom": "Custom domain",
+      "billingLabel": "Billing",
+      "freeNoBilling": "Free plan – no billing",
+      "daysUntil": "{{days}} days until next payment of {{amount}}",
+      "amount": "{{amount}} EGP",
+      "upgrade": "Change plan",
+      "pastDue": {
+        "title": "Payment past due",
+        "description": "Your last payment didn't go through. Retry to keep your platform active.",
+        "retry": "Retry payment"
+      },
+      "loadError": "Couldn't load your account details."
     },
     "toasts": {
       "personalUpdated": "Personal info updated successfully",

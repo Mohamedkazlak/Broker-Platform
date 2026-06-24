@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isPendingSubdomain } from "@/utils/subdomain";
 
 export interface Broker {
   id: string;
@@ -61,24 +62,7 @@ export async function getBrokerBySubdomain(
     return null;
   }
 
+  if (data && isPendingSubdomain(data.subdomain)) return null;
+
   return data as unknown as Broker | null;
 }
-
-// Demo broker for development
-export const demoBroker: Broker = {
-  id: "demo-broker-id",
-  first_name: "Demo",
-  last_name: "User",
-  platform_name: "Broker Platform",
-  subdomain: "demo",
-  email: "contact@BrokerTeam.com",
-  phone_number: "+201270018663",
-  whatsapp_number: "+201270018663",
-  governorate: "cairo",
-  package: "pro",
-  package_limit: 50,
-  hero_background_url: null,
-  platform_icon_url: null,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-};

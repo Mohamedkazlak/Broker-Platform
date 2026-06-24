@@ -16,17 +16,26 @@ import subdomainMiddleware from "./middleware/subdomain.middleware.js";
 import authRoutes from "./routes/authRoutes.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
 import brokerRoutes from "./routes/brokerRoutes.js";
+import planRoutes from "./routes/planRoutes.js";
+import domainRoutes from "./routes/domainRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
-import analyticsRoutes from "./routes/analyticsRoutes.js";
 import translateRoutes from "./routes/translateRoutes.js";
+import webhookRoutes from "./routes/webhooks.js";
+import {
+  apiLimiter,
+  authLimiter,
+  contactLimiter,
+} from "./middleware/rateLimiter.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Trust Proxy ────────────────────────────────────────────────────────────
 // Required so req.hostname / req.ip / X-Forwarded-* headers are honored when
-// the request comes through the Vite dev proxy or any reverse proxy in prod.
-app.set("trust proxy", true);
+// the request comes through the Vite dev proxy or a reverse proxy in prod.
+// Use a hop count (not `true`) — express-rate-limit rejects `true` because
+// clients could spoof X-Forwarded-For and bypass rate limiting.
+app.set("trust proxy", 1);
 
 // ─── Global Middleware ──────────────────────────────────────────────────────
 
@@ -60,6 +69,10 @@ app.use(
   }),
 );
 
+// Webhook routes — mounted before JSON body parser so Paymob HMAC verification
+// can read the raw request body when implemented.
+app.use("/api/webhooks", webhookRoutes);
+
 // Parse JSON bodies
 app.use(express.json({ limit: "10mb" }));
 
@@ -73,13 +86,22 @@ app.use(hpp());
 // req.subdomain / req.tenantType. Mounted before routes intentionally.
 app.use(subdomainMiddleware);
 
+// Rate limiting — auth and POST /contact use dedicated limiters (see rateLimiter.js)
+app.use("/api/auth", authLimiter);
+app.use("/api/contact", (req, res, next) => {
+  if (req.method === "POST") return contactLimiter(req, res, next);
+  next();
+});
+app.use("/api", apiLimiter);
+
 // ─── API Routes ─────────────────────────────────────────────────────────────
 
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/brokers", brokerRoutes);
+app.use("/api/plans", planRoutes);
+app.use("/api/domains", domainRoutes);
 app.use("/api/contact", contactRoutes);
-app.use("/api/analytics", analyticsRoutes);
 app.use("/api/translate", translateRoutes);
 
 // Server start time — client uses this to detect restarts and force re-login
@@ -111,7 +133,7 @@ app.use("/api/{*path}", (req, res) => {
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../client/dist")));
 
-  app.get("*", (req, res) => {
+  app.get("/{*wildcard}", (req, res) => {
     res.sendFile(path.join(__dirname, "../client/dist", "index.html"));
   });
 }

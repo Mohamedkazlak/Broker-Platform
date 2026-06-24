@@ -10,6 +10,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useBroker } from "./BrokerContext";
 import { acceptRelayedSession } from "@/lib/sessionRelay";
+import { buildMainSiteUrl } from "@/utils/tenant";
 
 interface Profile {
   id: string;
@@ -40,11 +41,16 @@ interface AuthContextType {
     firstName: string;
     lastName: string;
     platformName: string;
-    subdomain: string;
     phone: string;
     whatsapp: string;
     governorate: string;
-  }) => Promise<{ error: Error | null; subdomain?: string; brokerId?: string }>;
+  }) => Promise<{
+    error: Error | null;
+    status?: number;
+    reason?: string;
+    subdomain?: string;
+    brokerId?: string;
+  }>;
   signOut: () => Promise<void>;
 }
 
@@ -131,10 +137,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setSession(null);
               setProfile(null);
               setRole(null);
-              const port = window.location.port
-                ? `:${window.location.port}`
-                : "";
-              window.location.href = `http://localhost${port}/login`;
+              const lang = localStorage.getItem("i18nextLng") || "en";
+              window.location.href = buildMainSiteUrl(`/${lang}/login`);
               return;
             }
             sessionStorage.setItem(STORAGE_KEY, String(serverAt));
@@ -245,7 +249,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     firstName: string;
     lastName: string;
     platformName: string;
-    subdomain: string;
     phone: string;
     whatsapp: string;
     governorate: string;
@@ -266,6 +269,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) {
         return {
           error: new Error(data.error || "Failed to register platform"),
+          status: response.status,
+          reason: data.reason,
         };
       }
 

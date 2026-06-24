@@ -13,6 +13,7 @@ import enProperty from "./locales/en/property.json";
 import enDashboard from "./locales/en/dashboard.json";
 import enValidation from "./locales/en/validation.json";
 import enGovernorates from "./locales/en/governorates.json";
+import enOnboarding from "./locales/en/onboarding.json";
 
 import arCommon from "./locales/ar/common.json";
 import arHome from "./locales/ar/home.json";
@@ -25,6 +26,7 @@ import arProperty from "./locales/ar/property.json";
 import arDashboard from "./locales/ar/dashboard.json";
 import arValidation from "./locales/ar/validation.json";
 import arGovernorates from "./locales/ar/governorates.json";
+import arOnboarding from "./locales/ar/onboarding.json";
 
 export const SUPPORTED_LANGUAGES = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -44,6 +46,7 @@ export const resources = {
     dashboard: enDashboard,
     validation: enValidation,
     governorates: enGovernorates,
+    onboarding: enOnboarding,
   },
   ar: {
     common: arCommon,
@@ -57,6 +60,7 @@ export const resources = {
     dashboard: arDashboard,
     validation: arValidation,
     governorates: arGovernorates,
+    onboarding: arOnboarding,
   },
 } as const;
 
@@ -119,6 +123,7 @@ void i18n
       "dashboard",
       "validation",
       "governorates",
+      "onboarding",
     ],
     defaultNS: "common",
     interpolation: { escapeValue: false },

@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -27,9 +26,9 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: clientPort,
       strictPort: true,
-      // Allow any *.localhost / *.myflat.com / *.lovable.app host to talk to
-      // the dev server. Vite ≥4 blocks unknown hosts by default.
-      allowedHosts: [".localhost", ".myflat.com", ".lovable.app"],
+      // Allow any *.localhost / *.myflat.com host to talk to the dev server.
+      // Vite ≥4 blocks unknown hosts by default.
+      allowedHosts: [".localhost", ".myflat.com"],
       proxy: {
         // Forward all /api/* calls to the Express backend, preserving the
         // original Host header so the subdomain middleware sees e.g.
@@ -64,9 +63,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    plugins: [react(), mode === "development" && componentTagger()].filter(
-      Boolean,
-    ),
+    plugins: [react()],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -81,7 +78,11 @@ export default defineConfig(({ mode }) => {
           // the routes that actually import it (e.g. charts on the insights page).
           manualChunks: (id) => {
             if (!id.includes("node_modules")) return undefined;
-            if (/[\\/]react(?:-dom)?[\\/]|react-router/.test(id))
+            if (
+              /[\\/](react(?:-dom)?|react-router|@remix-run|scheduler)[\\/]/.test(
+                id,
+              )
+            )
               return "react-vendor";
             if (id.includes("@supabase")) return "supabase";
             if (id.includes("framer-motion")) return "motion";

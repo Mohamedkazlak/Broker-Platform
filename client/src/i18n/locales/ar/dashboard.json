@@ -25,10 +25,10 @@
       "totalPropertiesChange": "{{count}} عدد",
       "activeListings": "العقارات النشطة",
       "activeListingsChange": "{{percent}}% من الكل",
-      "totalInsights": "عدد الإحصائيات",
-      "totalInsightsChange": "من التحليلات",
-      "viewsThisMonth": "المشاهدات هذا الشهر",
-      "viewsThisMonthChange": "{{sign}}{{percent}}% مقابل الشهر الماضي"
+      "activeCities": "المدن النشطة",
+      "activeCitiesChange": "{{count}} مدن بها عقارات",
+      "monthlyRevenue": "الإيرادات الشهرية",
+      "monthlyRevenueChange": "مبيعات مباعة + إيجار شهري"
     },
     "recentPropertiesHeading": "العقارات الأحدث",
     "searchPlaceholder": "بحث عن عقارات...",
@@ -194,11 +194,10 @@
     "barActive": "نشط",
     "barSold": "مباع",
     "barRented": "مستأجر",
-    "viewsHeading": "المشاهدات هذا الشهر",
-    "dayLabel": "اليوم {{day}}",
-    "mostViewedTitle": "العقارات الأكثر مشاهدة",
-    "mostViewedSubtitle": "المشاهدات في أخر 30 يوم",
-    "noProperties": "لا يوجد عقارات بعد"
+    "revenueHeading": "الإيرادات",
+    "totalRevenue": "إجمالي الإيرادات",
+    "sellingRevenue": "إيرادات البيع",
+    "rentingRevenue": "إيرادات الإيجار"
   },
   "settings": {
     "heading": "الإعدادات",
@@ -215,6 +214,17 @@
     "platformDescription": "تحديث اسم المنصة والرابط",
     "platformName": "اسم المنصة",
     "domain": "الرابط",
+    "subdomain": {
+      "suffix": ".myflat.com",
+      "checking": "جاري التحقق من التوفر…",
+      "available": "متاح",
+      "current": "هذا هو النطاق الفرعي الحالي",
+      "taken": "هذا النطاق الفرعي مستخدم بالفعل",
+      "reserved": "اسم النطاق الفرعي هذا غير متاح",
+      "invalid": "3–63 حرفاً صغيراً أو رقماً أو شرطة",
+      "required": "يرجى إدخال نطاق فرعي",
+      "unavailable": "هذا النطاق الفرعي غير متاح"
+    },
     "passwordHeading": "تغيير كلمة المرور",
     "passwordDescription": "تحديث كلمة المرور الخاصة بك",
     "newPassword": "كلمة المرور الجديدة",
@@ -225,7 +235,7 @@
       "heading": "تخصيص الصفحة",
       "description": "خصص صورة خلفية الصفحة الرئيسية وأيقونة المنصة.",
       "upgradeDescription": "قم بالترقية إلى باقة Plus أو Pro أو Ultra لتخصيص خلفية الصفحة الرئيسية وأيقونة المنصة.",
-      "upgradeCta": "ترقية الباقة",
+      "upgradeCta": "تغيير الباقة",
       "backgroundLabel": "خلفية الصفحة الرئيسية",
       "backgroundHint": "يُفضل صورة أفقية عريضة (1920×1080 أو أكبر).",
       "iconLabel": "أيقونة المنصة",
@@ -239,6 +249,26 @@
         "invalidType": "يرجى رفع صورة بصيغة JPEG أو PNG أو WebP أو GIF.",
         "tooLarge": "يجب أن يكون حجم الصورة 5 ميجابايت أو أقل."
       }
+    },
+    "account": {
+      "heading": "تفاصيل الحساب",
+      "description": "باقتك الحالية والنطاق وحالة الفوترة.",
+      "planLabel": "الباقة",
+      "planPrice": "{{price}} جنيه/شهر",
+      "domainLabel": "النطاق",
+      "badgeSubdomain": "نطاق فرعي",
+      "badgeCustom": "نطاق مخصص",
+      "billingLabel": "الفوترة",
+      "freeNoBilling": "باقة مجانية – بدون فوترة",
+      "daysUntil": "{{days}} يومًا حتى الدفعة التالية بقيمة {{amount}}",
+      "amount": "{{amount}} جنيه",
+      "upgrade": "تغيير الباقة",
+      "pastDue": {
+        "title": "الدفعة متأخرة",
+        "description": "لم تتم معالجة دفعتك الأخيرة. أعد المحاولة للحفاظ على تفعيل منصتك.",
+        "retry": "إعادة محاولة الدفع"
+      },
+      "loadError": "تعذّر تحميل تفاصيل حسابك."
     },
     "toasts": {
       "personalUpdated": "تم تحديث المعلومات الشخصية بنجاح",

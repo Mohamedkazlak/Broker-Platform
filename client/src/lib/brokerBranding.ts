@@ -6,8 +6,14 @@ export const DEFAULT_HERO_IMAGE =
 export const BRANDING_PLANS = ["plus", "pro", "ultra"] as const;
 export type BrandingPlan = (typeof BRANDING_PLANS)[number];
 
+export const PAID_PLANS = BRANDING_PLANS;
+
 export function hasBrandingAccess(pkg: string | undefined | null): boolean {
   return BRANDING_PLANS.includes(pkg as BrandingPlan);
+}
+
+export function isPaidPlan(pkg: string | undefined | null): boolean {
+  return PAID_PLANS.includes(pkg as BrandingPlan);
 }
 
 const BUCKET = "broker-assets";

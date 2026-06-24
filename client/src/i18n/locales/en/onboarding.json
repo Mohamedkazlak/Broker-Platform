@@ -1,0 +1,79 @@
+{
+  "domainSetup": {
+    "heading": "Set up your domain",
+    "subheading": "Choose how visitors will reach your platform. You can change this later.",
+    "subdomain": {
+      "title": "Keep or change your subdomain",
+      "description": "A free address hosted on our platform.",
+      "label": "Your subdomain",
+      "suffix": ".myflat.com",
+      "checking": "Checking availability…",
+      "available": "Available",
+      "current": "This is your current subdomain",
+      "taken": "This subdomain is already taken",
+      "reserved": "This subdomain name isn't available",
+      "invalid": "3–63 lowercase letters, numbers, or hyphens"
+    },
+    "custom": {
+      "title": "Buy your own domain",
+      "description": "Use a domain like yourname.com.",
+      "label": "Domain name",
+      "namePlaceholder": "yourname",
+      "checking": "Checking availability…",
+      "available": "Available",
+      "taken": "This domain is already taken",
+      "invalid": "Enter a valid domain name",
+      "price": "{{price}} EGP/year"
+    },
+    "continue": "Continue to payment",
+    "toasts": {
+      "loadFailedTitle": "Couldn't load your platform",
+      "loadFailedDescription": "Please try again.",
+      "saveFailedTitle": "Couldn't save your domain",
+      "saveFailedDescription": "Please try again."
+    }
+  },
+  "payment": {
+    "heading": "Complete your payment",
+    "subheading": "Review your order and confirm to activate your platform.",
+    "orderSummary": "Order summary",
+    "planLine": "{{name}}",
+    "domainLine": "Custom domain ({{domain}})",
+    "total": "Total due today",
+    "amount": "{{amount}} EGP",
+    "succeedButton": "Simulate Successful Payment",
+    "failButton": "Simulate Failed Payment",
+    "processing": "Processing payment…",
+    "failed": {
+      "title": "Payment failed",
+      "description": "Your payment couldn't be processed. No changes were charged.",
+      "retry": "Try again"
+    },
+    "toasts": {
+      "loadFailedTitle": "Couldn't load your order",
+      "loadFailedDescription": "Please try again.",
+      "errorTitle": "Something went wrong",
+      "errorDescription": "Please try again."
+    },
+    "success": {
+      "title": "Payment Successful",
+      "description": "Your platform is now active. Next, personalize your homepage with your own icon and background.",
+      "continue": "Continue to customization"
+    }
+  },
+  "brandingSetup": {
+    "heading": "Customize your platform",
+    "subheading": "Upload your homepage background and platform icon. You can always change these later in settings.",
+    "cardTitle": "Page branding",
+    "cardDescription": "Make your real estate website feel uniquely yours.",
+    "skip": "Skip for now",
+    "saveAndContinue": "Save and go to dashboard",
+    "toasts": {
+      "loadFailedTitle": "Couldn't load your platform",
+      "loadFailedDescription": "Please try again.",
+      "savedTitle": "Branding saved successfully",
+      "saveFailedTitle": "Couldn't save branding",
+      "saveFailedDescription": "Please try again."
+    }
+  }
+}

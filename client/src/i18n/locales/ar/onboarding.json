@@ -1,0 +1,79 @@
+{
+  "domainSetup": {
+    "heading": "إعداد نطاقك",
+    "subheading": "اختر الطريقة التي سيصل بها الزوار إلى منصتك. يمكنك تغيير ذلك لاحقًا.",
+    "subdomain": {
+      "title": "احتفظ بنطاقك الفرعي أو غيّره",
+      "description": "عنوان مجاني مستضاف على منصتنا.",
+      "label": "النطاق الفرعي",
+      "suffix": ".myflat.com",
+      "checking": "جارٍ التحقق من التوفر…",
+      "available": "متاح",
+      "current": "هذا هو نطاقك الفرعي الحالي",
+      "taken": "هذا النطاق الفرعي محجوز بالفعل",
+      "reserved": "هذا الاسم غير متاح",
+      "invalid": "من 3 إلى 63 حرفًا صغيرًا أو أرقامًا أو شرطات"
+    },
+    "custom": {
+      "title": "اشترِ نطاقك الخاص",
+      "description": "استخدم نطاقًا مثل yourname.com.",
+      "label": "اسم النطاق",
+      "namePlaceholder": "yourname",
+      "checking": "جارٍ التحقق من التوفر…",
+      "available": "متاح",
+      "taken": "هذا النطاق محجوز بالفعل",
+      "invalid": "أدخل اسم نطاق صالحًا",
+      "price": "{{price}} جنيه/سنة"
+    },
+    "continue": "المتابعة إلى الدفع",
+    "toasts": {
+      "loadFailedTitle": "تعذّر تحميل منصتك",
+      "loadFailedDescription": "يرجى المحاولة مرة أخرى.",
+      "saveFailedTitle": "تعذّر حفظ نطاقك",
+      "saveFailedDescription": "يرجى المحاولة مرة أخرى."
+    }
+  },
+  "payment": {
+    "heading": "أكمل عملية الدفع",
+    "subheading": "راجع طلبك وأكّد لتفعيل منصتك.",
+    "orderSummary": "ملخص الطلب",
+    "planLine": "{{name}}",
+    "domainLine": "نطاق مخصص ({{domain}})",
+    "total": "الإجمالي المستحق اليوم",
+    "amount": "{{amount}} جنيه",
+    "succeedButton": "محاكاة دفع ناجح",
+    "failButton": "محاكاة دفع فاشل",
+    "processing": "جارٍ معالجة الدفع…",
+    "failed": {
+      "title": "فشل الدفع",
+      "description": "تعذّرت معالجة دفعتك. لم يتم خصم أي مبلغ.",
+      "retry": "حاول مرة أخرى"
+    },
+    "toasts": {
+      "loadFailedTitle": "تعذّر تحميل طلبك",
+      "loadFailedDescription": "يرجى المحاولة مرة أخرى.",
+      "errorTitle": "حدث خطأ ما",
+      "errorDescription": "يرجى المحاولة مرة أخرى."
+    },
+    "success": {
+      "title": "تم الدفع بنجاح",
+      "description": "منصتك مفعّلة الآن. الخطوة التالية: خصّص صفحتك الرئيسية بأيقونة وخلفية خاصة بك.",
+      "continue": "المتابعة إلى التخصيص"
+    }
+  },
+  "brandingSetup": {
+    "heading": "خصّص منصتك",
+    "subheading": "ارفع خلفية الصفحة الرئيسية وأيقونة المنصة. يمكنك تغييرهما لاحقًا من الإعدادات.",
+    "cardTitle": "تخصيص الصفحة",
+    "cardDescription": "اجعل موقعك العقاري يعكس هويتك.",
+    "skip": "تخطي الآن",
+    "saveAndContinue": "حفظ والانتقال إلى لوحة التحكم",
+    "toasts": {
+      "loadFailedTitle": "تعذّر تحميل منصتك",
+      "loadFailedDescription": "يرجى المحاولة مرة أخرى.",
+      "savedTitle": "تم حفظ التخصيص بنجاح",
+      "saveFailedTitle": "تعذّر حفظ التخصيص",
+      "saveFailedDescription": "يرجى المحاولة مرة أخرى."
+    }
+  }
+}

@@ -36,7 +36,6 @@ export default function Auth() {
     firstName: "",
     lastName: "",
     platformName: "",
-    subdomain: "",
     phone: "",
     whatsapp: "",
     governorate: "",
@@ -78,11 +77,6 @@ export default function Auth() {
             .string()
             .min(1, tVal("auth.platformNameRequired"))
             .min(3, tVal("auth.platformNameMin")),
-          subdomain: z
-            .string()
-            .min(1, tVal("auth.subdomainRequired"))
-            .min(3, tVal("auth.subdomainMin"))
-            .regex(/^[a-z0-9-]+$/, tVal("auth.subdomainFormat")),
           phone: z
             .string()
             .min(1, tVal("auth.phoneRequired"))
@@ -119,12 +113,7 @@ export default function Auth() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (name === "subdomain") {
-      const cleanValue = value.toLowerCase().replace(/[^a-z0-9-]/g, "");
-      setFormData((prev) => ({ ...prev, [name]: cleanValue }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
@@ -164,8 +153,7 @@ export default function Auth() {
           title: t("toasts.platformCreatedTitle"),
           description: t("toasts.platformCreatedDescription"),
         });
-        sessionStorage.setItem("broker_subdomain", formData.subdomain);
-        navigate("/subscription");
+        navigate("/select-plan");
       } else {
         const result = loginSchema.safeParse({
           email: formData.email,
@@ -320,40 +308,6 @@ export default function Auth() {
                   {errors.platformName && (
                     <p className="text-sm text-destructive">
                       {errors.platformName}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="subdomain">
-                    {t("signUp.subdomain")} {requiredMark}
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="subdomain"
-                      name="subdomain"
-                      value={formData.subdomain}
-                      onChange={handleChange}
-                      placeholder={t("signUp.subdomainPlaceholder")}
-                      className={errors.subdomain ? "border-destructive" : ""}
-                      required
-                      dir="ltr"
-                    />
-                    <span className="text-sm text-muted-foreground font-medium">
-                      {t("signUp.subdomainSuffix")}
-                    </span>
-                  </div>
-                  {formData.subdomain && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {t("signUp.yourUrl")}{" "}
-                      <span className="font-medium text-primary" dir="ltr">
-                        {formData.subdomain}.{window.location.host}
-                      </span>
-                    </p>
-                  )}
-                  {errors.subdomain && (
-                    <p className="text-sm text-destructive">
-                      {errors.subdomain}
                     </p>
                   )}
                 </div>

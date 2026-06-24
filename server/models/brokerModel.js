@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../config/supabase.js";
+import { isPendingSubdomain } from "../utils/subdomainGenerator.js";
 
 /**
  * Broker database operations.
@@ -16,6 +17,31 @@ export const brokerModel = {
       .from("brokers")
       .select(BROKER_PUBLIC_FIELDS)
       .eq("subdomain", subdomain)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data && isPendingSubdomain(data.subdomain)) return null;
+    return data;
+  },
+
+  /** Lightweight existence check used by the availability endpoint. */
+  async findIdBySubdomain(subdomain) {
+    const { data, error } = await supabaseAdmin
+      .from("brokers")
+      .select("id")
+      .eq("subdomain", subdomain)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  /** Existence check for the custom-domain availability endpoint. */
+  async findByCustomDomain(customDomain) {
+    const { data, error } = await supabaseAdmin
+      .from("brokers")
+      .select("id")
+      .eq("custom_domain", customDomain)
       .maybeSingle();
 
     if (error) throw error;
