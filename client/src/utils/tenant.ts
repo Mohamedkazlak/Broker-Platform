@@ -24,9 +24,10 @@ const RESERVED_LABELS = new Set([
   "cdn",
   "assets",
   "mail",
+  "broker-platform-957u",
 ]);
 
-const APEX_HOSTS = new Set(["localhost", "myflat.com", "lovable.app"]);
+const APEX_HOSTS = new Set(["localhost", "myflat.com", "onrender.com"]);
 
 const IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
 
