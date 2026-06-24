@@ -15,21 +15,29 @@ Welcome to the **Broker Platform Main** repository! This is a complete, multi-te
 
 Here are previews of the platform to give you an idea of the polished UI and user experience:
 
-### 1. Broker Dashboard
+### 1. Landing Page
 
-![Broker Dashboard UI](docs/screenshots/dashboard.png)
+![Platform Landing Page](docs/screenshots/landing-page.png)
 
-### 2. Browse Properties
+### 2. Broker Dashboard
+
+![Broker Dashboard](docs/screenshots/dashboard.png)
+
+### 3. Broker's Page
+
+![Broker's Page](docs/screenshots/broker's-page.png)
+
+### 4. Browse Properties
 
 ![Browse Properties](docs/screenshots/browse-properties.png)
 
-### 3. Create Website Landing Page
+### 5. Property Details
 
-![Launch Website Landing Page](docs/screenshots/landing-page.png)
+![Property Details](docs/screenshots/property_1.png)
 
-### 4. Tenant Platform Home
+### 6. Property Details
 
-![Tenant Platform Preview](docs/screenshots/tenant-platform.png)
+![Property Details](docs/screenshots/property_2.png)
 
 ## Tech Stack
 
