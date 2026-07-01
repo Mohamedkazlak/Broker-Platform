@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isPendingSubdomain } from "@/utils/subdomain";
+import { getCurrentSubdomain } from "@/utils/tenant";
 
 export interface Broker {
   id: string;
@@ -19,32 +20,13 @@ export interface Broker {
   updated_at: string;
 }
 
-// Extract subdomain from hostname
+// Extract subdomain from hostname.
+// Delegates to the single source of truth in `@/utils/tenant` so this stays
+// in sync with the apex/reserved-label rules used everywhere else in the app
+// (e.g. Render's default `<service>.onrender.com` host is correctly treated
+// as the main site, not a broker subdomain).
 export function getSubdomainFromHost(): string | null {
-  const hostname = window.location.hostname;
-
-  // Check for local subdomains like brokername.localhost
-  if (hostname.endsWith(".localhost")) {
-    return hostname.replace(".localhost", "");
-  }
-
-  // For local development without a subdomain, return null (main domain)
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    // Allow override via query param for dev convenience
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get("broker") || null;
-  }
-
-  // For production, extract subdomain
-  // Expected format: subdomain.myflat.com or subdomain.lovable.app
-  const parts = hostname.split(".");
-
-  // If we have at least 3 parts (subdomain.domain.tld), return the first part
-  if (parts.length >= 3) {
-    return parts[0];
-  }
-
-  return null; // No subdomain detected
+  return getCurrentSubdomain();
 }
 
 // Fetch broker by subdomain
