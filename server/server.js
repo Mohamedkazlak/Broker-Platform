@@ -40,7 +40,22 @@ app.set("trust proxy", 1);
 // ─── Global Middleware ──────────────────────────────────────────────────────
 
 // Security headers
-app.use(helmet());
+// Default Helmet CSP restricts img-src to 'self' + data:, which silently
+// blocks broker-uploaded property/branding photos (hosted on Supabase
+// Storage), broker-supplied external image URLs, and the Unsplash
+// placeholder images used across the app. Widen img-src to allow any
+// HTTPS origin plus data: (previews) and blob: (local file previews)
+// while keeping every other Helmet default in place.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "data:", "blob:", "https:"],
+      },
+    },
+  }),
+);
 
 // CORS — allow the main host and ANY *.localhost / *.myflat.com / *.lovable.app
 // subdomain on any port (covers 5173, 8080, 3000, etc).
