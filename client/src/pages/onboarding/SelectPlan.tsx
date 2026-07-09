@@ -21,6 +21,7 @@ import {
   updateOnboardingDraft,
   type PlanId,
 } from "@/lib/onboardingDraft";
+import { isPostPaymentPending } from "@/lib/postPayment";
 
 /** Plans larger than this are shown as "unlimited" rather than a raw count. */
 const UNLIMITED_PACKAGE_LIMIT = 999999;
@@ -86,6 +87,10 @@ export default function SelectPlan() {
   const isDraftFlow = !!draft && !profile?.broker_id;
 
   useEffect(() => {
+    if (isPostPaymentPending()) {
+      navigate("/branding-setup", { replace: true });
+      return;
+    }
     if (!isDraftFlow && !profile?.broker_id) {
       navigate("/register", { replace: true });
     }

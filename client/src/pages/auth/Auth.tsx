@@ -19,6 +19,7 @@ import {
   hasOnboardingDraft,
   saveOnboardingDraft,
 } from "@/lib/onboardingDraft";
+import { isPostPaymentPending } from "@/lib/postPayment";
 import api from "@/lib/api";
 
 export default function Auth() {
@@ -49,7 +50,14 @@ export default function Auth() {
 
   // Resume in-progress signup after refresh instead of forcing re-entry.
   useEffect(() => {
-    if (location.pathname !== "/register" || user) return;
+    if (location.pathname !== "/register") return;
+    // Prefer post-payment over the logged-in early-return — payment can set
+    // the session before profile/broker_id is ready and still land here.
+    if (isPostPaymentPending()) {
+      navigate("/branding-setup", { replace: true });
+      return;
+    }
+    if (user) return;
     if (!hasOnboardingDraft()) return;
     const draft = getOnboardingDraft();
     if (!draft) return;

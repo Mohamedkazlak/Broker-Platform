@@ -13,7 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
-import { markPostPaymentPending } from "@/pages/onboarding/BrandingSetup";
+import {
+  isPostPaymentPending,
+  markPostPaymentPending,
+} from "@/lib/postPayment";
 import { useToast } from "@/hooks/use-toast";
 import {
   clearOnboardingDraft,
@@ -51,6 +54,10 @@ export default function Payment() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   useEffect(() => {
+    // After a successful pay, draft is cleared and profile may not be ready yet.
+    // Do not bounce to /register during that window.
+    if (paymentSuccess || isPostPaymentPending()) return;
+
     let active = true;
 
     (async () => {
@@ -130,7 +137,7 @@ export default function Payment() {
     return () => {
       active = false;
     };
-  }, [isDraftFlow, brokerId, navigate, t, toast]);
+  }, [isDraftFlow, brokerId, paymentSuccess, navigate, t, toast]);
 
   const amount = (value: number) =>
     t("payment.amount", { amount: value.toLocaleString() });
@@ -173,11 +180,13 @@ export default function Payment() {
           return;
         }
 
-        clearOnboardingDraft();
+        // Mark post-payment BEFORE clearing the draft so OnboardingRoute
+        // never sees a gap with neither draft nor session user.
         if (subdomain) {
           sessionStorage.setItem("broker_subdomain", subdomain);
         }
         markPostPaymentPending();
+        clearOnboardingDraft();
         setPaymentSuccess(true);
         setProcessing(false);
         return;

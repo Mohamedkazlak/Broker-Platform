@@ -19,20 +19,16 @@ import {
   type BrandingFiles,
 } from "@/components/settings/BrandingFields";
 import { hasBrandingAccess, uploadBrokerBranding } from "@/lib/brokerBranding";
+import {
+  clearPostPaymentPending,
+  isPostPaymentPending,
+} from "@/lib/postPayment";
 
-const POST_PAYMENT_KEY = "onboarding_post_payment";
-
-export function markPostPaymentPending() {
-  sessionStorage.setItem(POST_PAYMENT_KEY, "true");
-}
-
-export function clearPostPaymentPending() {
-  sessionStorage.removeItem(POST_PAYMENT_KEY);
-}
-
-export function isPostPaymentPending() {
-  return sessionStorage.getItem(POST_PAYMENT_KEY) === "true";
-}
+export {
+  markPostPaymentPending,
+  clearPostPaymentPending,
+  isPostPaymentPending,
+} from "@/lib/postPayment";
 
 interface BrokerSummary {
   id: string;
