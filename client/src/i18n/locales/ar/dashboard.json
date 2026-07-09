@@ -215,7 +215,7 @@
     "platformName": "اسم المنصة",
     "domain": "الرابط",
     "subdomain": {
-      "suffix": ".myflat.com",
+      "suffix": ".myflats.com",
       "checking": "جاري التحقق من التوفر…",
       "available": "متاح",
       "current": "هذا هو النطاق الفرعي الحالي",

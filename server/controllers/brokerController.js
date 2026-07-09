@@ -330,7 +330,7 @@ export const getOrderSummary = async (req, res, next) => {
  *   PAYMOB_API_KEY, PAYMOB_INTEGRATION_ID, PAYMOB_HMAC_SECRET
  *
  * Webhook URL (must be public HTTPS — configure after VPS deploy):
- *   https://myflat.com/api/webhooks/paymob
+ *   https://myflats.com/api/webhooks/paymob
  * ─────────────────────────────────────────────────────────────────────────────
  *
  * POST /api/brokers/:id/simulate-payment { outcome: 'succeed' | 'fail' }

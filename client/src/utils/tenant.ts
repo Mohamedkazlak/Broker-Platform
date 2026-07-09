@@ -2,8 +2,8 @@
  * Tenant resolution utility.
  *
  * Detects whether the React app is running on the main marketing domain
- * (e.g. localhost, myflat.com) or on a broker-scoped subdomain (e.g.
- * ahmed.localhost, ahmed.myflat.com) — and exposes that decision to the
+ * (e.g. localhost, myflats.store) or on a broker-scoped subdomain (e.g.
+ * ahmed.localhost, ahmed.myflats.store) — and exposes that decision to the
  * rest of the app through a single consistent shape.
  */
 
@@ -27,7 +27,12 @@ const RESERVED_LABELS = new Set([
   "broker-platform-957u",
 ]);
 
-const APEX_HOSTS = new Set(["localhost", "myflat.com", "onrender.com"]);
+const APEX_HOSTS = new Set([
+  "localhost",
+  "myflats.store",
+  "myflats.com",
+  "onrender.com",
+]);
 
 const IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
 
@@ -48,7 +53,7 @@ function extractSubdomain(hostname: string): string | null {
     return label;
   }
 
-  // Match against the longest known apex (myflat.com, lovable.app, …).
+  // Match against the longest known apex (myflats.store, onrender.com, …).
   for (let i = 0; i < parts.length - 1; i++) {
     const candidateApex = parts.slice(i).join(".");
     if (APEX_HOSTS.has(candidateApex)) {
@@ -113,9 +118,9 @@ export function isSubdomainTenant(): boolean {
  * Examples (current window → returned apex):
  *   localhost                  → localhost
  *   ahmed.localhost            → localhost
- *   myflat.com                 → myflat.com
- *   www.myflat.com             → myflat.com
- *   ahmed.myflat.com           → myflat.com
+ *   myflats.store                 → myflats.store
+ *   www.myflats.store             → myflats.store
+ *   ahmed.myflats.store           → myflats.store
  *   foo.bar.lovable.app        → lovable.app
  *   ahmed.example.co           → example.co  (generic fallback)
  */
@@ -128,7 +133,7 @@ function resolveApexHostname(hostname: string): string {
 
   const parts = host.split(".");
 
-  // Longest matching known apex suffix wins (handles foo.bar.myflat.com → myflat.com).
+  // Longest matching known apex suffix wins (handles foo.bar.myflats.store → myflats.store).
   for (let i = 0; i < parts.length; i++) {
     const candidate = parts.slice(i).join(".");
     if (APEX_HOSTS.has(candidate)) return candidate;

@@ -14,9 +14,9 @@
  *   ahmed.localhost          → { subdomain: "ahmed", tenantType: "subdomain" }
  *   localhost                → { subdomain: null,    tenantType: "main"      }
  *   127.0.0.1                → { subdomain: null,    tenantType: "main"      }
- *   ahmed.myflat.com         → { subdomain: "ahmed", tenantType: "subdomain" }
- *   www.myflat.com           → { subdomain: null,    tenantType: "main"      }
- *   myflat.com               → { subdomain: null,    tenantType: "main"      }
+ *   ahmed.myflats.store         → { subdomain: "ahmed", tenantType: "subdomain" }
+ *   www.myflats.store           → { subdomain: null,    tenantType: "main"      }
+ *   myflats.store               → { subdomain: null,    tenantType: "main"      }
  */
 
 // Hostnames that are NEVER tenants, even if they appear as a subdomain label.
@@ -34,7 +34,12 @@ const RESERVED_LABELS = new Set([
 
 // Domains that are treated as the apex (main) host. Anything to the left of
 // these is considered the tenant subdomain.
-const APEX_HOSTS = new Set(["localhost", "myflat.com", "onrender.com"]);
+const APEX_HOSTS = new Set([
+  "localhost",
+  "myflats.store",
+  "myflats.com",
+  "onrender.com",
+]);
 
 const IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
 
@@ -58,7 +63,7 @@ function extractSubdomain(hostname) {
   }
 
   // Find the apex match: the longest suffix that is in APEX_HOSTS.
-  // e.g. "ahmed.myflat.com" → apex "myflat.com" → subdomain "ahmed".
+  // e.g. "ahmed.myflats.store" → apex "myflats.store" → subdomain "ahmed".
   for (let i = 0; i < parts.length - 1; i++) {
     const candidateApex = parts.slice(i).join(".");
     if (APEX_HOSTS.has(candidateApex)) {

@@ -577,7 +577,7 @@ export default function PropertyDetails() {
                       asChild
                     >
                       <a
-                        href={`mailto:${broker?.email || "contact@myflat.com"}`}
+                        href={`mailto:${broker?.email || "contact@myflats.com"}`}
                       >
                         <Mail className="w-5 h-5" />
                         {t("details.emailInquiry")}

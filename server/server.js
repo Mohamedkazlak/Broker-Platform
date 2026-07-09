@@ -52,17 +52,27 @@ app.use(
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         "img-src": ["'self'", "data:", "blob:", "https:"],
+        // default-src 'self' would block Supabase Auth/DB/Storage and Google Fonts CSS fetches
+        "connect-src": [
+          "'self'",
+          "https://*.supabase.co",
+          "wss://*.supabase.co",
+          "https://fonts.googleapis.com",
+          "https://fonts.gstatic.com",
+        ],
       },
     },
   }),
 );
 
-// CORS — allow the main host and ANY *.localhost / *.myflat.com / *.lovable.app
-// subdomain on any port (covers 5173, 8080, 3000, etc).
+// CORS — allow the main host and ANY *.localhost / *.myflats.store /
+// *.myflats.com / *.onrender.com subdomain on any port (covers 5173, 8080, 3000, etc).
 const subdomainOriginPattern =
-  /^https?:\/\/([a-z0-9-]+\.)*(localhost|myflat\.com|.app|onrender\.com)(:\d+)?$/i;
+  /^https?:\/\/([a-z0-9-]+\.)*(localhost|myflats\.store|myflats\.com|onrender\.com)(:\d+)?$/i;
 const explicitOrigins = [
   process.env.CLIENT_URL,
+  "https://www.myflats.store",
+  "https://myflats.store",
   "http://localhost:5173",
   "http://localhost:8080",
   "http://localhost:3000",
@@ -77,7 +87,9 @@ app.use(
       if (!origin) return cb(null, true);
       if (explicitOrigins.includes(origin)) return cb(null, true);
       if (subdomainOriginPattern.test(origin)) return cb(null, true);
-      return cb(new Error(`Origin ${origin} not allowed by CORS`));
+      // Reject without throwing — a thrown Error becomes a 500 and breaks
+      // <script type="module" crossorigin> loads (browsers send Origin).
+      return cb(null, false);
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "X-Tenant-Subdomain"],

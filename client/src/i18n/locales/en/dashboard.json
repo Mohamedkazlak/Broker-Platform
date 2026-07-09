@@ -215,7 +215,7 @@
     "platformName": "Platform Name",
     "domain": "Domain Name",
     "subdomain": {
-      "suffix": ".myflat.com",
+      "suffix": ".myflats.com",
       "checking": "Checking availability…",
       "available": "Available",
       "current": "This is your current subdomain",

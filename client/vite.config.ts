@@ -26,9 +26,9 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: clientPort,
       strictPort: true,
-      // Allow any *.localhost / *.myflat.com host to talk to the dev server.
+      // Allow any *.localhost / *.myflats.store host to talk to the dev server.
       // Vite ≥4 blocks unknown hosts by default.
-      allowedHosts: [".localhost", ".myflat.com"],
+      allowedHosts: [".localhost", ".myflats.store", ".myflats.com"],
       proxy: {
         // Forward all /api/* calls to the Express backend, preserving the
         // original Host header so the subdomain middleware sees e.g.
