@@ -15,11 +15,15 @@ import api from "@/lib/api";
 import { buildSubdomainRedirect } from "@/lib/sessionRelay";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Star, Zap, Building2, Globe, Loader2 } from "lucide-react";
+import {
+  clearOnboardingDraft,
+  getOnboardingDraft,
+  updateOnboardingDraft,
+  type PlanId,
+} from "@/lib/onboardingDraft";
 
 /** Plans larger than this are shown as "unlimited" rather than a raw count. */
 const UNLIMITED_PACKAGE_LIMIT = 999999;
-
-type PlanId = "free" | "plus" | "pro" | "ultra";
 
 interface ApiPlan {
   id: PlanId;
@@ -70,13 +74,22 @@ const planColors: Record<
 
 export default function SelectPlan() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, completeRegistration } = useAuth();
   const { toast } = useToast();
   const { t, i18n } = useTranslation("pricing");
 
   const [plans, setPlans] = useState<ApiPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [selecting, setSelecting] = useState<string | null>(null);
+
+  const draft = getOnboardingDraft();
+  const isDraftFlow = !!draft && !profile?.broker_id;
+
+  useEffect(() => {
+    if (!isDraftFlow && !profile?.broker_id) {
+      navigate("/register", { replace: true });
+    }
+  }, [isDraftFlow, profile?.broker_id, navigate]);
 
   useEffect(() => {
     let active = true;
@@ -108,16 +121,72 @@ export default function SelectPlan() {
       : t("subscription.listingLimit", { count: limit });
 
   const handleSelectPlan = async (planId: PlanId) => {
+    setSelecting(planId);
+
+    // New signup: hold data in draft until free activation or paid payment.
+    if (isDraftFlow) {
+      const currentDraft = getOnboardingDraft();
+      if (!currentDraft) {
+        navigate("/register", { replace: true });
+        return;
+      }
+
+      try {
+        if (planId === "free") {
+          const { error, subdomain } = await completeRegistration({
+            formData: currentDraft.formData,
+            package: "free",
+          });
+
+          if (error) {
+            toast({
+              title: t("subscription.toasts.errorTitle"),
+              description: error.message,
+              variant: "destructive",
+            });
+            setSelecting(null);
+            return;
+          }
+
+          clearOnboardingDraft();
+          if (subdomain) {
+            const url = await buildSubdomainRedirect(
+              subdomain,
+              "/dashboard",
+              i18n.language,
+            );
+            window.location.href = url;
+            return;
+          }
+          navigate("/dashboard");
+          return;
+        }
+
+        updateOnboardingDraft({ package: planId });
+        navigate("/domain-setup");
+      } catch (err) {
+        console.error("Error selecting plan:", err);
+        toast({
+          title: t("subscription.toasts.errorTitle"),
+          description: t("subscription.toasts.errorDescription"),
+          variant: "destructive",
+        });
+        setSelecting(null);
+      }
+      return;
+    }
+
+    // Existing broker upgrading (already in DB).
     if (!profile?.broker_id) {
       toast({
         title: t("subscription.toasts.errorTitle"),
         description: t("subscription.toasts.noBrokerDescription"),
         variant: "destructive",
       });
+      setSelecting(null);
       return;
     }
 
-    setSelecting(planId);
     try {
       const res = await api.post(`/brokers/${profile.broker_id}/select-plan`, {
         package: planId,
@@ -140,7 +209,6 @@ export default function SelectPlan() {
         return;
       }
 
-      // Paid plan → continue onboarding on the main host.
       navigate("/domain-setup");
     } catch (err) {
       console.error("Error selecting plan:", err);
@@ -152,6 +220,8 @@ export default function SelectPlan() {
       setSelecting(null);
     }
   };
+
+  const canSelect = isDraftFlow || !!profile?.broker_id;
 
   return (
     <div className="min-h-screen bg-background py-20 px-4">
@@ -229,7 +299,7 @@ export default function SelectPlan() {
                   <CardFooter>
                     <Button
                       onClick={() => handleSelectPlan(plan.id)}
-                      disabled={selecting !== null || !profile?.broker_id}
+                      disabled={selecting !== null || !canSelect}
                       className={`w-full transition-colors duration-300 ${colors.button}`}
                       variant={highlighted ? "hero" : "outline"}
                     >

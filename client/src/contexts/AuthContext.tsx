@@ -35,21 +35,35 @@ interface AuthContextType {
     password: string,
     fullName: string,
   ) => Promise<{ error: Error | null }>;
-  registerBroker: (data: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    platformName: string;
-    phone: string;
-    whatsapp: string;
-    governorate: string;
+  /**
+   * Persists a finished onboarding draft (auth user + broker + profile).
+   * Called only when the free plan is chosen or paid payment succeeds.
+   */
+  completeRegistration: (payload: {
+    formData: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      platformName: string;
+      phone: string;
+      whatsapp: string;
+      governorate: string;
+    };
+    package: string;
+    domain?: {
+      domain_type: "subdomain" | "custom";
+      subdomain?: string;
+      custom_domain?: string;
+    };
+    paymentOutcome?: "succeed";
   }) => Promise<{
     error: Error | null;
     status?: number;
     reason?: string;
     subdomain?: string;
     brokerId?: string;
+    redirect?: string;
   }>;
   signOut: () => Promise<void>;
 }
@@ -62,7 +76,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   signIn: async () => ({ error: null, subdomain: undefined }),
   signUp: async () => ({ error: null }),
-  registerBroker: async () => ({
+  completeRegistration: async () => ({
     error: null,
     subdomain: undefined,
     brokerId: undefined,
@@ -243,38 +257,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const registerBroker = async (formData: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    platformName: string;
-    phone: string;
-    whatsapp: string;
-    governorate: string;
+  const completeRegistration = async (payload: {
+    formData: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      platformName: string;
+      phone: string;
+      whatsapp: string;
+      governorate: string;
+    };
+    package: string;
+    domain?: {
+      domain_type: "subdomain" | "custom";
+      subdomain?: string;
+      custom_domain?: string;
+    };
+    paymentOutcome?: "succeed";
   }) => {
     try {
-      const apiUrl =
-        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-      const response = await fetch(`${apiUrl}/auth/register`, {
+      const apiUrl = import.meta.env.DEV
+        ? "/api"
+        : import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiUrl}/auth/complete-registration`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ formData }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         return {
-          error: new Error(data.error || "Failed to register platform"),
+          error: new Error(data.error || "Failed to complete registration"),
           status: response.status,
           reason: data.reason,
         };
       }
 
-      // Establish session in browser after successful registration
       if (data.session) {
         await supabase.auth.setSession(data.session);
       }
@@ -283,6 +306,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error: null,
         subdomain: data.broker?.subdomain,
         brokerId: data.broker?.id,
+        redirect: data.redirect,
       };
     } catch (error) {
       const err = error as Error;
@@ -310,7 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         signIn,
         signUp,
-        registerBroker,
+        completeRegistration,
         signOut,
       }}
     >

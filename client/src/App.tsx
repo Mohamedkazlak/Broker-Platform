@@ -8,6 +8,7 @@ import { BrokerProvider, useBroker } from "@/contexts/BrokerContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ScrollToTop from "@/components/common/ScrollToTop";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import OnboardingRoute from "@/components/common/OnboardingRoute";
 import { getSubdomainFromHost } from "@/lib/broker";
 import type { SupportedLanguage } from "@/i18n";
 import { MarketingAnimatedLayout } from "@/components/layout/MarketingAnimatedLayout";
@@ -118,10 +119,8 @@ const App = ({ lang }: AppProps) => (
                     <Route path="register" element={<Auth />} />
                     <Route path="login" element={<Auth />} />
                     <Route path="subscription" element={<Subscription />} />
-                    {/* Authenticated onboarding steps on the main host (after
-                        registration): pick a plan, then — for paid plans —
-                        configure a domain before relaying to the dashboard. */}
-                    <Route element={<ProtectedRoute />}>
+                    {/* Onboarding: draft signup (no DB yet) or authenticated upgrade */}
+                    <Route element={<OnboardingRoute />}>
                       <Route path="select-plan" element={<SelectPlan />} />
                       <Route path="domain-setup" element={<DomainSetup />} />
                       <Route path="payment" element={<Payment />} />

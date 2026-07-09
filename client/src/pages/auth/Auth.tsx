@@ -14,11 +14,13 @@ import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
 import { isValidGovernorate } from "@/constants/governorates";
 import { isValidPhoneNumber } from "@/utils/phoneNumber";
+import { saveOnboardingDraft } from "@/lib/onboardingDraft";
+import api from "@/lib/api";
 
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signIn, registerBroker } = useAuth();
+  const { user, signIn } = useAuth();
   const { broker } = useBroker();
   const { toast } = useToast();
   const { t } = useTranslation("auth");
@@ -137,21 +139,41 @@ export default function Auth() {
           return;
         }
 
-        const { error } = await registerBroker(formData);
-
-        if (error) {
-          toast({
-            title: t("toasts.registerFailedTitle"),
-            description: error.message,
-            variant: "destructive",
+        const email = formData.email.trim().toLowerCase();
+        try {
+          const { data: emailCheck } = await api.get("/auth/check-email", {
+            params: { email },
           });
-          setIsLoading(false);
-          return;
+          if (emailCheck?.available === false) {
+            setErrors({ email: tVal("auth.emailTaken") });
+            toast({
+              title: t("toasts.registerFailedTitle"),
+              description: t("toasts.emailTakenDescription"),
+              variant: "destructive",
+            });
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          // Non-fatal — complete-registration still enforces uniqueness.
         }
 
+        saveOnboardingDraft({
+          formData: {
+            email,
+            password: formData.password,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            platformName: formData.platformName,
+            phone: formData.phone,
+            whatsapp: formData.whatsapp,
+            governorate: formData.governorate,
+          },
+        });
+
         toast({
-          title: t("toasts.platformCreatedTitle"),
-          description: t("toasts.platformCreatedDescription"),
+          title: t("toasts.draftSavedTitle"),
+          description: t("toasts.draftSavedDescription"),
         });
         navigate("/select-plan");
       } else {

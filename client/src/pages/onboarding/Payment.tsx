@@ -15,6 +15,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import { markPostPaymentPending } from "@/pages/onboarding/BrandingSetup";
 import { useToast } from "@/hooks/use-toast";
+import {
+  clearOnboardingDraft,
+  getOnboardingDraft,
+  hasOnboardingDraft,
+} from "@/lib/onboardingDraft";
 
 interface OrderSummary {
   package: string;
@@ -32,9 +37,12 @@ const PROCESSING_DELAY_MS = 1200;
 
 export default function Payment() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, completeRegistration } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation("onboarding");
+
+  const brokerId = profile?.broker_id;
+  const isDraftFlow = !brokerId && hasOnboardingDraft();
 
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState<OrderSummary | null>(null);
@@ -42,17 +50,65 @@ export default function Payment() {
   const [failed, setFailed] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
-  const brokerId = profile?.broker_id;
-
   useEffect(() => {
-    if (!brokerId) return;
     let active = true;
+
     (async () => {
       try {
+        if (isDraftFlow) {
+          const draft = getOnboardingDraft();
+          if (!draft?.package || draft.package === "free" || !draft.domain) {
+            navigate("/select-plan", { replace: true });
+            return;
+          }
+
+          const plansRes = await api.get("/plans");
+          const plans = plansRes.data?.plans ?? [];
+          const plan = plans.find(
+            (p: { id: string }) => p.id === draft.package,
+          );
+          if (!plan) {
+            navigate("/select-plan", { replace: true });
+            return;
+          }
+
+          let domainPrice = 0;
+          if (
+            draft.domain.domain_type === "custom" &&
+            draft.domain.custom_domain
+          ) {
+            const { data } = await api.get("/domains/check-custom", {
+              params: { domain: draft.domain.custom_domain },
+            });
+            domainPrice = typeof data?.price === "number" ? data.price : 0;
+          }
+
+          if (!active) return;
+          setSummary({
+            package: draft.package,
+            planName: plan.name,
+            planPrice: plan.price,
+            currency: plan.currency,
+            domainType: draft.domain.domain_type,
+            customDomain:
+              draft.domain.domain_type === "custom"
+                ? (draft.domain.custom_domain ?? null)
+                : null,
+            domainPrice,
+            total: plan.price + domainPrice,
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (!brokerId) {
+          navigate("/register", { replace: true });
+          return;
+        }
+
         const { data } = await api.get(`/brokers/${brokerId}/order-summary`);
         if (!active) return;
         const s: OrderSummary = data?.summary;
-        // Free plans never pass through payment — bounce them back.
         if (s?.package === "free") {
           navigate("/select-plan", { replace: true });
           return;
@@ -70,25 +126,70 @@ export default function Payment() {
         setIsLoading(false);
       }
     })();
+
     return () => {
       active = false;
     };
-  }, [brokerId, navigate, t, toast]);
+  }, [isDraftFlow, brokerId, navigate, t, toast]);
 
   const amount = (value: number) =>
     t("payment.amount", { amount: value.toLocaleString() });
 
   const handlePay = async (outcome: "succeed" | "fail") => {
-    if (!brokerId || processing) return;
+    if (processing) return;
     setProcessing(true);
     setFailed(false);
 
-    // Simulated processor latency.
     await new Promise((resolve) => setTimeout(resolve, PROCESSING_DELAY_MS));
 
+    if (outcome === "fail") {
+      setFailed(true);
+      setProcessing(false);
+      return;
+    }
+
     try {
+      if (isDraftFlow) {
+        const draft = getOnboardingDraft();
+        if (!draft?.package || !draft.domain) {
+          navigate("/select-plan", { replace: true });
+          return;
+        }
+
+        const { error, subdomain } = await completeRegistration({
+          formData: draft.formData,
+          package: draft.package,
+          domain: draft.domain,
+          paymentOutcome: "succeed",
+        });
+
+        if (error) {
+          toast({
+            title: t("payment.toasts.errorTitle"),
+            description: error.message,
+            variant: "destructive",
+          });
+          setProcessing(false);
+          return;
+        }
+
+        clearOnboardingDraft();
+        if (subdomain) {
+          sessionStorage.setItem("broker_subdomain", subdomain);
+        }
+        markPostPaymentPending();
+        setPaymentSuccess(true);
+        setProcessing(false);
+        return;
+      }
+
+      if (!brokerId) {
+        setProcessing(false);
+        return;
+      }
+
       const { data } = await api.post(`/brokers/${brokerId}/simulate-payment`, {
-        outcome,
+        outcome: "succeed",
       });
 
       if (data?.outcome === "succeed") {
@@ -103,7 +204,6 @@ export default function Payment() {
         return;
       }
 
-      // Payment failed (broker is now past_due) — show retry.
       setFailed(true);
       setProcessing(false);
     } catch (err) {

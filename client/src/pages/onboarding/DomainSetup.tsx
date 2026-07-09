@@ -25,6 +25,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubdomainAvailability } from "@/hooks/useSubdomainAvailability";
 import { useCustomDomainAvailability } from "@/hooks/useCustomDomainAvailability";
 import { getLocalDevPort, isPendingSubdomain } from "@/utils/subdomain";
+import {
+  getOnboardingDraft,
+  hasOnboardingDraft,
+  updateOnboardingDraft,
+} from "@/lib/onboardingDraft";
 
 type DomainMode = "subdomain" | "custom";
 
@@ -46,11 +51,37 @@ export default function DomainSetup() {
   const [customTld, setCustomTld] = useState<string>("com");
 
   const brokerId = profile?.broker_id;
+  const isDraftFlow = !brokerId && hasOnboardingDraft();
 
-  // Load the broker's own record: gates free-plan brokers out and pre-fills
-  // the subdomain field with their current value.
   useEffect(() => {
-    if (!brokerId) return;
+    if (isDraftFlow) {
+      const draft = getOnboardingDraft();
+      if (!draft?.package || draft.package === "free") {
+        navigate("/select-plan", { replace: true });
+        return;
+      }
+      if (draft.domain?.domain_type === "subdomain" && draft.domain.subdomain) {
+        setSubdomainValue(draft.domain.subdomain);
+        setCurrentSubdomain(draft.domain.subdomain);
+      }
+      if (
+        draft.domain?.domain_type === "custom" &&
+        draft.domain.custom_domain
+      ) {
+        setMode("custom");
+        const [name, ...tldParts] = draft.domain.custom_domain.split(".");
+        setCustomName(name ?? "");
+        if (tldParts.length) setCustomTld(tldParts.join("."));
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    if (!brokerId) {
+      navigate("/register", { replace: true });
+      return;
+    }
+
     let active = true;
     (async () => {
       try {
@@ -58,7 +89,6 @@ export default function DomainSetup() {
         const broker = data?.data;
         if (!active) return;
 
-        // Free plan never reaches domain setup — bounce them back.
         if (broker?.package === "free") {
           navigate("/select-plan", { replace: true });
           return;
@@ -87,14 +117,14 @@ export default function DomainSetup() {
     return () => {
       active = false;
     };
-  }, [brokerId, navigate, t, toast]);
+  }, [isDraftFlow, brokerId, navigate, t, toast]);
 
   const normalizedSubdomain = subdomainValue.trim().toLowerCase();
   const isOwnSubdomain =
-    normalizedSubdomain.length > 0 && normalizedSubdomain === currentSubdomain;
+    !isDraftFlow &&
+    normalizedSubdomain.length > 0 &&
+    normalizedSubdomain === currentSubdomain;
 
-  // Don't fire the live check for the broker's own current subdomain (it would
-  // read as "taken" against their own row), nor when the custom tab is active.
   const { status: liveSubdomainStatus } = useSubdomainAvailability(
     mode === "subdomain" && !isOwnSubdomain ? subdomainValue : "",
   );
@@ -116,14 +146,32 @@ export default function DomainSetup() {
       : customStatus === "available";
 
   const handleContinue = async () => {
-    if (!brokerId || !canContinue) return;
+    if (!canContinue) return;
     setSaving(true);
-    try {
-      const payload =
-        mode === "subdomain"
-          ? { domain_type: "subdomain", subdomain: normalizedSubdomain }
-          : { domain_type: "custom", custom_domain: customDomain };
 
+    const payload =
+      mode === "subdomain"
+        ? {
+            domain_type: "subdomain" as const,
+            subdomain: normalizedSubdomain,
+          }
+        : {
+            domain_type: "custom" as const,
+            custom_domain: customDomain,
+          };
+
+    if (isDraftFlow) {
+      updateOnboardingDraft({ domain: payload });
+      navigate("/payment");
+      return;
+    }
+
+    if (!brokerId) {
+      setSaving(false);
+      return;
+    }
+
+    try {
       await api.patch(`/brokers/${brokerId}`, payload);
       navigate("/payment");
     } catch (err) {
@@ -158,7 +206,6 @@ export default function DomainSetup() {
         </div>
 
         <div className="space-y-5">
-          {/* Subdomain option */}
           <Card
             role="button"
             tabIndex={0}
@@ -216,7 +263,6 @@ export default function DomainSetup() {
             )}
           </Card>
 
-          {/* Custom domain option */}
           <Card
             role="button"
             tabIndex={0}
