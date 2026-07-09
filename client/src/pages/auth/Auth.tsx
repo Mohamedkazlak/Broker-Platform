@@ -14,7 +14,11 @@ import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
 import { isValidGovernorate } from "@/constants/governorates";
 import { isValidPhoneNumber } from "@/utils/phoneNumber";
-import { saveOnboardingDraft } from "@/lib/onboardingDraft";
+import {
+  getOnboardingDraft,
+  hasOnboardingDraft,
+  saveOnboardingDraft,
+} from "@/lib/onboardingDraft";
 import api from "@/lib/api";
 
 export default function Auth() {
@@ -42,6 +46,23 @@ export default function Auth() {
     whatsapp: "",
     governorate: "",
   });
+
+  // Resume in-progress signup after refresh instead of forcing re-entry.
+  useEffect(() => {
+    if (location.pathname !== "/register" || user) return;
+    if (!hasOnboardingDraft()) return;
+    const draft = getOnboardingDraft();
+    if (!draft) return;
+    if (draft.domain && draft.package && draft.package !== "free") {
+      navigate("/payment", { replace: true });
+      return;
+    }
+    if (draft.package && draft.package !== "free") {
+      navigate("/domain-setup", { replace: true });
+      return;
+    }
+    navigate("/select-plan", { replace: true });
+  }, [location.pathname, user, navigate]);
 
   const loginSchema = useMemo(
     () =>

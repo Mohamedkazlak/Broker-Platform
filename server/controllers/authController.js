@@ -155,7 +155,7 @@ async function resolveDomainFields(formData, pkg, domain) {
  *
  * Creates auth.users + brokers + profiles in one shot when onboarding finishes
  * (free plan selected, or paid payment succeeds). Until this runs, nothing is
- * persisted — the client holds a draft in sessionStorage.
+ * persisted — the client holds a draft in localStorage.
  *
  * Body: { formData, package, domain?, paymentOutcome? }
  *   - free: domain optional (auto-generated)

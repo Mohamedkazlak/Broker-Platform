@@ -4,6 +4,9 @@
  * Registration form data is held here through plan / domain / payment so we
  * only write auth.users + brokers + profiles when onboarding actually completes
  * (free plan selected, or paid payment succeeds).
+ *
+ * Uses localStorage so a refresh (or closed tab reopen) keeps the draft until
+ * the broker finishes onboarding or the draft is explicitly cleared.
  */
 
 const DRAFT_KEY = "onboarding_draft";
@@ -33,16 +36,45 @@ export interface OnboardingDraft {
   domain?: OnboardingDomainChoice;
 }
 
+function readRawDraft(): string | null {
+  try {
+    return localStorage.getItem(DRAFT_KEY) ?? sessionStorage.getItem(DRAFT_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function saveOnboardingDraft(draft: OnboardingDraft): void {
-  sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  const serialized = JSON.stringify(draft);
+  try {
+    localStorage.setItem(DRAFT_KEY, serialized);
+  } catch {
+    /* private mode / quota — fall through */
+  }
+  // Keep a sessionStorage copy for same-tab continuity if localStorage fails.
+  try {
+    sessionStorage.setItem(DRAFT_KEY, serialized);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function getOnboardingDraft(): OnboardingDraft | null {
   try {
-    const raw = sessionStorage.getItem(DRAFT_KEY);
+    const raw = readRawDraft();
     if (!raw) return null;
     const parsed = JSON.parse(raw) as OnboardingDraft;
     if (!parsed?.formData?.email || !parsed?.formData?.password) return null;
+
+    // Migrate legacy sessionStorage-only drafts into localStorage.
+    try {
+      if (!localStorage.getItem(DRAFT_KEY)) {
+        localStorage.setItem(DRAFT_KEY, raw);
+      }
+    } catch {
+      /* ignore */
+    }
+
     return parsed;
   } catch {
     return null;
@@ -68,7 +100,16 @@ export function updateOnboardingDraft(
 }
 
 export function clearOnboardingDraft(): void {
-  sessionStorage.removeItem(DRAFT_KEY);
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function hasOnboardingDraft(): boolean {

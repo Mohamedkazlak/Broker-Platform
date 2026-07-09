@@ -5,7 +5,7 @@ import { hasOnboardingDraft } from "@/lib/onboardingDraft";
 /**
  * Allows onboarding routes when the user either:
  * - has a session (existing broker upgrading / finishing), or
- * - has an in-progress registration draft in sessionStorage (deferred DB write).
+ * - has an in-progress registration draft in localStorage (deferred DB write).
  */
 export default function OnboardingRoute() {
   const { user, isLoading } = useAuth();

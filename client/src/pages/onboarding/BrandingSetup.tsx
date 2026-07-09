@@ -44,7 +44,7 @@ interface BrokerSummary {
 
 export default function BrandingSetup() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user, profile, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const { t, i18n } = useTranslation("onboarding");
 
@@ -59,9 +59,21 @@ export default function BrandingSetup() {
   const brokerId = profile?.broker_id;
 
   useEffect(() => {
-    if (!brokerId) return;
+    if (authLoading) return;
 
     if (!isPostPaymentPending()) {
+      navigate("/select-plan", { replace: true });
+      return;
+    }
+
+    if (!brokerId) {
+      // Session just set after payment — wait for profile fetch.
+      if (user) return;
+      toast({
+        title: t("brandingSetup.toasts.loadFailedTitle"),
+        description: t("brandingSetup.toasts.loadFailedDescription"),
+        variant: "destructive",
+      });
       navigate("/select-plan", { replace: true });
       return;
     }
@@ -75,6 +87,17 @@ export default function BrandingSetup() {
         const b: BrokerSummary = data?.data ?? data?.broker;
         if (!hasBrandingAccess(b?.package)) {
           clearPostPaymentPending();
+          const sub =
+            b?.subdomain || sessionStorage.getItem("broker_subdomain");
+          sessionStorage.removeItem("broker_subdomain");
+          if (sub) {
+            window.location.href = await buildSubdomainRedirect(
+              sub,
+              "/dashboard",
+              i18n.language,
+            );
+            return;
+          }
           navigate("/select-plan", { replace: true });
           return;
         }
@@ -96,11 +119,12 @@ export default function BrandingSetup() {
     return () => {
       active = false;
     };
-  }, [brokerId, navigate, t, toast]);
+  }, [authLoading, user, brokerId, navigate, t, toast, i18n.language]);
 
   const goToDashboard = async () => {
     clearPostPaymentPending();
-    const sub = broker?.subdomain || sessionStorage.getItem("broker_subdomain");
+    const sub =
+      broker?.subdomain || sessionStorage.getItem("broker_subdomain") || null;
     sessionStorage.removeItem("broker_subdomain");
 
     if (sub) {
@@ -113,7 +137,13 @@ export default function BrandingSetup() {
       return;
     }
 
-    navigate("/dashboard");
+    // Dashboard only exists on the broker subdomain — never soft-navigate
+    // on the marketing host (that would 404).
+    toast({
+      title: t("brandingSetup.toasts.loadFailedTitle"),
+      description: t("brandingSetup.toasts.loadFailedDescription"),
+      variant: "destructive",
+    });
   };
 
   const handleSave = async () => {
