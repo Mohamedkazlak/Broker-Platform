@@ -3,6 +3,7 @@ import { MapPin, Bed, Bath, Square, Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { PropertyWhatsAppButton } from "@/components/properties/PropertyWhatsAppButton";
+import { PropertyImage } from "@/components/properties/PropertyImage";
 import { usePropertyDisplayText } from "@/hooks/usePropertyDisplayText";
 import { translatedFurnished } from "@/utils/propertyLabels";
 
@@ -22,7 +23,11 @@ export interface Property {
   furnished: boolean | "furnished" | "unfurnished" | "semi-furnished";
   featured: boolean;
   status: string;
-  image_url?: string;
+  /** Cover photo (first gallery image). */
+  image_url?: string | null;
+  /** Ordered gallery; index 0 is the cover. */
+  image_urls?: string[] | null;
+  video_urls?: string[] | null;
   created_at: string;
   /** Optional: from add-property form */
   property_code?: string;
@@ -34,6 +39,9 @@ export interface Property {
   finishing?: string | null;
   amenities?: string[];
 }
+
+const LISTING_FALLBACK =
+  "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80";
 
 interface PropertyCardProps {
   property: Property;
@@ -86,15 +94,14 @@ export function PropertyCard({ property }: PropertyCardProps) {
       to={`/properties/${property.id}`}
       className="property-card group block bg-card rounded-2xl overflow-hidden shadow-card border border-border/50"
     >
-      {/* Image Container */}
+      {/* Image Container — cover photo (first gallery image) */}
       <div className="relative overflow-hidden h-56">
-        <img
-          src={
-            property.image_url ||
-            "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80"
-          }
+        <PropertyImage
+          src={property.image_url || property.image_urls?.[0]}
           alt={displayText.title}
           className="property-image w-full h-full object-cover"
+          unavailableClassName="property-image w-full h-full"
+          emptyFallbackSrc={LISTING_FALLBACK}
         />
 
         {/* Overlay gradient */}

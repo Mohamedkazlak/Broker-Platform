@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Property } from "@/components/properties/PropertyCard";
 import { PropertyWhatsAppButton } from "@/components/properties/PropertyWhatsAppButton";
+import { PropertyImage } from "@/components/properties/PropertyImage";
 import { useBroker } from "@/contexts/BrokerContext";
 import { usePropertyDisplayText } from "@/hooks/usePropertyDisplayText";
 import { amenityStoredToKey, translatedAmenityLabel } from "@/utils/amenities";
@@ -35,6 +36,7 @@ import {
   translatedStatus,
   translatedVillaLevels,
 } from "@/utils/propertyLabels";
+import { normalizePropertyGallery } from "@/utils/propertyImageLinks";
 
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80";
@@ -74,21 +76,18 @@ export default function PropertyDetails() {
 
         const media: { url: string; type: "image" | "video" }[] = [];
 
-        if (data.image_url) {
-          media.push({ url: data.image_url, type: "image" });
-        }
-
         const propertyDataResponse = data as Property & {
-          image_urls?: string[];
-          video_urls?: string[];
+          image_urls?: string[] | null;
+          video_urls?: string[] | null;
         };
 
-        if (Array.isArray(propertyDataResponse.image_urls)) {
-          propertyDataResponse.image_urls.forEach((url: string) => {
-            if (url && url !== propertyDataResponse.image_url) {
-              media.push({ url, type: "image" });
-            }
-          });
+        const gallery = normalizePropertyGallery(
+          propertyDataResponse.image_url,
+          propertyDataResponse.image_urls,
+        );
+
+        for (const url of gallery) {
+          media.push({ url, type: "image" });
         }
 
         if (Array.isArray(propertyDataResponse.video_urls)) {
@@ -99,6 +98,8 @@ export default function PropertyDetails() {
 
         const propertyData = {
           ...data,
+          image_url: gallery[0] ?? propertyDataResponse.image_url,
+          image_urls: gallery,
           media:
             media.length > 0
               ? media
@@ -222,11 +223,15 @@ export default function PropertyDetails() {
               playsInline
             />
           ) : (
-            <img
+            <PropertyImage
               key={mediaList[currentMediaIndex].url}
               src={mediaList[currentMediaIndex].url}
               alt={displayText.title}
               className="max-w-full max-h-full w-auto h-auto object-contain"
+              unavailableClassName="w-full h-full min-h-[40vh]"
+              emptyFallbackSrc={
+                mediaList.length === 1 ? DEFAULT_IMAGE : undefined
+              }
             />
           )}
 
@@ -528,11 +533,13 @@ export default function PropertyDetails() {
                             playsInline
                           />
                         ) : (
-                          <img
+                          <PropertyImage
                             key={media.url}
                             src={media.url}
                             alt={`${displayText.title} ${index + 1}`}
                             className="w-full h-full object-cover"
+                            unavailableClassName="w-full h-full"
+                            compact
                           />
                         )}
                       </button>

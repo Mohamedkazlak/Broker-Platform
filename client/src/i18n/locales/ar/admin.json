@@ -1,0 +1,115 @@
+{
+  "brand": "المشرف",
+  "sidebar": {
+    "dashboard": "لوحة التحكم",
+    "brokers": "الوسطاء",
+    "payments": "المدفوعات",
+    "properties": "العقارات",
+    "domains": "النطاقات"
+  },
+  "topbar": {
+    "openMenu": "فتح القائمة",
+    "logout": "تسجيل الخروج"
+  },
+  "common": {
+    "comingSoon": "قريباً"
+  },
+  "login": {
+    "title": "تسجيل دخول المشرف",
+    "subtitle": "الدخول مخصص لإدارة المنصة فقط.",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "submit": "تسجيل الدخول",
+    "failedTitle": "فشل تسجيل الدخول",
+    "failedDescription": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    "accessDeniedTitle": "تم رفض الوصول",
+    "accessDeniedDescription": "هذا الحساب ليس مشرفاً."
+  },
+  "dashboard": {
+    "heading": "لوحة التحكم",
+    "subheading": "نظرة عامة على المنصة.",
+    "loadError": "تعذّر تحميل إحصائيات لوحة التحكم.",
+    "totalBrokers": "إجمالي الوسطاء",
+    "activeBrokers": "الوسطاء النشطون",
+    "pendingBrokers": "الوسطاء قيد الانتظار",
+    "newThisMonth": "الجدد هذا الشهر",
+    "pendingInstapayReviews": "مراجعات إنستاباي المعلقة"
+  },
+  "status": {
+    "active": "نشط",
+    "pending": "قيد الانتظار",
+    "suspended": "موقوف",
+    "past_due": "متأخر السداد"
+  },
+  "brokers": {
+    "heading": "الوسطاء",
+    "subheading": "إدارة جميع الوسطاء على المنصة.",
+    "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني أو النطاق الفرعي...",
+    "statusFilter": {
+      "all": "جميع الحالات",
+      "active": "نشط",
+      "pending": "قيد الانتظار",
+      "suspended": "موقوف",
+      "past_due": "متأخر السداد"
+    },
+    "table": {
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "domain": "النطاق",
+      "plan": "الباقة",
+      "status": "الحالة",
+      "signupDate": "تاريخ التسجيل"
+    },
+    "loadError": "تعذّر تحميل الوسطاء.",
+    "empty": "لا يوجد وسطاء.",
+    "pagination": {
+      "summary": "صفحة {{page}} من {{totalPages}} · {{total}} إجمالاً",
+      "prev": "السابق",
+      "next": "التالي"
+    }
+  },
+  "detail": {
+    "back": "العودة إلى الوسطاء",
+    "notFound": "الوسيط غير موجود.",
+    "profileHeading": "الملف الشخصي",
+    "propertiesHeading": "العقارات",
+    "paymentHistoryHeading": "سجل المدفوعات",
+    "suspend": "إيقاف",
+    "reactivate": "إعادة التفعيل",
+    "suspendedToast": "تم إيقاف الوسيط",
+    "reactivatedToast": "تمت إعادة تفعيل الوسيط",
+    "actionErrorTitle": "فشلت العملية",
+    "actionErrorDescription": "تعذّر تحديث حالة الوسيط. حاول مرة أخرى.",
+    "confirmSuspendTitle": "إيقاف الوسيط؟",
+    "confirmSuspendDescription": "هل أنت متأكد من إيقاف {{name}}؟ سيتم تعطيل حسابه.",
+    "confirmReactivateTitle": "إعادة تفعيل الوسيط؟",
+    "confirmReactivateDescription": "هل أنت متأكد من إعادة تفعيل {{name}}؟ سيتم استعادة حسابه.",
+    "cancel": "إلغاء",
+    "fields": {
+      "contactName": "اسم جهة الاتصال",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "whatsapp": "واتساب",
+      "governorate": "المحافظة",
+      "subdomain": "النطاق الفرعي",
+      "customDomain": "النطاق المخصص",
+      "plan": "الباقة",
+      "status": "الحالة",
+      "signupDate": "تاريخ التسجيل"
+    }
+  },
+  "placeholders": {
+    "payments": {
+      "heading": "المدفوعات",
+      "subheading": "مراجعة المدفوعات وتحويلات إنستاباي."
+    },
+    "properties": {
+      "heading": "العقارات",
+      "subheading": "تصفح العقارات عبر جميع الوسطاء."
+    },
+    "domains": {
+      "heading": "النطاقات",
+      "subheading": "إدارة النطاقات المخصصة والنطاقات الفرعية."
+    }
+  }
+}

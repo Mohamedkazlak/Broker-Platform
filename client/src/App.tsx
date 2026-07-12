@@ -6,9 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { BrokerProvider, useBroker } from "@/contexts/BrokerContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import ScrollToTop from "@/components/common/ScrollToTop";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import OnboardingRoute from "@/components/common/OnboardingRoute";
+import RequireAdmin from "@/components/admin/RequireAdmin";
 import { getSubdomainFromHost } from "@/lib/broker";
 import type { SupportedLanguage } from "@/i18n";
 import { MarketingAnimatedLayout } from "@/components/layout/MarketingAnimatedLayout";
@@ -43,6 +45,14 @@ const DashboardSettings = lazy(
 );
 const NotFound = lazy(() => import("./pages/error/NotFound"));
 
+// Admin shell (main host only — never wired into the subdomain relay).
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminBrokers = lazy(() => import("./pages/admin/AdminBrokers"));
+const AdminBrokerDetail = lazy(() => import("./pages/admin/AdminBrokerDetail"));
+const AdminPlaceholder = lazy(() => import("./pages/admin/AdminPlaceholder"));
+
 const queryClient = new QueryClient();
 
 const subdomain = getSubdomainFromHost();
@@ -69,6 +79,16 @@ const SubdomainGuard = () => {
 
   return <Outlet />;
 };
+
+/**
+ * Wraps the admin route tree in its own auth context. Only mounted on the main
+ * host — deliberately kept out of the broker subdomain relay/routing.
+ */
+const AdminRoot = () => (
+  <AdminAuthProvider>
+    <Outlet />
+  </AdminAuthProvider>
+);
 
 const App = ({ lang }: AppProps) => (
   <QueryClientProvider client={queryClient}>
@@ -111,26 +131,55 @@ const App = ({ lang }: AppProps) => (
                     <Route path="*" element={<NotFound />} />
                   </Route>
                 ) : (
-                  <Route element={<MarketingAnimatedLayout />}>
-                    <Route index element={<Platform />} />
-                    <Route path="pricing" element={<Pricing />} />
-                    <Route path="about" element={<About />} />
-                    <Route path="contact" element={<Contact />} />
-                    <Route path="register" element={<Auth />} />
-                    <Route path="login" element={<Auth />} />
-                    <Route path="subscription" element={<Subscription />} />
-                    {/* Onboarding: draft signup (no DB yet) or authenticated upgrade */}
-                    <Route element={<OnboardingRoute />}>
-                      <Route path="select-plan" element={<SelectPlan />} />
-                      <Route path="domain-setup" element={<DomainSetup />} />
-                      <Route path="payment" element={<Payment />} />
-                      <Route
-                        path="branding-setup"
-                        element={<BrandingSetup />}
-                      />
+                  <>
+                    {/* Platform admin — main host only, own auth context */}
+                    <Route path="/admin" element={<AdminRoot />}>
+                      <Route path="login" element={<AdminLogin />} />
+                      <Route element={<RequireAdmin />}>
+                        <Route element={<AdminLayout />}>
+                          <Route index element={<AdminDashboard />} />
+                          <Route path="brokers" element={<AdminBrokers />} />
+                          <Route
+                            path="brokers/:brokerId"
+                            element={<AdminBrokerDetail />}
+                          />
+                          <Route
+                            path="payments"
+                            element={<AdminPlaceholder section="payments" />}
+                          />
+                          <Route
+                            path="properties"
+                            element={<AdminPlaceholder section="properties" />}
+                          />
+                          <Route
+                            path="domains"
+                            element={<AdminPlaceholder section="domains" />}
+                          />
+                        </Route>
+                      </Route>
                     </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
+
+                    <Route element={<MarketingAnimatedLayout />}>
+                      <Route index element={<Platform />} />
+                      <Route path="pricing" element={<Pricing />} />
+                      <Route path="about" element={<About />} />
+                      <Route path="contact" element={<Contact />} />
+                      <Route path="register" element={<Auth />} />
+                      <Route path="login" element={<Auth />} />
+                      <Route path="subscription" element={<Subscription />} />
+                      {/* Onboarding: draft signup (no DB yet) or authenticated upgrade */}
+                      <Route element={<OnboardingRoute />}>
+                        <Route path="select-plan" element={<SelectPlan />} />
+                        <Route path="domain-setup" element={<DomainSetup />} />
+                        <Route path="payment" element={<Payment />} />
+                        <Route
+                          path="branding-setup"
+                          element={<BrandingSetup />}
+                        />
+                      </Route>
+                      <Route path="*" element={<NotFound />} />
+                    </Route>
+                  </>
                 )}
               </Routes>
             </Suspense>

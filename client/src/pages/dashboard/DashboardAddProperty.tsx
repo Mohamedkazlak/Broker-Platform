@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Menu, ArrowLeft, Upload } from "lucide-react";
+import {
+  Menu,
+  ArrowLeft,
+  Upload,
+  Link2,
+  ChevronUp,
+  ChevronDown,
+  Star,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +30,13 @@ import { propertyService } from "@/services/propertyService";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
+import { PropertyImage } from "@/components/properties/PropertyImage";
 import { AMENITY_KEYS, normalizeAmenityPersistedList } from "@/utils/amenities";
+import {
+  coverFromGallery,
+  normalizePropertyGallery,
+  normalizePropertyImageLink,
+} from "@/utils/propertyImageLinks";
 
 export default function DashboardAddProperty() {
   const { id: editId } = useParams();
@@ -37,6 +51,9 @@ export default function DashboardAddProperty() {
   const [loadingProperty, setLoadingProperty] = useState(isEdit);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [imageLinkDraft, setImageLinkDraft] = useState("");
+  const [videoLinkDraft, setVideoLinkDraft] = useState("");
+  const [imageLinkError, setImageLinkError] = useState<string | null>(null);
 
   const generatePropertyCode = () => {
     return "PR-" + Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -64,7 +81,6 @@ export default function DashboardAddProperty() {
     furnished: "" as "" | "furnished" | "unfurnished" | "semi-furnished",
     featured: false,
     status: "active",
-    image_url: "",
     image_urls: [] as string[],
     video_urls: [] as string[],
     amenities: [] as string[],
@@ -126,10 +142,12 @@ export default function DashboardAddProperty() {
               | "semi-furnished") ?? "",
           featured: p.featured ?? false,
           status: p.status ?? "active",
-          image_url: p.image_url ?? "",
-          image_urls: Array.isArray((p as { image_urls?: string[] }).image_urls)
-            ? (p as { image_urls?: string[] }).image_urls!
-            : [],
+          image_urls: normalizePropertyGallery(
+            p.image_url,
+            Array.isArray((p as { image_urls?: string[] }).image_urls)
+              ? (p as { image_urls?: string[] }).image_urls!
+              : [],
+          ),
           video_urls: Array.isArray((p as { video_urls?: string[] }).video_urls)
             ? (p as { video_urls?: string[] }).video_urls!
             : [],
@@ -188,6 +206,63 @@ export default function DashboardAddProperty() {
 
   const removeSelectedFile = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const mediaCount =
+    form.image_urls.length + form.video_urls.length + selectedFiles.length;
+
+  const addImageLink = () => {
+    const result = normalizePropertyImageLink(imageLinkDraft);
+    if (result.ok === false) {
+      if (result.reason === "folder") {
+        setImageLinkError(t("addProperty.fields.driveFolderUnsupported"));
+      } else if (result.reason === "empty") {
+        setImageLinkError(t("addProperty.fields.imageLinkRequired"));
+      } else {
+        setImageLinkError(t("addProperty.fields.imageLinkInvalid"));
+      }
+      return;
+    }
+
+    if (mediaCount >= 20) {
+      toast({
+        title: t("addProperty.toasts.tooManyTitle"),
+        description: t("addProperty.toasts.tooManyDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (form.image_urls.includes(result.url)) {
+      setImageLinkError(t("addProperty.fields.imageLinkDuplicate"));
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      image_urls: [...prev.image_urls, result.url],
+    }));
+    setImageLinkDraft("");
+    setImageLinkError(null);
+  };
+
+  const moveImage = (index: number, direction: -1 | 1) => {
+    setForm((prev) => {
+      const next = [...prev.image_urls];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      const tmp = next[index];
+      next[index] = next[target];
+      next[target] = tmp;
+      return { ...prev, image_urls: next };
+    });
+  };
+
+  const removeImageAt = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      image_urls: prev.image_urls.filter((_, j) => j !== index),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -279,7 +354,7 @@ export default function DashboardAddProperty() {
         furnished: form.furnished || false,
         featured: form.featured,
         status: form.status,
-        image_url: form.image_url || (finalImageUrls[0] as string) || "",
+        image_url: coverFromGallery(finalImageUrls) ?? "",
         image_urls: finalImageUrls,
         video_urls: finalVideoUrls,
         amenities: normalizeAmenityPersistedList(form.amenities),
@@ -842,104 +917,186 @@ export default function DashboardAddProperty() {
               </h2>
 
               <div className="space-y-2">
+                <Label htmlFor="image_link">
+                  {t("addProperty.fields.imageLink")}
+                </Label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    id="image_link"
+                    type="url"
+                    placeholder={t("addProperty.fields.imageLinkPlaceholder")}
+                    value={imageLinkDraft}
+                    onChange={(e) => {
+                      setImageLinkDraft(e.target.value);
+                      if (imageLinkError) setImageLinkError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addImageLink();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addImageLink}
+                    className="shrink-0"
+                  >
+                    <Link2 className="w-4 h-4 me-2" />
+                    {t("addProperty.fields.addImageLink")}
+                  </Button>
+                </div>
+                {imageLinkError ? (
+                  <p className="text-sm text-destructive">{imageLinkError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {t("addProperty.fields.imageLinkHint")}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="video_url">
                   {t("addProperty.fields.videoUrl")}
                 </Label>
-                <Input
-                  id="video_url"
-                  type="url"
-                  placeholder={t("addProperty.fields.videoUrlPlaceholder")}
-                  value={form.image_url}
-                  onChange={(e) => handleChange("image_url", e.target.value)}
-                />
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    <div className="relative">
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*,video/*"
-                        onChange={handleFileSelect}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        id="file-upload"
-                      />
-                      <Button
-                        type="button"
-                        variant="default"
-                        size="sm"
-                        className="pointer-events-none"
-                      >
-                        <Upload className="w-4 h-4 me-2" />
-                        {t("addProperty.fields.uploadMedia")}
-                      </Button>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const url = form.image_url?.trim();
-                        if (url) {
-                          setForm((prev) => ({
-                            ...prev,
-                            video_urls: [...prev.video_urls, url],
-                            image_url: "",
-                          }));
-                        }
-                      }}
-                    >
-                      <Upload className="w-4 h-4 me-2" />
-                      {t("addProperty.fields.attachVideoUrl")}
-                    </Button>
-                  </div>
-                  <span className="text-xs text-muted-foreground w-full">
-                    {t("addProperty.fields.uploadHint")}
-                  </span>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    id="video_url"
+                    type="url"
+                    placeholder={t("addProperty.fields.videoUrlPlaceholder")}
+                    value={videoLinkDraft}
+                    onChange={(e) => setVideoLinkDraft(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={() => {
+                      const url = videoLinkDraft.trim();
+                      if (!url) return;
+                      if (mediaCount >= 20) {
+                        toast({
+                          title: t("addProperty.toasts.tooManyTitle"),
+                          description: t(
+                            "addProperty.toasts.tooManyDescription",
+                          ),
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      setForm((prev) => ({
+                        ...prev,
+                        video_urls: [...prev.video_urls, url],
+                      }));
+                      setVideoLinkDraft("");
+                    }}
+                  >
+                    <Upload className="w-4 h-4 me-2" />
+                    {t("addProperty.fields.attachVideoUrl")}
+                  </Button>
                 </div>
-                {(form.image_urls.length > 0 ||
-                  form.video_urls.length > 0 ||
-                  selectedFiles.length > 0) && (
-                  <div className="space-y-4">
-                    <p className="text-sm font-medium">
-                      {t("addProperty.fields.includedMedia", {
-                        count:
-                          form.image_urls.length +
-                          form.video_urls.length +
-                          selectedFiles.length,
-                      })}
-                    </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    onChange={handleFileSelect}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    id="file-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="pointer-events-none"
+                  >
+                    <Upload className="w-4 h-4 me-2" />
+                    {t("addProperty.fields.uploadMedia")}
+                  </Button>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {t("addProperty.fields.uploadHint")}
+                </span>
+              </div>
+
+              {(form.image_urls.length > 0 ||
+                form.video_urls.length > 0 ||
+                selectedFiles.length > 0) && (
+                <div className="space-y-4">
+                  <p className="text-sm font-medium">
+                    {t("addProperty.fields.includedMedia", {
+                      count: mediaCount,
+                    })}
+                  </p>
+
+                  {form.image_urls.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        {t("addProperty.fields.coverIsFirst")}
+                      </p>
+                      <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {form.image_urls.map((url, i) => (
+                          <li
+                            key={`img-${url}-${i}`}
+                            className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border"
+                          >
+                            <PropertyImage
+                              src={url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              unavailableClassName="w-full h-full"
+                              compact
+                            />
+                            {i === 0 && (
+                              <span className="absolute top-2 start-2 inline-flex items-center gap-1 rounded bg-accent text-accent-foreground text-[10px] font-medium px-1.5 py-0.5">
+                                <Star className="w-3 h-3" />
+                                {t("addProperty.fields.coverBadge")}
+                              </span>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  className="text-white bg-black/40 p-1 rounded disabled:opacity-40"
+                                  disabled={i === 0}
+                                  onClick={() => moveImage(i, -1)}
+                                  aria-label={t("addProperty.fields.moveUp")}
+                                >
+                                  <ChevronUp className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-white bg-black/40 p-1 rounded disabled:opacity-40"
+                                  disabled={i === form.image_urls.length - 1}
+                                  onClick={() => moveImage(i, 1)}
+                                  aria-label={t("addProperty.fields.moveDown")}
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <span className="text-[10px] text-white truncate w-full text-center px-1 bg-black/40 rounded">
+                                {url}
+                              </span>
+                              <button
+                                type="button"
+                                className="text-white hover:text-destructive bg-black/40 px-2 py-1 rounded text-xs"
+                                onClick={() => removeImageAt(i)}
+                              >
+                                {t("addProperty.fields.removeLink")}
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {(form.video_urls.length > 0 || selectedFiles.length > 0) && (
                     <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {form.image_urls.map((url, i) => (
-                        <li
-                          key={`url-${i}`}
-                          className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border"
-                        >
-                          <img
-                            src={url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
-                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">
-                              {url}
-                            </span>
-                            <button
-                              type="button"
-                              className="text-white hover:text-destructive bg-black/40 px-2 py-1 rounded text-xs"
-                              onClick={() =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  image_urls: prev.image_urls.filter(
-                                    (_, j) => j !== i,
-                                  ),
-                                }))
-                              }
-                            >
-                              {t("addProperty.fields.removeLink")}
-                            </button>
-                          </div>
-                        </li>
-                      ))}
                       {form.video_urls.map((url, i) => (
                         <li
                           key={`video-url-${i}`}
@@ -1004,20 +1161,7 @@ export default function DashboardAddProperty() {
                         </li>
                       ))}
                     </ul>
-                  </div>
-                )}
-              </div>
-
-              {(form.image_url || form.image_urls[0]) && (
-                <div className="relative w-full max-w-xs rounded-lg overflow-hidden border border-border">
-                  <img
-                    src={form.image_url || form.image_urls[0]}
-                    alt=""
-                    className="w-full h-40 object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
+                  )}
                 </div>
               )}
             </div>

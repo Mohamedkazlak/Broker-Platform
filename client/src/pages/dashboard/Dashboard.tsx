@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Property } from "@/components/properties/PropertyCard";
+import { PropertyImage } from "@/components/properties/PropertyImage";
 import { propertyService } from "@/services/propertyService";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import {
@@ -242,10 +243,12 @@ export default function Dashboard() {
                     >
                       <td className="px-4 lg:px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <img
+                          <PropertyImage
                             src={property.image_url}
                             alt={property.title}
                             className="w-12 h-12 rounded-lg object-cover"
+                            unavailableClassName="w-12 h-12 rounded-lg"
+                            compact
                           />
                           <div className="min-w-0">
                             <p className="font-medium text-foreground truncate">

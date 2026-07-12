@@ -1,0 +1,115 @@
+{
+  "brand": "Admin",
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "brokers": "Brokers",
+    "payments": "Payments",
+    "properties": "Properties",
+    "domains": "Domains"
+  },
+  "topbar": {
+    "openMenu": "Open menu",
+    "logout": "Log out"
+  },
+  "common": {
+    "comingSoon": "Coming soon"
+  },
+  "login": {
+    "title": "Admin Sign In",
+    "subtitle": "Platform administration access only.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign In",
+    "failedTitle": "Sign in failed",
+    "failedDescription": "Invalid email or password.",
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedDescription": "This account is not an administrator."
+  },
+  "dashboard": {
+    "heading": "Dashboard",
+    "subheading": "Platform overview at a glance.",
+    "loadError": "Could not load dashboard stats.",
+    "totalBrokers": "Total Brokers",
+    "activeBrokers": "Active Brokers",
+    "pendingBrokers": "Pending Brokers",
+    "newThisMonth": "New This Month",
+    "pendingInstapayReviews": "Pending Instapay Reviews"
+  },
+  "status": {
+    "active": "Active",
+    "pending": "Pending",
+    "suspended": "Suspended",
+    "past_due": "Past Due"
+  },
+  "brokers": {
+    "heading": "Brokers",
+    "subheading": "Manage every broker on the platform.",
+    "searchPlaceholder": "Search by name, email, or subdomain...",
+    "statusFilter": {
+      "all": "All statuses",
+      "active": "Active",
+      "pending": "Pending",
+      "suspended": "Suspended",
+      "past_due": "Past Due"
+    },
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "domain": "Domain",
+      "plan": "Plan",
+      "status": "Status",
+      "signupDate": "Signup Date"
+    },
+    "loadError": "Could not load brokers.",
+    "empty": "No brokers found.",
+    "pagination": {
+      "summary": "Page {{page}} of {{totalPages}} · {{total}} total",
+      "prev": "Previous",
+      "next": "Next"
+    }
+  },
+  "detail": {
+    "back": "Back to brokers",
+    "notFound": "Broker not found.",
+    "profileHeading": "Profile",
+    "propertiesHeading": "Properties",
+    "paymentHistoryHeading": "Payment History",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "suspendedToast": "Broker suspended",
+    "reactivatedToast": "Broker reactivated",
+    "actionErrorTitle": "Action failed",
+    "actionErrorDescription": "Could not update broker status. Please try again.",
+    "confirmSuspendTitle": "Suspend broker?",
+    "confirmSuspendDescription": "Are you sure you want to suspend {{name}}? Their account will be deactivated.",
+    "confirmReactivateTitle": "Reactivate broker?",
+    "confirmReactivateDescription": "Are you sure you want to reactivate {{name}}? Their account will be restored.",
+    "cancel": "Cancel",
+    "fields": {
+      "contactName": "Contact Name",
+      "email": "Email",
+      "phone": "Phone",
+      "whatsapp": "WhatsApp",
+      "governorate": "Governorate",
+      "subdomain": "Subdomain",
+      "customDomain": "Custom Domain",
+      "plan": "Plan",
+      "status": "Status",
+      "signupDate": "Signup Date"
+    }
+  },
+  "placeholders": {
+    "payments": {
+      "heading": "Payments",
+      "subheading": "Review payments and Instapay transfers."
+    },
+    "properties": {
+      "heading": "Properties",
+      "subheading": "Browse properties across all brokers."
+    },
+    "domains": {
+      "heading": "Domains",
+      "subheading": "Manage custom domains and subdomains."
+    }
+  }
+}
