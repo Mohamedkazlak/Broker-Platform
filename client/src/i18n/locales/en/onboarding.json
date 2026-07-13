@@ -41,6 +41,12 @@
     "domainLine": "Custom domain ({{domain}})",
     "total": "Total due today",
     "amount": "{{amount}} EGP",
+    "chooseMethod": "Choose a payment method",
+    "methods": {
+      "card": "Pay with Card",
+      "instapay": "Pay with Instapay"
+    },
+    "backToMethods": "Back to payment methods",
     "succeedButton": "Simulate Successful Payment",
     "failButton": "Simulate Failed Payment",
     "processing": "Processing payment…",
@@ -59,6 +65,49 @@
       "title": "Payment Successful",
       "description": "Your platform is now active. Next, personalize your homepage with your own icon and background.",
       "continue": "Continue to customization"
+    }
+  },
+  "instapay": {
+    "copied": "Instapay handle copied",
+    "qr": {
+      "heading": "Pay with Instapay",
+      "subheading": "Scan the QR code or use the account details below to send your payment.",
+      "imageAlt": "Instapay payment QR code",
+      "handleLabel": "Instapay account",
+      "copy": "Copy",
+      "openLink": "Open Instapay link",
+      "manualNote": "After you send the transfer, tell us whether it went through. We'll confirm it when you upload your receipt.",
+      "confirmPrompt": "Did your payment go through?",
+      "successful": "Payment Successful",
+      "notSuccessful": "Payment Not Successful"
+    },
+    "receipt": {
+      "heading": "Upload your receipt",
+      "subheading": "Upload a clear photo or screenshot of your Instapay payment confirmation to continue.",
+      "pick": "Choose receipt image",
+      "hint": "JPEG, PNG, WebP, or GIF — up to 5 MB",
+      "previewAlt": "Selected payment receipt",
+      "change": "Choose a different image",
+      "submit": "Submit for review",
+      "submitting": "Submitting…",
+      "back": "Back",
+      "submitFailed": "Couldn't upload your receipt. Please try again.",
+      "invalidTitle": "Invalid image",
+      "errors": {
+        "invalidType": "Please upload a JPEG, PNG, WebP, or GIF image.",
+        "tooLarge": "Image must be 5 MB or smaller."
+      }
+    },
+    "pending": {
+      "heading": "Payment under review",
+      "subheading": "We're reviewing your Instapay receipt. Your platform link will activate once an admin approves the payment.",
+      "platformLinkLabel": "Your platform link",
+      "platformLinkHint": "This link will not open until your payment is approved.",
+      "checking": "Checking approval status…",
+      "pollError": "Couldn't refresh status. Retrying…",
+      "rejectedTitle": "Payment was rejected",
+      "rejectedFallback": "Your receipt couldn't be verified. Please try again with a clearer image or a different payment method.",
+      "tryAgain": "Back to payment options"
     }
   },
   "brandingSetup": {

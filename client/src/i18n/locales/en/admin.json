@@ -111,5 +111,31 @@
       "heading": "Domains",
       "subheading": "Manage custom domains and subdomains."
     }
+  },
+  "payments": {
+    "heading": "Instapay Payments",
+    "subheading": "Review pending Instapay receipts and approve or reject each transfer.",
+    "loadError": "Could not load Instapay submissions.",
+    "empty": "No pending Instapay submissions.",
+    "viewReceipt": "View receipt",
+    "receiptPreview": "Payment receipt",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "confirmReject": "Confirm rejection",
+    "rejectTitle": "Reject payment?",
+    "rejectDescription": "Tell {{name}} why this Instapay receipt was rejected.",
+    "rejectPlaceholder": "Reason for rejection…",
+    "approvedToast": "Payment approved — broker account created and activated",
+    "rejectedToast": "Payment rejected",
+    "actionErrorTitle": "Action failed",
+    "actionErrorDescription": "Could not update this submission. Please try again.",
+    "table": {
+      "broker": "Broker",
+      "amount": "Amount",
+      "submitted": "Submitted",
+      "receipt": "Receipt",
+      "actions": "Actions"
+    }
   }
 }

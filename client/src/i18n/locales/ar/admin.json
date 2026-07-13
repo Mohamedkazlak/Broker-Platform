@@ -111,5 +111,31 @@
       "heading": "النطاقات",
       "subheading": "إدارة النطاقات المخصصة والنطاقات الفرعية."
     }
+  },
+  "payments": {
+    "heading": "مدفوعات إنستاباي",
+    "subheading": "راجع إيصالات إنستاباي المعلقة ووافق عليها أو ارفضها.",
+    "loadError": "تعذّر تحميل طلبات إنستاباي.",
+    "empty": "لا توجد طلبات إنستاباي معلقة.",
+    "viewReceipt": "عرض الإيصال",
+    "receiptPreview": "إيصال الدفع",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "cancel": "إلغاء",
+    "confirmReject": "تأكيد الرفض",
+    "rejectTitle": "رفض الدفع؟",
+    "rejectDescription": "أخبر {{name}} بسبب رفض إيصال إنستاباي هذا.",
+    "rejectPlaceholder": "سبب الرفض…",
+    "approvedToast": "تمت الموافقة على الدفع — تم إنشاء حساب الوسيط وتفعيله",
+    "rejectedToast": "تم رفض الدفع",
+    "actionErrorTitle": "فشلت العملية",
+    "actionErrorDescription": "تعذّر تحديث هذا الطلب. يرجى المحاولة مرة أخرى.",
+    "table": {
+      "broker": "الوسيط",
+      "amount": "المبلغ",
+      "submitted": "تاريخ الإرسال",
+      "receipt": "الإيصال",
+      "actions": "إجراءات"
+    }
   }
 }

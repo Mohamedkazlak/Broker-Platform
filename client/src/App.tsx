@@ -25,6 +25,15 @@ const Subscription = lazy(() => import("./pages/dashboard/Subscription"));
 const SelectPlan = lazy(() => import("./pages/onboarding/SelectPlan"));
 const DomainSetup = lazy(() => import("./pages/onboarding/DomainSetup"));
 const Payment = lazy(() => import("./pages/onboarding/Payment"));
+const InstapayPayment = lazy(
+  () => import("./pages/onboarding/InstapayPayment"),
+);
+const InstapayReceipt = lazy(
+  () => import("./pages/onboarding/InstapayReceipt"),
+);
+const InstapayPending = lazy(
+  () => import("./pages/onboarding/InstapayPending"),
+);
 const BrandingSetup = lazy(() => import("./pages/onboarding/BrandingSetup"));
 
 const Index = lazy(() => import("./pages/public/Index"));
@@ -51,6 +60,7 @@ const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminBrokers = lazy(() => import("./pages/admin/AdminBrokers"));
 const AdminBrokerDetail = lazy(() => import("./pages/admin/AdminBrokerDetail"));
+const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
 const AdminPlaceholder = lazy(() => import("./pages/admin/AdminPlaceholder"));
 
 const queryClient = new QueryClient();
@@ -143,10 +153,7 @@ const App = ({ lang }: AppProps) => (
                             path="brokers/:brokerId"
                             element={<AdminBrokerDetail />}
                           />
-                          <Route
-                            path="payments"
-                            element={<AdminPlaceholder section="payments" />}
-                          />
+                          <Route path="payments" element={<AdminPayments />} />
                           <Route
                             path="properties"
                             element={<AdminPlaceholder section="properties" />}
@@ -172,6 +179,18 @@ const App = ({ lang }: AppProps) => (
                         <Route path="select-plan" element={<SelectPlan />} />
                         <Route path="domain-setup" element={<DomainSetup />} />
                         <Route path="payment" element={<Payment />} />
+                        <Route
+                          path="payment/instapay"
+                          element={<InstapayPayment />}
+                        />
+                        <Route
+                          path="payment/instapay/receipt"
+                          element={<InstapayReceipt />}
+                        />
+                        <Route
+                          path="payment/instapay/pending"
+                          element={<InstapayPending />}
+                        />
                         <Route
                           path="branding-setup"
                           element={<BrandingSetup />}

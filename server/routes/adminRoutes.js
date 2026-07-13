@@ -8,6 +8,10 @@ import {
   getBrokerDetail,
   updateBrokerStatus,
 } from "../controllers/adminController.js";
+import {
+  adminListSubmissions,
+  adminReviewSubmission,
+} from "../controllers/instapayController.js";
 
 const router = Router();
 
@@ -19,5 +23,7 @@ router.get("/dashboard-stats", getDashboardStats);
 router.get("/brokers", listBrokers);
 router.get("/brokers/:brokerId", getBrokerDetail);
 router.patch("/brokers/:brokerId/status", updateBrokerStatus);
+router.get("/instapay", adminListSubmissions);
+router.patch("/instapay/:id", adminReviewSubmission);
 
 export default router;

@@ -1,4 +1,5 @@
 import { brokerModel } from "../models/brokerModel.js";
+import { instapayModel } from "../models/instapayModel.js";
 import { validateSubdomainFormat } from "../utils/subdomainValidator.js";
 import {
   generateDefaultSubdomain,
@@ -101,6 +102,13 @@ export const checkSubdomainAvailability = async (req, res, next) => {
 
     const existing = await brokerModel.findIdBySubdomain(result.normalized);
     if (existing) {
+      return res.json({ available: false, reason: "taken" });
+    }
+
+    const pending = await instapayModel.findPendingBySubdomain(
+      result.normalized,
+    );
+    if (pending) {
       return res.json({ available: false, reason: "taken" });
     }
 
