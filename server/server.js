@@ -21,6 +21,7 @@ import planRoutes from "./routes/planRoutes.js";
 import domainRoutes from "./routes/domainRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import translateRoutes from "./routes/translateRoutes.js";
+import instapayRoutes from "./routes/instapayRoutes.js";
 import webhookRoutes from "./routes/webhooks.js";
 import {
   apiLimiter,
@@ -130,6 +131,7 @@ app.use("/api/brokers", brokerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/domains", domainRoutes);
+app.use("/api/instapay", instapayRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/translate", translateRoutes);
 

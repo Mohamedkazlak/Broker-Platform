@@ -3,7 +3,7 @@
  *
  * Registration form data is held here through plan / domain / payment so we
  * only write auth.users + brokers + profiles when onboarding actually completes
- * (free plan selected, or paid payment succeeds).
+ * (free plan selected, card payment succeeds, or Instapay admin approval).
  *
  * Uses localStorage so a refresh (or closed tab reopen) keeps the draft until
  * the broker finishes onboarding or the draft is explicitly cleared.

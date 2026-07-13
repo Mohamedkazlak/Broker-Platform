@@ -7,6 +7,7 @@ import {
   Globe,
   Loader2,
   PartyPopper,
+  Smartphone,
   XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,8 @@ interface OrderSummary {
   total: number;
 }
 
+type PaymentMethod = "card" | "instapay" | null;
+
 /** Artificial delay so the simulated charge feels like a real round-trip. */
 const PROCESSING_DELAY_MS = 1200;
 
@@ -49,13 +52,12 @@ export default function Payment() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState<OrderSummary | null>(null);
+  const [method, setMethod] = useState<PaymentMethod>(null);
   const [processing, setProcessing] = useState(false);
   const [failed, setFailed] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   useEffect(() => {
-    // After a successful pay, draft is cleared and profile may not be ready yet.
-    // Do not bounce to /register during that window.
     if (paymentSuccess || isPostPaymentPending()) return;
 
     let active = true;
@@ -180,8 +182,6 @@ export default function Payment() {
           return;
         }
 
-        // Mark post-payment BEFORE clearing the draft so OnboardingRoute
-        // never sees a gap with neither draft nor session user.
         if (subdomain) {
           sessionStorage.setItem("broker_subdomain", subdomain);
         }
@@ -314,69 +314,110 @@ export default function Payment() {
           </CardContent>
         </Card>
 
-        {failed && (
-          <div className="mt-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-center">
-            <div className="flex justify-center mb-2">
-              <XCircle className="w-8 h-8 text-destructive" />
-            </div>
-            <p className="font-semibold text-destructive">
-              {t("payment.failed.title")}
+        {method === null && (
+          <div className="mt-8 space-y-3">
+            <p className="text-sm font-medium text-center text-muted-foreground mb-4">
+              {t("payment.chooseMethod")}
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {t("payment.failed.description")}
-            </p>
-          </div>
-        )}
-
-        <div className="mt-8 space-y-3">
-          {failed ? (
             <Button
               variant="hero"
               size="lg"
               className="w-full"
-              disabled={processing}
-              onClick={() => handlePay("succeed")}
+              onClick={() => setMethod("card")}
             >
-              {processing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                t("payment.failed.retry")
-              )}
+              <CreditCard className="w-4 h-4 me-2" />
+              {t("payment.methods.card")}
             </Button>
-          ) : (
-            <>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => navigate("/payment/instapay")}
+            >
+              <Smartphone className="w-4 h-4 me-2" />
+              {t("payment.methods.instapay")}
+            </Button>
+          </div>
+        )}
+
+        {method === "card" && (
+          <>
+            {failed && (
+              <div className="mt-6 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-center">
+                <div className="flex justify-center mb-2">
+                  <XCircle className="w-8 h-8 text-destructive" />
+                </div>
+                <p className="font-semibold text-destructive">
+                  {t("payment.failed.title")}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t("payment.failed.description")}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-8 space-y-3">
+              {failed ? (
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="w-full"
+                  disabled={processing}
+                  onClick={() => handlePay("succeed")}
+                >
+                  {processing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    t("payment.failed.retry")
+                  )}
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="hero"
+                    size="lg"
+                    className="w-full"
+                    disabled={processing}
+                    onClick={() => handlePay("succeed")}
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin me-2" />
+                        {t("payment.processing")}
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 me-2" />
+                        {t("payment.succeedButton")}
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full"
+                    disabled={processing}
+                    onClick={() => handlePay("fail")}
+                  >
+                    <XCircle className="w-4 h-4 me-2" />
+                    {t("payment.failButton")}
+                  </Button>
+                </>
+              )}
               <Button
-                variant="hero"
-                size="lg"
+                variant="ghost"
                 className="w-full"
                 disabled={processing}
-                onClick={() => handlePay("succeed")}
+                onClick={() => {
+                  setMethod(null);
+                  setFailed(false);
+                }}
               >
-                {processing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin me-2" />
-                    {t("payment.processing")}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 me-2" />
-                    {t("payment.succeedButton")}
-                  </>
-                )}
+                {t("payment.backToMethods")}
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                disabled={processing}
-                onClick={() => handlePay("fail")}
-              >
-                <XCircle className="w-4 h-4 me-2" />
-                {t("payment.failButton")}
-              </Button>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
