@@ -17,8 +17,6 @@ import {
   Phone,
   Mail,
   Check,
-  Camera,
-  X,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -59,7 +57,6 @@ export default function PropertyDetails() {
   >(null);
   const [fetchLoading, setFetchLoading] = useState(Boolean(id));
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-  const [galleryOpen, setGalleryOpen] = useState(false);
 
   const displayText = usePropertyDisplayText(property, i18n.language);
 
@@ -134,34 +131,6 @@ export default function PropertyDetails() {
     { url: DEFAULT_IMAGE, type: "image" as const },
   ];
 
-  useEffect(() => {
-    if (!galleryOpen) return undefined;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setGalleryOpen(false);
-      if (event.key === "ArrowLeft") {
-        setCurrentMediaIndex((prev) =>
-          isRtl
-            ? (prev + 1) % mediaList.length
-            : (prev - 1 + mediaList.length) % mediaList.length,
-        );
-      }
-      if (event.key === "ArrowRight") {
-        setCurrentMediaIndex((prev) =>
-          isRtl
-            ? (prev - 1 + mediaList.length) % mediaList.length
-            : (prev + 1) % mediaList.length,
-        );
-      }
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [galleryOpen, isRtl, mediaList.length]);
-
   const nextImage = () => {
     setCurrentMediaIndex((prev) => (prev + 1) % mediaList.length);
   };
@@ -171,41 +140,6 @@ export default function PropertyDetails() {
       (prev) => (prev - 1 + mediaList.length) % mediaList.length,
     );
   };
-
-  const openGalleryAt = (index: number) => {
-    setCurrentMediaIndex(index);
-    setGalleryOpen(true);
-  };
-
-  const renderMediaTile = (
-    media: { url: string; type: "image" | "video" },
-    index: number,
-    className: string,
-  ) => (
-    <button
-      type="button"
-      onClick={() => openGalleryAt(index)}
-      className={`relative group h-full w-full overflow-hidden rounded-xl bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${className}`}
-      aria-label={t("details.goToMedia", { index: index + 1 })}
-    >
-      {media.type === "video" ? (
-        <video
-          src={media.url}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          muted
-          playsInline
-        />
-      ) : (
-        <PropertyImage
-          src={media.url}
-          alt={`${displayText.title} ${index + 1}`}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          unavailableClassName="h-full w-full"
-          emptyFallbackSrc={index === 0 ? DEFAULT_IMAGE : undefined}
-        />
-      )}
-    </button>
-  );
 
   const formatPrice = (
     price: number,
@@ -276,156 +210,105 @@ export default function PropertyDetails() {
       <Navbar />
 
       <main className="pt-20">
-        <div className="container mx-auto px-4 pt-6 md:pt-8">
-          <div className="relative">
-            {mediaList.length >= 3 ? (
-              <div className="grid h-[42vh] grid-cols-1 gap-2 md:h-[56vh] md:grid-cols-[2fr_1fr] md:grid-rows-2">
-                {renderMediaTile(mediaList[0], 0, "md:row-span-2")}
-                {renderMediaTile(mediaList[1], 1, "hidden md:block")}
-                {renderMediaTile(mediaList[2], 2, "hidden md:block")}
-              </div>
-            ) : mediaList.length === 2 ? (
-              <div className="grid h-[42vh] grid-cols-1 gap-2 md:h-[56vh] md:grid-cols-2">
-                {renderMediaTile(mediaList[0], 0, "")}
-                {renderMediaTile(mediaList[1], 1, "hidden md:block")}
-              </div>
-            ) : (
-              <div className="h-[42vh] md:h-[56vh]">
-                {renderMediaTile(mediaList[0], 0, "h-full w-full")}
-              </div>
-            )}
+        <div className="relative h-[50vh] md:h-[70vh] bg-black overflow-hidden flex items-center justify-center">
+          {mediaList[currentMediaIndex].type === "video" ? (
+            <video
+              key={mediaList[currentMediaIndex].url}
+              src={mediaList[currentMediaIndex].url}
+              className="w-full h-full object-contain"
+              controls
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <PropertyImage
+              key={mediaList[currentMediaIndex].url}
+              src={mediaList[currentMediaIndex].url}
+              alt={displayText.title}
+              className="max-w-full max-h-full w-auto h-auto object-contain"
+              unavailableClassName="w-full h-full min-h-[40vh]"
+              emptyFallbackSrc={
+                mediaList.length === 1 ? DEFAULT_IMAGE : undefined
+              }
+            />
+          )}
 
-            {/* Badges */}
-            <div className="pointer-events-none absolute top-3 start-3 z-10 flex gap-2">
+          {/* Navigation */}
+          {mediaList.length > 1 && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute start-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                aria-label={t("details.prevMedia")}
+              >
+                <PrevIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute end-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                aria-label={t("details.nextMedia")}
+              >
+                <NextIcon className="w-6 h-6" />
+              </button>
+
+              {/* Indicators */}
+              <div className="absolute bottom-4 start-1/2 -translate-x-1/2 rtl:translate-x-1/2 flex gap-2">
+                {mediaList.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentMediaIndex(index)}
+                    aria-label={t("details.goToMedia", { index: index + 1 })}
+                    className={`w-3 h-3 rounded-full transition-all ${
+                      index === currentMediaIndex
+                        ? "bg-white scale-110"
+                        : "bg-white/50 hover:bg-white/70"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Badges */}
+          <div className="absolute top-4 start-4 flex gap-2">
+            <Badge
+              className={`${
+                property.property_type === "rent"
+                  ? "bg-navy text-primary-foreground"
+                  : "bg-accent text-accent-foreground"
+              } font-medium ${badgeCase}`}
+            >
+              {property.property_type === "rent"
+                ? t("listing.forRent")
+                : t("listing.forSale")}
+            </Badge>
+            {property.featured && (
               <Badge
-                className={`${
-                  property.property_type === "rent"
-                    ? "bg-navy text-primary-foreground"
-                    : "bg-accent text-accent-foreground"
-                } pointer-events-auto font-medium ${badgeCase}`}
+                className={`bg-accent text-accent-foreground font-medium ${isRtl ? "normal-case" : ""}`}
               >
-                {property.property_type === "rent"
-                  ? t("listing.forRent")
-                  : t("listing.forSale")}
+                {t("listing.featured")}
               </Badge>
-              {property.featured && (
-                <Badge
-                  className={`pointer-events-auto bg-accent text-accent-foreground font-medium ${isRtl ? "normal-case" : ""}`}
-                >
-                  {t("listing.featured")}
-                </Badge>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="absolute top-3 end-3 z-10 flex gap-2">
-              <button
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md transition-colors hover:bg-white"
-                aria-label={t("listing.ariaFavorite")}
-              >
-                <Heart className="h-5 w-5 text-muted-foreground" />
-              </button>
-              <button
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md transition-colors hover:bg-white"
-                aria-label={t("listing.ariaShare")}
-              >
-                <Share2 className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </div>
-
-            {/* Photo count */}
-            {mediaList.length > 1 && (
-              <button
-                type="button"
-                onClick={() => openGalleryAt(0)}
-                className="absolute bottom-3 end-3 z-10 inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-sm font-medium text-foreground shadow-md transition-colors hover:bg-white/90"
-                aria-label={t("details.openGallery")}
-              >
-                <Camera className="h-4 w-4" />
-                <span>{mediaList.length}</span>
-              </button>
             )}
+          </div>
+
+          {/* Actions */}
+          <div className="absolute top-4 end-4 flex gap-2">
+            <button
+              className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md hover:bg-white transition-colors"
+              aria-label={t("listing.ariaFavorite")}
+            >
+              <Heart className="w-5 h-5 text-muted-foreground" />
+            </button>
+            <button
+              className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md hover:bg-white transition-colors"
+              aria-label={t("listing.ariaShare")}
+            >
+              <Share2 className="w-5 h-5 text-muted-foreground" />
+            </button>
           </div>
         </div>
-
-        {/* Fullscreen gallery lightbox */}
-        {galleryOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4 md:p-8"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t("details.openGallery")}
-          >
-            <button
-              type="button"
-              onClick={() => setGalleryOpen(false)}
-              className="absolute top-4 end-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow-lg transition-colors hover:bg-white"
-              aria-label={t("details.closeGallery")}
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            {mediaList[currentMediaIndex].type === "video" ? (
-              <video
-                key={mediaList[currentMediaIndex].url}
-                src={mediaList[currentMediaIndex].url}
-                className="max-h-full max-w-full object-contain"
-                controls
-                autoPlay
-                muted
-                loop
-                playsInline
-              />
-            ) : (
-              <PropertyImage
-                key={mediaList[currentMediaIndex].url}
-                src={mediaList[currentMediaIndex].url}
-                alt={displayText.title}
-                className="max-h-full max-w-full object-contain"
-                unavailableClassName="h-[50vh] w-full max-w-3xl"
-                emptyFallbackSrc={
-                  mediaList.length === 1 ? DEFAULT_IMAGE : undefined
-                }
-              />
-            )}
-
-            {mediaList.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={prevImage}
-                  className="absolute start-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg transition-colors hover:bg-white"
-                  aria-label={t("details.prevMedia")}
-                >
-                  <PrevIcon className="h-6 w-6" />
-                </button>
-                <button
-                  type="button"
-                  onClick={nextImage}
-                  className="absolute end-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg transition-colors hover:bg-white"
-                  aria-label={t("details.nextMedia")}
-                >
-                  <NextIcon className="h-6 w-6" />
-                </button>
-                <div className="absolute bottom-4 start-1/2 flex -translate-x-1/2 gap-2 rtl:translate-x-1/2">
-                  {mediaList.map((_, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => setCurrentMediaIndex(index)}
-                      aria-label={t("details.goToMedia", { index: index + 1 })}
-                      className={`h-2.5 w-2.5 rounded-full transition-all ${
-                        index === currentMediaIndex
-                          ? "scale-110 bg-white"
-                          : "bg-white/50 hover:bg-white/70"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
 
         {/* Content */}
         <div className="container mx-auto px-4 py-12">
@@ -634,7 +517,7 @@ export default function PropertyDetails() {
                     {mediaList.map((media, index) => (
                       <button
                         key={index}
-                        onClick={() => openGalleryAt(index)}
+                        onClick={() => setCurrentMediaIndex(index)}
                         className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                           index === currentMediaIndex
                             ? "border-accent"

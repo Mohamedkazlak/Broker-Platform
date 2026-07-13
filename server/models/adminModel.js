@@ -1,5 +1,4 @@
 import { supabaseAdmin } from "../config/supabase.js";
-import { instapayModel } from "./instapayModel.js";
 
 /**
  * Admin-side database operations.
@@ -80,26 +79,19 @@ export const adminModel = {
   async getDashboardStats() {
     const monthStart = startOfCurrentMonthISO();
 
-    const [
-      totalBrokers,
-      activeBrokers,
-      pendingBrokers,
-      newBrokersThisMonth,
-      pendingInstapayReviews,
-    ] = await Promise.all([
-      countBrokers(),
-      countBrokers((q) => applyStatusFilter(q, "active")),
-      countBrokers((q) => applyStatusFilter(q, "pending")),
-      countBrokers((q) => q.gte("created_at", monthStart)),
-      instapayModel.countByStatus("pending_review"),
-    ]);
+    const [totalBrokers, activeBrokers, pendingBrokers, newBrokersThisMonth] =
+      await Promise.all([
+        countBrokers(),
+        countBrokers((q) => applyStatusFilter(q, "active")),
+        countBrokers((q) => applyStatusFilter(q, "pending")),
+        countBrokers((q) => q.gte("created_at", monthStart)),
+      ]);
 
     return {
       totalBrokers,
       activeBrokers,
       pendingBrokers,
       newBrokersThisMonth,
-      pendingInstapayReviews,
     };
   },
 

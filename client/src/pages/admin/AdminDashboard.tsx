@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import {
   Users,
   UserCheck,
@@ -18,7 +17,6 @@ interface StatCard {
   label: string;
   value: string;
   icon: LucideIcon;
-  to?: string;
 }
 
 export default function AdminDashboard() {
@@ -70,9 +68,9 @@ export default function AdminDashboard() {
     },
     {
       label: t("dashboard.pendingInstapayReviews"),
-      value: dash(stats?.pendingInstapayReviews),
+      // TODO: wire to real Instapay queue count (Prompt: Payments section)
+      value: "0",
       icon: Wallet,
-      to: "/admin/payments",
     },
   ];
 
@@ -94,8 +92,11 @@ export default function AdminDashboard() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
-        {cards.map((stat) => {
-          const content = (
+        {cards.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-card rounded-xl border border-border p-6 shadow-card"
+          >
             <div className="flex items-start justify-between">
               <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -107,25 +108,8 @@ export default function AdminDashboard() {
                 <stat.icon className="w-6 h-6 text-primary" />
               </div>
             </div>
-          );
-
-          return stat.to ? (
-            <Link
-              key={stat.label}
-              to={stat.to}
-              className="bg-card rounded-xl border border-border p-6 shadow-card transition hover:border-primary/40"
-            >
-              {content}
-            </Link>
-          ) : (
-            <div
-              key={stat.label}
-              className="bg-card rounded-xl border border-border p-6 shadow-card"
-            >
-              {content}
-            </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );

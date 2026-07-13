@@ -5,7 +5,6 @@ export interface AdminDashboardStats {
   activeBrokers: number;
   pendingBrokers: number;
   newBrokersThisMonth: number;
-  pendingInstapayReviews: number;
 }
 
 export type BrokerStatus =
@@ -61,35 +60,6 @@ export interface ListBrokersParams {
   limit?: number;
 }
 
-export interface InstapayBrokerInfo {
-  id: string | null;
-  platformName: string;
-  email: string;
-  contactName: string | null;
-  plan: string;
-  subdomain: string;
-}
-
-export interface InstapaySubmission {
-  id: string;
-  brokerId: string | null;
-  amount: number;
-  currency: string;
-  status: "pending_review" | "approved" | "rejected";
-  rejectionReason: string | null;
-  reviewedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  receiptUrl?: string | null;
-  broker: InstapayBrokerInfo | null;
-}
-
-export interface ListInstapayParams {
-  status?: string;
-  page?: number;
-  limit?: number;
-}
-
 export const adminService = {
   async getDashboardStats(): Promise<AdminDashboardStats> {
     const { data } = await api.get("/admin/dashboard-stats");
@@ -115,21 +85,6 @@ export const adminService = {
     const { data } = await api.patch(`/admin/brokers/${brokerId}/status`, {
       status,
     });
-    return data.data;
-  },
-
-  async listInstapay(
-    params: ListInstapayParams = {},
-  ): Promise<{ submissions: InstapaySubmission[]; pagination: Pagination }> {
-    const { data } = await api.get("/admin/instapay", { params });
-    return { submissions: data.data, pagination: data.pagination };
-  },
-
-  async reviewInstapay(
-    id: string,
-    body: { action: "approve" | "reject"; rejectionReason?: string },
-  ): Promise<InstapaySubmission> {
-    const { data } = await api.patch(`/admin/instapay/${id}`, body);
     return data.data;
   },
 };

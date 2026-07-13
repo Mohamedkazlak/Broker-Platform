@@ -2,7 +2,6 @@ import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "../config/supabase.js";
 import { brokerModel } from "../models/brokerModel.js";
 import { profileModel } from "../models/profileModel.js";
-import { instapayModel } from "../models/instapayModel.js";
 import { isValidGovernorate } from "../constants/governorates.js";
 import { validateSubdomainFormat } from "../utils/subdomainValidator.js";
 import { generateDefaultSubdomain } from "../utils/subdomainGenerator.js";
@@ -41,11 +40,6 @@ export const checkEmail = async (req, res, next) => {
       return res.json({ available: false, reason: "taken" });
     }
 
-    const pending = await instapayModel.findPendingByEmail(email);
-    if (pending) {
-      return res.json({ available: false, reason: "taken" });
-    }
-
     res.json({ available: true });
   } catch (error) {
     next(error);
@@ -55,7 +49,7 @@ export const checkEmail = async (req, res, next) => {
 /**
  * Build order totals from plan + optional custom domain (server-side only).
  */
-export function buildRegistrationOrderSummary(pkg, domain) {
+function buildRegistrationOrderSummary(pkg, domain) {
   const plan = PLANS_BY_ID[pkg] ?? null;
   const planPrice = plan?.price ?? 0;
   const isCustom = domain?.domain_type === "custom" && !!domain?.custom_domain;
@@ -76,7 +70,7 @@ export function buildRegistrationOrderSummary(pkg, domain) {
 /**
  * Resolve subdomain / custom domain fields for a new broker row.
  */
-export async function resolveDomainFields(formData, pkg, domain) {
+async function resolveDomainFields(formData, pkg, domain) {
   const plan = PLANS_BY_ID[pkg];
 
   if (pkg === "free") {
@@ -157,88 +151,90 @@ export async function resolveDomainFields(formData, pkg, domain) {
 }
 
 /**
- * Validate registration form fields shared by complete-registration and Instapay.
+ * POST /api/auth/complete-registration
+ *
+ * Creates auth.users + brokers + profiles in one shot when onboarding finishes
+ * (free plan selected, or paid payment succeeds). Until this runs, nothing is
+ * persisted — the client holds a draft in localStorage.
+ *
+ * Body: { formData, package, domain?, paymentOutcome? }
+ *   - free: domain optional (auto-generated)
+ *   - paid: domain required; paymentOutcome must be "succeed"
  */
-export function assertRegistrationFormData(formData) {
-  if (!formData) {
-    throw Object.assign(new Error("Missing form data"), { status: 400 });
-  }
-
-  const {
-    email,
-    password,
-    firstName,
-    lastName,
-    platformName,
-    governorate,
-  } = formData;
-
-  if (
-    !email ||
-    !password ||
-    !firstName ||
-    !lastName ||
-    !platformName ||
-    !governorate
-  ) {
-    throw Object.assign(
-      new Error(
-        "Missing required fields: email, password, firstName, lastName, platformName, governorate",
-      ),
-      { status: 400 },
-    );
-  }
-
-  if (!isValidGovernorate(governorate)) {
-    throw Object.assign(new Error("Invalid governorate"), { status: 400 });
-  }
-}
-
-/**
- * Create auth.users + brokers + profiles and return a signed-in session.
- * Used by complete-registration (card/free) and Instapay admin approval.
- */
-export async function provisionBrokerAccount({
-  formData,
-  package: pkg,
-  domain,
-  domainFields: preResolvedDomain,
-  billingAmount,
-}) {
-  assertRegistrationFormData(formData);
-
-  const plan = PLANS_BY_ID[pkg];
-  if (!plan) {
-    throw Object.assign(new Error("Invalid plan selected"), { status: 400 });
-  }
-
-  const {
-    email,
-    password,
-    firstName,
-    lastName,
-    platformName,
-    phone,
-    whatsapp,
-    governorate,
-  } = formData;
-
-  const normalizedEmail = String(email).trim().toLowerCase();
-  const existingEmail = await brokerModel.findByEmail(normalizedEmail);
-  if (existingEmail) {
-    throw Object.assign(new Error("An account with this email already exists"), {
-      status: 409,
-    });
-  }
-
-  const domainFields =
-    preResolvedDomain ?? (await resolveDomainFields(formData, pkg, domain));
-  const orderSummary = buildRegistrationOrderSummary(pkg, domainFields);
-  const amount =
-    typeof billingAmount === "number" ? billingAmount : orderSummary.total;
-
+export const completeRegistration = async (req, res, next) => {
   let createdAuthUserId = null;
+
   try {
+    const { formData, package: pkg, domain, paymentOutcome } = req.body ?? {};
+
+    if (!formData) {
+      return res
+        .status(400)
+        .json({ status: "error", error: "Missing form data" });
+    }
+
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      platformName,
+      phone,
+      whatsapp,
+      governorate,
+    } = formData;
+
+    if (
+      !email ||
+      !password ||
+      !firstName ||
+      !lastName ||
+      !platformName ||
+      !governorate
+    ) {
+      return res.status(400).json({
+        status: "error",
+        error:
+          "Missing required fields: email, password, firstName, lastName, platformName, governorate",
+      });
+    }
+
+    if (!isValidGovernorate(governorate)) {
+      return res.status(400).json({
+        status: "error",
+        error: "Invalid governorate",
+      });
+    }
+
+    const plan = PLANS_BY_ID[pkg];
+    if (!plan) {
+      return res
+        .status(400)
+        .json({ status: "error", error: "Invalid plan selected" });
+    }
+
+    if (pkg !== "free") {
+      if (paymentOutcome !== "succeed") {
+        return res.status(400).json({
+          status: "error",
+          error: "Paid plans require a successful payment before registration",
+        });
+      }
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existingEmail = await brokerModel.findByEmail(normalizedEmail);
+    if (existingEmail) {
+      return res.status(409).json({
+        status: "error",
+        error: "An account with this email already exists",
+      });
+    }
+
+    const domainFields = await resolveDomainFields(formData, pkg, domain);
+    const orderSummary = buildRegistrationOrderSummary(pkg, domainFields);
+
+    // 1. Create Supabase Auth user
     const { data: authData, error: authError } =
       await supabaseAdmin.auth.admin.createUser({
         email: normalizedEmail,
@@ -251,10 +247,10 @@ export async function provisionBrokerAccount({
         authError.message?.toLowerCase().includes("already") ||
         authError.status === 422
       ) {
-        throw Object.assign(
-          new Error("An account with this email already exists"),
-          { status: 409 },
-        );
+        return res.status(409).json({
+          status: "error",
+          error: "An account with this email already exists",
+        });
       }
       throw authError;
     }
@@ -263,14 +259,15 @@ export async function provisionBrokerAccount({
     createdAuthUserId = userId;
 
     const nextBilling =
-      pkg !== "free"
-        ? (() => {
+      pkg === "free"
+        ? null
+        : (() => {
             const d = new Date();
             d.setDate(d.getDate() + BILLING_CYCLE_DAYS);
             return d.toISOString();
-          })()
-        : null;
+          })();
 
+    // 2. Create broker — already active (onboarding finished)
     const broker = await brokerModel.create({
       first_name: firstName,
       last_name: lastName,
@@ -287,9 +284,10 @@ export async function provisionBrokerAccount({
       package_limit: plan.packageLimit,
       subscription_status: "active",
       next_billing_date: nextBilling,
-      billing_amount: pkg === "free" ? 0 : amount,
+      billing_amount: pkg === "free" ? 0 : orderSummary.total,
     });
 
+    // 3. Create profile (links auth user to broker)
     await profileModel.create({
       id: userId,
       broker_id: broker.id,
@@ -306,12 +304,19 @@ export async function provisionBrokerAccount({
 
     if (signInError) throw signInError;
 
-    return {
+    res.status(201).json({
+      status: "success",
       session: signInData.session,
-      broker,
-      orderSummary,
-    };
+      broker: {
+        id: broker.id,
+        platform_name: broker.platform_name,
+        subdomain: broker.subdomain,
+        package: broker.package,
+      },
+      redirect: pkg === "free" ? "dashboard" : "branding-setup",
+    });
   } catch (error) {
+    // Roll back orphan auth user if broker/profile creation failed after it.
     if (createdAuthUserId) {
       try {
         await supabaseAdmin.auth.admin.deleteUser(createdAuthUserId);
@@ -322,72 +327,7 @@ export async function provisionBrokerAccount({
         );
       }
     }
-    throw error;
-  }
-}
 
-/**
- * Sign in with email/password (used to hand a session to Instapay claim polling).
- */
-export async function signInWithPassword(email, password) {
-  const { data, error } = await anonAuthClient.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (error) throw error;
-  return data.session;
-}
-
-/**
- * POST /api/auth/complete-registration
- *
- * Creates auth.users + brokers + profiles in one shot when onboarding finishes
- * (free plan selected, or paid card payment succeeds). Until this runs, nothing
- * is persisted — the client holds a draft in localStorage.
- *
- * Instapay signups do NOT use this endpoint; the account is provisioned when
- * an admin approves the receipt.
- *
- * Body: { formData, package, domain?, paymentOutcome? }
- *   - free: domain optional (auto-generated)
- *   - paid: domain required; paymentOutcome must be "succeed"
- */
-export const completeRegistration = async (req, res, next) => {
-  try {
-    const { formData, package: pkg, domain, paymentOutcome } = req.body ?? {};
-
-    if (!PLANS_BY_ID[pkg]) {
-      return res
-        .status(400)
-        .json({ status: "error", error: "Invalid plan selected" });
-    }
-
-    if (pkg !== "free" && paymentOutcome !== "succeed") {
-      return res.status(400).json({
-        status: "error",
-        error: "Paid plans require a successful payment before registration",
-      });
-    }
-
-    const { session, broker } = await provisionBrokerAccount({
-      formData,
-      package: pkg,
-      domain,
-    });
-
-    res.status(201).json({
-      status: "success",
-      session,
-      broker: {
-        id: broker.id,
-        platform_name: broker.platform_name,
-        subdomain: broker.subdomain,
-        package: broker.package,
-        subscription_status: broker.subscription_status,
-      },
-      redirect: pkg === "free" ? "dashboard" : "branding-setup",
-    });
-  } catch (error) {
     if (error.status) {
       return res.status(error.status).json({
         status: "error",
