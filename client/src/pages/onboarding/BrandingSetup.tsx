@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -201,39 +202,40 @@ export default function BrandingSetup() {
               {t("brandingSetup.cardDescription")}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent>
             <BrandingFields
               heroPreviewUrl={broker.hero_background_url}
               iconPreviewUrl={broker.platform_icon_url}
               onChange={setBrandingFiles}
             />
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button
-                variant="outline"
-                size="lg"
-                disabled={saving}
-                onClick={() => void goToDashboard()}
-              >
-                {t("brandingSetup.skip")}
-              </Button>
-              <Button
-                variant="hero"
-                size="lg"
-                disabled={saving}
-                onClick={() => void handleSave()}
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 me-2" />
-                    {t("brandingSetup.saveAndContinue")}
-                  </>
-                )}
-              </Button>
-            </div>
           </CardContent>
+          <CardFooter className="flex flex-col gap-3">
+            <Button
+              variant="hero"
+              size="lg"
+              className="w-full"
+              disabled={saving}
+              onClick={() => void handleSave()}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Save className="w-4 h-4 me-2" />
+                  {t("brandingSetup.saveAndContinue")}
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              disabled={saving}
+              onClick={() => void goToDashboard()}
+            >
+              {t("brandingSetup.skip")}
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </div>
