@@ -127,7 +127,11 @@ export function DashboardSidebar({
                   {profile?.full_name || t("sidebar.defaultUser")}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {role || t("sidebar.defaultRole")}
+                  {role
+                    ? t(`sidebar.roles.${role}`, {
+                        defaultValue: role,
+                      })
+                    : t("sidebar.defaultRole")}
                 </p>
               </div>
             </div>

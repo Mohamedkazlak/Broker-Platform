@@ -15,7 +15,11 @@
     "settings": "الإعدادات",
     "defaultUser": "وسيط عقاري",
     "defaultRole": "محرر",
-    "defaultPlatformName": "منصة العقارات"
+    "defaultPlatformName": "منصة العقارات",
+    "roles": {
+      "admin": "مسنخدم",
+      "editor": "محرر"
+    }
   },
   "overview": {
     "heading": "لوحة التحكم",
@@ -126,7 +130,7 @@
       "furnishedNo": "غير مفروش",
       "furnishedSemi": "نصف مفروش",
       "featuredListing": "العقار المميز",
-      "locationAddress": "",
+      "locationAddress": "العنوان / المنطقة *",
       "locationAddressPlaceholder": "مثال: مدينة القاهرة, الجيزة, الخ..",
       "city": "المدينة",
       "cityPlaceholder": "مثال: القاهرة, الجيزة, الخ..",
@@ -155,16 +159,16 @@
       "removeFile": "إزالة الملف"
     },
     "amenities": {
-      "elevator": "المصعد",
-      "parking": "الجراج",
-      "balcony": "البلكونة",
-      "centralAc": "المكيف المركزي",
-      "gas": "الغاز الطبيعي",
-      "security": "الأمن / الكاميرات",
-      "pool": "حمام السباحة",
-      "garden": "الحديقة",
-      "gym": "مركز الجيم",
-      "laundry": "المغسلة",
+      "elevator": "مصعد",
+      "parking": "جراچ",
+      "balcony": "بلكونة",
+      "centralAc": "تكييف المركزي",
+      "gas": "غاز طبيعي",
+      "security": "أمن / كاميرات مراقبة",
+      "pool": "حمام سباحة",
+      "garden": "حديقة",
+      "gym": "صالة چيم",
+      "laundry": "غرفة الغسيل",
       "petFriendly": "الحيوانات الأليفة",
       "smartHome": "المنزل الذكي"
     },

@@ -15,7 +15,11 @@
     "settings": "Settings",
     "defaultUser": "User",
     "defaultRole": "Editor",
-    "defaultPlatformName": "MyFlat"
+    "defaultPlatformName": "MyFlat",
+    "roles": {
+      "admin": "Admin",
+      "editor": "Editor"
+    }
   },
   "overview": {
     "heading": "Dashboard",
