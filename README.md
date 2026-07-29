@@ -1,11 +1,13 @@
 # Broker Platform
 
-Welcome to the **Broker Platform Main** repository! This is a complete, multi-tenant platform tailored for real estate brokers to manage listings, analyze insights, and host customized white-labeled consumer-facing websites under their own subdomains.
+Welcome to the **Broker Platform** repository! This is a complete, multi-tenant platform tailored for real estate brokers to manage listings, analyze insights, and host customized white-labeled consumer-facing websites under their own subdomains.
+
+**Live site:** [https://www.myflats.store/en](https://www.myflats.store/en)
 
 ## Key Features
 
 - **Broker Dashboard:** A comprehensive central hub to track property statuses, sales volume, top locations, and message handling.
-- **Custom Broker Subdomains:** Automatically handles multi-tenant subdomains so each broker gets a unique real estate website (e.g. `brokername.localhost` acting as their portfolio).
+- **Custom Broker Subdomains:** Automatically handles multi-tenant subdomains so each broker gets a unique real estate website (e.g. `brokername.myflats.store` acting as their portfolio).
 - **Property Management:** Dedicated pages and workflows to add, update, rent, or sell properties with rich descriptions, specs, and images.
 - **Dynamic Content & Theming:** Custom tenant-facing landing pages show personalized hero backgrounds, broker details, and curated property lists based on active subscriptions.
 - **Analytics & Insights:** Granular reporting metrics built directly into the broker dashboards.
@@ -13,31 +15,47 @@ Welcome to the **Broker Platform Main** repository! This is a complete, multi-te
 
 ## Project Screenshots
 
-Here are previews of the platform to give you an idea of the polished UI and user experience:
+Previews of the platform UI in English and Arabic (RTL):
 
 ### 1. Landing Page
 
-![Platform Landing Page](docs/screenshots/landing-page.png)
+Platform Landing Page
 
 ### 2. Broker Dashboard
 
-![Broker Dashboard](docs/screenshots/dashboard.png)
+**English**
+
+Broker Dashboard
+
+**Arabic**
+
+Broker Dashboard
 
 ### 3. Broker's Page
 
-![Broker's Page](docs/screenshots/broker's-page.png)
+Broker's Page
 
 ### 4. Browse Properties
 
-![Browse Properties](docs/screenshots/browse-properties.png)
+**English**
+
+Browse Properties
+
+**Arabic**
+
+Browse Properties
 
 ### 5. Property Details
 
-![Property Details](docs/screenshots/property_1.png)
+**English**
 
-### 6. Property Details
+Property Details
+Property Details scroll
 
-![Property Details](docs/screenshots/property_2.png)
+**Arabic**
+
+Property Details
+Property Details scroll
 
 ## Tech Stack
 
@@ -52,26 +70,15 @@ Here are previews of the platform to give you an idea of the polished UI and use
 
 1. **Clone the repository:**
 
-   ```bash
-   git clone https://github.com/Mohamedkazlak/Broker-Platform
-   cd "Broker Platform Main"
-   ```
+```bash
+ git clone https://github.com/Mohamedkazlak/Broker-Platform
+ cd "Broker Platform Main"
+```
 
 2. **Install dependencies:**
    Make sure you install all module dependencies at the root and optionally within client/server folders.
-
-   ```bash
-   npm install
-   cd client && npm install
-   cd ../server && npm install
-   ```
-
 3. **Start the Development Environments:**
    You will typically need to run both client and server simultaneously for the platform to function properly.
-
-   ```bash
-   npm run dev:all
-   ```
 
 > [!TIP]
 > Ensure you have a root `.env` configured (see `.env.example` for required variables: Supabase keys, server URL, etc.).
