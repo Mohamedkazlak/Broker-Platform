@@ -114,7 +114,11 @@
       "successTitle": "تم اختيار الباقة بنجاح!",
       "successDescription": "تم تحديث باقتك بنجاح.",
       "errorTitle": "فشل تحديث الباقة",
-      "errorDescription": "يرجى المحاولة مرة أخرى."
+      "errorDescription": "يرجى المحاولة مرة أخرى.",
+      "loadFailedTitle": "تعذر تحميل الباقات",
+      "loadFailedDescription": "يرجى تحديث الصفحة والمحاولة مرة أخرى.",
+      "sessionExpiredTitle": "انتهت صلاحية الجلسة",
+      "sessionExpiredDescription": "يرجى تسجيل الدخول مرة أخرى لاختيار باقتك."
     }
   }
 }

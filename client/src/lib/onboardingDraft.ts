@@ -11,6 +11,13 @@
 
 const DRAFT_KEY = "onboarding_draft";
 
+/**
+ * How long an unfinished signup stays resumable. Without a cutoff an abandoned
+ * draft lives in localStorage forever, so the next person to use the browser
+ * inherits a stranger's half-finished signup.
+ */
+const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 export type PlanId = "free" | "plus" | "pro" | "ultra";
 
 export interface OnboardingFormData {
@@ -34,6 +41,8 @@ export interface OnboardingDraft {
   formData: OnboardingFormData;
   package?: PlanId;
   domain?: OnboardingDomainChoice;
+  /** Epoch ms of the last write, used to expire abandoned drafts. */
+  savedAt?: number;
 }
 
 function readRawDraft(): string | null {
@@ -45,7 +54,7 @@ function readRawDraft(): string | null {
 }
 
 export function saveOnboardingDraft(draft: OnboardingDraft): void {
-  const serialized = JSON.stringify(draft);
+  const serialized = JSON.stringify({ ...draft, savedAt: Date.now() });
   try {
     localStorage.setItem(DRAFT_KEY, serialized);
   } catch {
@@ -65,6 +74,16 @@ export function getOnboardingDraft(): OnboardingDraft | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as OnboardingDraft;
     if (!parsed?.formData?.email || !parsed?.formData?.password) return null;
+
+    // Drafts written before savedAt existed have no age we can trust, so treat
+    // them as expired rather than resuming them indefinitely.
+    if (
+      typeof parsed.savedAt !== "number" ||
+      Date.now() - parsed.savedAt > DRAFT_MAX_AGE_MS
+    ) {
+      clearOnboardingDraft();
+      return null;
+    }
 
     // Migrate legacy sessionStorage-only drafts into localStorage.
     try {

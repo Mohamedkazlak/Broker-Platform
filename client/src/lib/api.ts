@@ -2,6 +2,7 @@ import axios from "axios";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentSubdomain } from "@/utils/tenant";
+import { discardDeadSession } from "@/lib/sessionGuard";
 
 /**
  * Resolve the API base URL.
@@ -78,9 +79,14 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Supabase client handles session refresh automatically; if we still get
-      // a 401 here, the session is invalid.
+    // The Supabase client refreshes sessions on its own, so a 401 on a request
+    // that carried a token means the session itself is no longer accepted by
+    // the auth server. Retrying can never succeed — drop it and re-authenticate.
+    if (
+      error.response?.status === 401 &&
+      !!error.config?.headers?.Authorization
+    ) {
+      void discardDeadSession();
     }
     return Promise.reject(error);
   },

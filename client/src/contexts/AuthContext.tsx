@@ -10,6 +10,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useBroker } from "./BrokerContext";
 import { acceptRelayedSession } from "@/lib/sessionRelay";
+import { isSessionStillValid } from "@/lib/sessionGuard";
 import { buildMainSiteUrl } from "@/utils/tenant";
 
 interface Profile {
@@ -189,6 +190,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
+      // getSession only checks local expiry, so a session revoked server-side
+      // still looks usable here. Confirm it before presenting a signed-in UI.
+      if (session && !(await isSessionStillValid())) {
+        await supabase.auth.signOut({ scope: "local" });
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setRole(null);
+        setIsLoading(false);
+        return;
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
 

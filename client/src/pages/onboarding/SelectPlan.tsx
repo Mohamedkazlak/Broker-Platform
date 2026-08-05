@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -106,8 +107,8 @@ export default function SelectPlan() {
         console.error("Error loading plans:", err);
         if (active) {
           toast({
-            title: t("subscription.toasts.errorTitle"),
-            description: t("subscription.toasts.errorDescription"),
+            title: t("subscription.toasts.loadFailedTitle"),
+            description: t("subscription.toasts.loadFailedDescription"),
             variant: "destructive",
           });
         }
@@ -217,9 +218,27 @@ export default function SelectPlan() {
       navigate("/domain-setup");
     } catch (err) {
       console.error("Error selecting plan:", err);
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+
+      // 401 means the stored session was rejected by the auth server; the api
+      // client is already bouncing to login, so explain that instead of
+      // inviting a retry that cannot work.
+      if (status === 401) {
+        toast({
+          title: t("subscription.toasts.sessionExpiredTitle"),
+          description: t("subscription.toasts.sessionExpiredDescription"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const serverMessage = axios.isAxiosError(err)
+        ? (err.response?.data as { error?: string } | undefined)?.error
+        : undefined;
+
       toast({
         title: t("subscription.toasts.errorTitle"),
-        description: t("subscription.toasts.errorDescription"),
+        description: serverMessage || t("subscription.toasts.errorDescription"),
         variant: "destructive",
       });
       setSelecting(null);

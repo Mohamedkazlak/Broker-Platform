@@ -15,12 +15,20 @@ import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
 import { isValidGovernorate } from "@/constants/governorates";
 import { isValidPhoneNumber } from "@/utils/phoneNumber";
 import {
+  clearOnboardingDraft,
   getOnboardingDraft,
-  hasOnboardingDraft,
   saveOnboardingDraft,
+  type OnboardingDraft,
 } from "@/lib/onboardingDraft";
 import { isPostPaymentPending } from "@/lib/postPayment";
 import api from "@/lib/api";
+
+/** The onboarding step an unfinished draft left off at. */
+function resumePathForDraft(draft: OnboardingDraft): string {
+  const paidPlan = draft.package && draft.package !== "free";
+  if (!paidPlan) return "/select-plan";
+  return draft.domain ? "/payment" : "/domain-setup";
+}
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -35,6 +43,9 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(location.pathname === "/register");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [resumableDraft, setResumableDraft] = useState<OnboardingDraft | null>(
+    null,
+  );
 
   const [formData, setFormData] = useState({
     email: "",
@@ -48,7 +59,21 @@ export default function Auth() {
     governorate: "",
   });
 
-  // Resume in-progress signup after refresh instead of forcing re-entry.
+  // Explain the bounce when api.ts discarded a session the server rejected.
+  useEffect(() => {
+    if (!new URLSearchParams(location.search).has("session")) return;
+    toast({
+      title: t("toasts.sessionExpiredTitle"),
+      description: t("toasts.sessionExpiredDescription"),
+      variant: "destructive",
+    });
+    navigate(location.pathname, { replace: true });
+  }, [location.search, location.pathname, navigate, toast, t]);
+
+  // Offer to resume an unfinished signup, but never redirect away from an
+  // explicit visit to /register: the draft outlives the browser session, so
+  // jumping straight to its next step leaves a new visitor with no way to
+  // reach the form and no idea whose signup they are finishing.
   useEffect(() => {
     if (location.pathname !== "/register") return;
     // Prefer post-payment over the logged-in early-return — payment can set
@@ -58,19 +83,13 @@ export default function Auth() {
       return;
     }
     if (user) return;
-    if (!hasOnboardingDraft()) return;
-    const draft = getOnboardingDraft();
-    if (!draft) return;
-    if (draft.domain && draft.package && draft.package !== "free") {
-      navigate("/payment", { replace: true });
-      return;
-    }
-    if (draft.package && draft.package !== "free") {
-      navigate("/domain-setup", { replace: true });
-      return;
-    }
-    navigate("/select-plan", { replace: true });
+    setResumableDraft(getOnboardingDraft());
   }, [location.pathname, user, navigate]);
+
+  const discardDraft = () => {
+    clearOnboardingDraft();
+    setResumableDraft(null);
+  };
 
   const loginSchema = useMemo(
     () =>
@@ -300,6 +319,36 @@ export default function Auth() {
               {isSignUp ? t("signUp.subtitle") : t("signIn.subtitle")}
             </p>
           </div>
+
+          {isSignUp && resumableDraft && (
+            <div className="mb-8 rounded-lg border border-border bg-muted/40 p-4">
+              <p className="text-sm font-medium text-foreground">
+                {t("resumeDraft.title")}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t("resumeDraft.description", {
+                  email: resumableDraft.formData.email,
+                })}
+              </p>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => navigate(resumePathForDraft(resumableDraft))}
+                >
+                  {t("resumeDraft.continue")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={discardDraft}
+                >
+                  {t("resumeDraft.startOver")}
+                </Button>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (

@@ -114,7 +114,11 @@
       "successTitle": "Plan Selected!",
       "successDescription": "Your subscription plan has been successfully updated.",
       "errorTitle": "Failed to update plan",
-      "errorDescription": "Please try again later."
+      "errorDescription": "Please try again later.",
+      "loadFailedTitle": "Couldn't load plans",
+      "loadFailedDescription": "Please refresh the page and try again.",
+      "sessionExpiredTitle": "Your session expired",
+      "sessionExpiredDescription": "Please sign in again to choose your plan."
     }
   }
 }
