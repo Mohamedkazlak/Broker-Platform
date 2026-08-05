@@ -12,6 +12,7 @@
     "dashboard": "Dashboard",
     "properties": "Properties",
     "insights": "Insights",
+    "revenue": "Revenue",
     "settings": "Settings",
     "defaultUser": "User",
     "defaultRole": "Editor",
@@ -24,6 +25,7 @@
   "overview": {
     "heading": "Dashboard",
     "addProperty": "Add Property",
+    "viewWebsite": "View Website",
     "stats": {
       "totalProperties": "Total Properties",
       "totalPropertiesChange": "{{count}} total",
@@ -50,7 +52,14 @@
       "view": "View",
       "edit": "Edit",
       "delete": "Delete",
-      "deleteConfirm": "Delete \"{{title}}\"?"
+      "deleteConfirm": "Delete \"{{title}}\"?",
+      "markAsSold": "Mark as sold",
+      "markAsRented": "Mark as rented",
+      "markAsSoldConfirm": "Mark \"{{title}}\" as sold? Its price will be counted in revenue.",
+      "markAsRentedConfirm": "Mark \"{{title}}\" as rented? Its monthly rent will be counted in revenue.",
+      "markAsSoldSuccess": "Property marked as sold",
+      "markAsRentedSuccess": "Property marked as rented",
+      "markStatusError": "Could not update property status"
     },
     "statusForRent": "For Rent",
     "statusForSale": "For Sale"
@@ -215,6 +224,34 @@
     "sellingRevenue": "Selling Revenue",
     "rentingRevenue": "Renting Revenue"
   },
+  "revenue": {
+    "heading": "Revenue",
+    "subheading": "Track monthly income from sold and rented properties",
+    "thisMonthHeading": "This Month",
+    "thisMonthTotal": "Monthly Revenue",
+    "thisMonthSales": "Sales Closed",
+    "thisMonthRent": "Active Rent",
+    "lifetimeHeading": "All-Time Totals",
+    "lifetimeTotal": "Total Revenue",
+    "lifetimeSales": "Selling Revenue",
+    "lifetimeRent": "Renting Revenue",
+    "chartHeading": "Last 12 Months",
+    "chartDescription": "Sales counted in the month they closed. Rent counted each month while the listing stays rented.",
+    "chartSales": "Sales",
+    "chartRent": "Rent",
+    "dealsHeading": "Closed Deals",
+    "dealsDescription": "{{count}} sold or rented properties",
+    "empty": "No sold or rented properties yet. Mark a listing as sold or rented to start tracking revenue.",
+    "statusSold": "Sold",
+    "statusRented": "Rented",
+    "perMonth": "/mo",
+    "table": {
+      "property": "Property",
+      "status": "Status",
+      "amount": "Amount",
+      "closed": "Closed"
+    }
+  },
   "settings": {
     "heading": "Settings",
     "subheading": "Manage your account and platform settings",
@@ -275,14 +312,16 @@
       "badgeSubdomain": "Subdomain",
       "badgeCustom": "Custom domain",
       "billingLabel": "Billing",
+      "nextBillingLabel": "Next billing date",
       "freeNoBilling": "Free plan – no billing",
       "daysUntil": "{{days}} days until next payment of {{amount}}",
       "amount": "{{amount}} EGP",
       "upgrade": "Change plan",
       "pastDue": {
         "title": "Payment past due",
-        "description": "Your last payment didn't go through. Retry to keep your platform active.",
-        "retry": "Retry payment"
+        "description": "Your subscription period has ended. Renew to keep your platform fully active.",
+        "retry": "Renew subscription",
+        "billingLine": "Past due – {{amount}} owed"
       },
       "loadError": "Couldn't load your account details."
     },

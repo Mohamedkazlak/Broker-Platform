@@ -32,6 +32,7 @@
     "totalBrokers": "إجمالي الوسطاء",
     "activeBrokers": "الوسطاء النشطون",
     "pendingBrokers": "الوسطاء قيد الانتظار",
+    "pastDueBrokers": "الوسطاء متأخرو السداد",
     "newThisMonth": "الجدد هذا الشهر",
     "pendingInstapayReviews": "مراجعات إنستاباي المعلقة"
   },
@@ -95,7 +96,10 @@
       "customDomain": "النطاق المخصص",
       "plan": "الباقة",
       "status": "الحالة",
-      "signupDate": "تاريخ التسجيل"
+      "signupDate": "تاريخ التسجيل",
+      "billingAmount": "مبلغ الفوترة",
+      "nextBillingDate": "تاريخ الفوترة التالي",
+      "daysUntilPayment": "الأيام حتى الدفعة"
     }
   },
   "placeholders": {

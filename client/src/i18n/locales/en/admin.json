@@ -32,6 +32,7 @@
     "totalBrokers": "Total Brokers",
     "activeBrokers": "Active Brokers",
     "pendingBrokers": "Pending Brokers",
+    "pastDueBrokers": "Past Due Brokers",
     "newThisMonth": "New This Month",
     "pendingInstapayReviews": "Pending Instapay Reviews"
   },
@@ -95,7 +96,10 @@
       "customDomain": "Custom Domain",
       "plan": "Plan",
       "status": "Status",
-      "signupDate": "Signup Date"
+      "signupDate": "Signup Date",
+      "billingAmount": "Billing Amount",
+      "nextBillingDate": "Next Billing Date",
+      "daysUntilPayment": "Days Until Payment"
     }
   },
   "placeholders": {

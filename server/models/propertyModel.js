@@ -35,7 +35,31 @@ const PROPERTY_LIST_COLUMNS = [
   "video_urls",
   "created_at",
   "updated_at",
+  "closed_at",
 ].join(",");
+
+const CLOSED_STATUSES = new Set(["sold", "rented"]);
+
+function withClosedAt(
+  propertyData,
+  previousStatus = null,
+  previousClosedAt = null,
+) {
+  const next = { ...propertyData };
+  const status = next.status;
+
+  if (CLOSED_STATUSES.has(status)) {
+    const alreadyClosed =
+      CLOSED_STATUSES.has(previousStatus) && previousClosedAt;
+    next.closed_at = alreadyClosed
+      ? previousClosedAt
+      : new Date().toISOString();
+  } else if (status != null) {
+    next.closed_at = null;
+  }
+
+  return next;
+}
 
 export const propertyModel = {
   async findAll(filters = {}) {
@@ -84,9 +108,10 @@ export const propertyModel = {
   },
 
   async create(propertyData) {
+    const payload = withClosedAt(propertyData);
     const { data, error } = await supabaseAdmin
       .from("properties")
-      .insert(propertyData)
+      .insert(payload)
       .select()
       .single();
 
@@ -95,9 +120,20 @@ export const propertyModel = {
   },
 
   async update(id, brokerId, updates) {
+    let previousStatus = null;
+    let previousClosedAt = null;
+
+    if (updates.status != null) {
+      const existing = await this.findById(id);
+      previousStatus = existing?.status ?? null;
+      previousClosedAt = existing?.closed_at ?? null;
+    }
+
+    const payload = withClosedAt(updates, previousStatus, previousClosedAt);
+
     const { data, error } = await supabaseAdmin
       .from("properties")
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...payload, updated_at: new Date().toISOString() })
       .eq("id", id)
       .eq("broker_id", brokerId) // Ensure broker can only update their own
       .select()

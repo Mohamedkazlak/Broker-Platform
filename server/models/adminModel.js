@@ -84,12 +84,14 @@ export const adminModel = {
       totalBrokers,
       activeBrokers,
       pendingBrokers,
+      pastDueBrokers,
       newBrokersThisMonth,
       pendingInstapayReviews,
     ] = await Promise.all([
       countBrokers(),
       countBrokers((q) => applyStatusFilter(q, "active")),
       countBrokers((q) => applyStatusFilter(q, "pending")),
+      countBrokers((q) => applyStatusFilter(q, "past_due")),
       countBrokers((q) => q.gte("created_at", monthStart)),
       instapayModel.countByStatus("pending_review"),
     ]);
@@ -98,6 +100,7 @@ export const adminModel = {
       totalBrokers,
       activeBrokers,
       pendingBrokers,
+      pastDueBrokers,
       newBrokersThisMonth,
       pendingInstapayReviews,
     };

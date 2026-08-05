@@ -1,4 +1,8 @@
 import { adminModel } from "../models/adminModel.js";
+import {
+  computeDaysUntilNextPayment,
+  syncBrokerBillingState,
+} from "../services/billingMonitor.js";
 
 /**
  * Derive a single account status for the UI from the broker's suspend flag
@@ -97,12 +101,14 @@ export const listBrokers = async (req, res, next) => {
  */
 export const getBrokerDetail = async (req, res, next) => {
   try {
-    const broker = await adminModel.getBrokerDetail(req.params.brokerId);
-    if (!broker) {
+    const raw = await adminModel.getBrokerDetail(req.params.brokerId);
+    if (!raw) {
       return res
         .status(404)
         .json({ status: "error", error: "Broker not found" });
     }
+
+    const broker = await syncBrokerBillingState(raw);
 
     res.json({
       status: "success",
@@ -123,6 +129,9 @@ export const getBrokerDetail = async (req, res, next) => {
         status: deriveStatus(broker),
         isActive: broker.is_active,
         subscriptionStatus: broker.subscription_status,
+        billingAmount: broker.billing_amount,
+        nextBillingDate: broker.next_billing_date,
+        daysUntilNextPayment: computeDaysUntilNextPayment(broker),
         signupDate: broker.created_at,
         // TODO: properties list (Prompt: Properties section)
         // TODO: payment history (Prompt: Payments section)

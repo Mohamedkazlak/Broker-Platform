@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
@@ -23,17 +23,34 @@ const PAGE_SIZE = 20;
 
 export default function AdminBrokers() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t, i18n } = useTranslation("admin");
+
+  const initialStatus = STATUS_OPTIONS.includes(
+    searchParams.get("status") ?? "",
+  )
+    ? (searchParams.get("status") as string)
+    : "all";
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState(initialStatus);
   const [page, setPage] = useState(1);
 
   const [brokers, setBrokers] = useState<BrokerSummary[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("status");
+    if (fromUrl && STATUS_OPTIONS.includes(fromUrl) && fromUrl !== status) {
+      setStatus(fromUrl);
+      setPage(1);
+    }
+    // Only re-sync when the URL changes (e.g. dashboard deep-link).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Debounce the search input to avoid a request on every keystroke.
   useEffect(() => {

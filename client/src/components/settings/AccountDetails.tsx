@@ -185,14 +185,32 @@ export function AccountDetails() {
           <span className="font-medium text-end">
             {isFree
               ? t("settings.account.freeNoBilling")
-              : account.days_until_next_payment != null
-                ? t("settings.account.daysUntil", {
-                    days: account.days_until_next_payment,
+              : isPastDue
+                ? t("settings.account.pastDue.billingLine", {
                     amount: formatAmount(billingAmount),
                   })
-                : "—"}
+                : account.days_until_next_payment != null
+                  ? t("settings.account.daysUntil", {
+                      days: account.days_until_next_payment,
+                      amount: formatAmount(billingAmount),
+                    })
+                  : "—"}
           </span>
         </div>
+
+        {!isFree && account.next_billing_date && !isPastDue && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm text-muted-foreground">
+              {t("settings.account.nextBillingLabel")}
+            </span>
+            <span className="font-medium text-end">
+              {new Date(account.next_billing_date).toLocaleDateString(
+                localeNum,
+                { year: "numeric", month: "short", day: "numeric" },
+              )}
+            </span>
+          </div>
+        )}
 
         <div className="flex justify-end pt-1">
           <Button

@@ -4,6 +4,7 @@ export interface AdminDashboardStats {
   totalBrokers: number;
   activeBrokers: number;
   pendingBrokers: number;
+  pastDueBrokers: number;
   newBrokersThisMonth: number;
   pendingInstapayReviews: number;
 }
@@ -44,6 +45,9 @@ export interface BrokerDetail {
   status: BrokerStatus;
   isActive: boolean;
   subscriptionStatus: string;
+  billingAmount: number | string | null;
+  nextBillingDate: string | null;
+  daysUntilNextPayment: number | null;
   signupDate: string;
 }
 

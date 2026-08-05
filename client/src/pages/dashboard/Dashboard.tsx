@@ -12,6 +12,8 @@ import {
   Trash2,
   Eye,
   Menu,
+  BadgeCheck,
+  KeyRound,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -28,18 +31,34 @@ import { Property } from "@/components/properties/PropertyCard";
 import { PropertyImage } from "@/components/properties/PropertyImage";
 import { propertyService } from "@/services/propertyService";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { ViewBrokerWebsiteButton } from "@/components/dashboard/ViewBrokerWebsiteButton";
+import { useToast } from "@/hooks/use-toast";
 import {
   computeMonthlyRevenue,
   countActiveCities,
   formatRevenue,
 } from "@/utils/formatRevenue";
+import {
+  translatedLocationArea,
+  translatedStatus,
+} from "@/utils/propertyLabels";
+
+function statusBadgeClass(status: string) {
+  if (status === "active") return "border-green-500 text-green-600";
+  if (status === "sold") return "border-blue-500 text-blue-600";
+  if (status === "rented") return "border-teal-500 text-teal-600";
+  return "border-yellow-500 text-yellow-600";
+}
 
 export default function Dashboard() {
   const { profile, isLoading } = useAuth();
   const { t, i18n } = useTranslation("dashboard");
+  const { t: tProperty } = useTranslation("property");
+  const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const activeCount = properties.filter((p) => p.status === "active").length;
   const totalCount = properties.length;
   const activePct =
@@ -85,6 +104,7 @@ export default function Dashboard() {
       try {
         const propsRes = await propertyService.getAll({
           broker_id: profile.broker_id,
+          limit: 100,
         });
         if (cancelled) return;
         setProperties(Array.isArray(propsRes) ? propsRes : []);
@@ -111,7 +131,9 @@ export default function Dashboard() {
         maximumFractionDigits: 0,
       },
     ).format(price);
-    return type === "rent" ? `${formatted}/mo` : formatted;
+    return type === "rent"
+      ? `${formatted}${tProperty("listing.priceSuffixMonthShort")}`
+      : formatted;
   };
 
   const filteredProperties = properties.filter(
@@ -119,6 +141,46 @@ export default function Dashboard() {
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.location.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  const markPropertyStatus = async (
+    property: Property,
+    status: "sold" | "rented",
+  ) => {
+    const confirmKey =
+      status === "sold"
+        ? "overview.rowActions.markAsSoldConfirm"
+        : "overview.rowActions.markAsRentedConfirm";
+    if (!window.confirm(t(confirmKey, { title: property.title }))) {
+      return;
+    }
+
+    setUpdatingId(property.id);
+    try {
+      const updated = await propertyService.update(property.id, { status });
+      setProperties((prev) =>
+        prev.map((p) =>
+          p.id === property.id
+            ? { ...p, ...updated, status: updated.status ?? status }
+            : p,
+        ),
+      );
+      toast({
+        title: t(
+          status === "sold"
+            ? "overview.rowActions.markAsSoldSuccess"
+            : "overview.rowActions.markAsRentedSuccess",
+        ),
+      });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: t("overview.rowActions.markStatusError"),
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -153,6 +215,7 @@ export default function Dashboard() {
               </h1>
             </div>
             <div className="flex items-center gap-3">
+              <ViewBrokerWebsiteButton />
               <Button variant="default" asChild>
                 <Link to="/dashboard/properties/new">
                   <Plus className="w-4 h-4" />
@@ -255,7 +318,10 @@ export default function Dashboard() {
                               {property.title}
                             </p>
                             <p className="text-sm text-muted-foreground truncate">
-                              {property.location}
+                              {translatedLocationArea(
+                                tProperty,
+                                property.location,
+                              )}
                             </p>
                           </div>
                         </div>
@@ -285,13 +351,9 @@ export default function Dashboard() {
                       <td className="px-4 lg:px-6 py-4 hidden lg:table-cell">
                         <Badge
                           variant="outline"
-                          className={
-                            property.status === "active"
-                              ? "border-green-500 text-green-600"
-                              : "border-yellow-500 text-yellow-600"
-                          }
+                          className={statusBadgeClass(property.status)}
                         >
-                          {property.status}
+                          {translatedStatus(tProperty, property.status)}
                         </Badge>
                       </td>
                       <td className="px-4 lg:px-6 py-4 text-end">
@@ -301,6 +363,7 @@ export default function Dashboard() {
                               variant="ghost"
                               size="icon"
                               aria-label="actions"
+                              disabled={updatingId === property.id}
                             >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
@@ -320,6 +383,29 @@ export default function Dashboard() {
                                 {t("overview.rowActions.edit")}
                               </Link>
                             </DropdownMenuItem>
+                            {property.property_type === "sale" &&
+                              property.status !== "sold" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    markPropertyStatus(property, "sold")
+                                  }
+                                >
+                                  <BadgeCheck className="w-4 h-4 me-2" />
+                                  {t("overview.rowActions.markAsSold")}
+                                </DropdownMenuItem>
+                              )}
+                            {property.property_type === "rent" &&
+                              property.status !== "rented" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    markPropertyStatus(property, "rented")
+                                  }
+                                >
+                                  <KeyRound className="w-4 h-4 me-2" />
+                                  {t("overview.rowActions.markAsRented")}
+                                </DropdownMenuItem>
+                              )}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={async () => {

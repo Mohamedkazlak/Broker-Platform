@@ -8,6 +8,7 @@ import { validateSubdomainFormat } from "../utils/subdomainValidator.js";
 import { generateDefaultSubdomain } from "../utils/subdomainGenerator.js";
 import { PLANS_BY_ID } from "../config/plans.js";
 import { priceForDomain, DOMAIN_CURRENCY } from "../config/domains.js";
+import { addBillingDays } from "../services/billingMonitor.js";
 
 /** Shared anon client for password sign-in (no per-request allocation). */
 const anonAuthClient = createClient(
@@ -17,8 +18,6 @@ const anonAuthClient = createClient(
     auth: { persistSession: false },
   },
 );
-
-const BILLING_CYCLE_DAYS = 30;
 
 /**
  * GET /api/auth/check-email?email=...
@@ -260,13 +259,7 @@ export async function provisionBrokerAccount({
     createdAuthUserId = userId;
 
     const nextBilling =
-      pkg !== "free"
-        ? (() => {
-            const d = new Date();
-            d.setDate(d.getDate() + BILLING_CYCLE_DAYS);
-            return d.toISOString();
-          })()
-        : null;
+      pkg !== "free" ? addBillingDays(new Date()).toISOString() : null;
 
     const broker = await brokerModel.create({
       first_name: firstName,

@@ -23,6 +23,9 @@ export interface Property {
   furnished: boolean | "furnished" | "unfurnished" | "semi-furnished";
   featured: boolean;
   status: string;
+  /** When marked sold/rented; used for monthly revenue. */
+  closed_at?: string | null;
+  updated_at?: string;
   /** Cover photo (first gallery image). */
   image_url?: string | null;
   /** Ordered gallery; index 0 is the cover. */

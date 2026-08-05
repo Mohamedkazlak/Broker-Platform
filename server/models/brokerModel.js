@@ -92,4 +92,45 @@ export const brokerModel = {
     if (error) throw error;
     return data;
   },
+
+  /**
+   * Active paid brokers for the billing monitor sweep.
+   * Includes rows with a due/overdue next_billing_date OR a missing one
+   * (so we can backfill from created_at).
+   */
+  async findActivePaidForBillingSweep() {
+    const nowIso = new Date().toISOString();
+
+    const [dueResult, missingResult] = await Promise.all([
+      supabaseAdmin
+        .from("brokers")
+        .select(
+          "id, package, subscription_status, next_billing_date, billing_amount, created_at",
+        )
+        .eq("subscription_status", "active")
+        .neq("package", "free")
+        .not("next_billing_date", "is", null)
+        .lte("next_billing_date", nowIso),
+      supabaseAdmin
+        .from("brokers")
+        .select(
+          "id, package, subscription_status, next_billing_date, billing_amount, created_at",
+        )
+        .eq("subscription_status", "active")
+        .neq("package", "free")
+        .is("next_billing_date", null),
+    ]);
+
+    if (dueResult.error) throw dueResult.error;
+    if (missingResult.error) throw missingResult.error;
+
+    const byId = new Map();
+    for (const row of [
+      ...(dueResult.data ?? []),
+      ...(missingResult.data ?? []),
+    ]) {
+      byId.set(row.id, row);
+    }
+    return [...byId.values()];
+  },
 };

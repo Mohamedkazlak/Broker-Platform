@@ -6,6 +6,7 @@ import {
   UserCog,
   UserPlus,
   Wallet,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -64,6 +65,12 @@ export default function AdminDashboard() {
       icon: UserCog,
     },
     {
+      label: t("dashboard.pastDueBrokers"),
+      value: dash(stats?.pastDueBrokers),
+      icon: AlertTriangle,
+      to: "/admin/brokers?status=past_due",
+    },
+    {
       label: t("dashboard.newThisMonth"),
       value: dash(stats?.newBrokersThisMonth),
       icon: UserPlus,
@@ -93,7 +100,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6">
         {cards.map((stat) => {
           const content = (
             <div className="flex items-start justify-between">

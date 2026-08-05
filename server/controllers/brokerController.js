@@ -7,6 +7,11 @@ import {
 } from "../utils/subdomainGenerator.js";
 import { PLANS_BY_ID } from "../config/plans.js";
 import { priceForDomain, DOMAIN_CURRENCY } from "../config/domains.js";
+import {
+  computeDaysUntilNextPayment,
+  resolveNextBillingDate,
+  syncBrokerBillingState,
+} from "../services/billingMonitor.js";
 
 /**
  * Compute a broker's order total from server-side config only: the plan price
@@ -32,26 +37,11 @@ function buildOrderSummary(broker) {
 }
 
 /**
- * Whole days from now until the next billing date. Null for free plans, for
- * non-active subscriptions, or when no billing date is set — so the client
- * never does date math on a missing/irrelevant value.
- */
-function computeDaysUntilNextPayment(broker) {
-  if (broker.package === "free" || broker.subscription_status !== "active") {
-    return null;
-  }
-  if (!broker.next_billing_date) return null;
-
-  const diffMs = new Date(broker.next_billing_date).getTime() - Date.now();
-  return Math.max(0, Math.ceil(diffMs / 86_400_000));
-}
-
-/** Billing cycle length until the next charge (stub — monthly; annual would be 365). */
-const BILLING_CYCLE_DAYS = 30;
-
-/**
  * Activates a paid subscription after successful payment.
- * Shared by simulate-payment and the future Paymob webhook handler.
+ * Shared by simulate-payment, Instapay approval, and the future Paymob webhook.
+ *
+ * Always restarts `next_billing_date` to now + 30 days (plan change mid-month,
+ * renewal, or first activation all get a fresh cycle after successful payment).
  *
  * @param {string} brokerId
  * @param {{ package: string, billingAmount?: number }} planDetails
@@ -69,15 +59,15 @@ export async function activateSubscription(brokerId, planDetails) {
     throw new Error("Broker not found");
   }
 
-  const { total } = buildOrderSummary(broker);
+  const { total } = buildOrderSummary({
+    ...broker,
+    package: planDetails.package,
+  });
   const billingAmount = planDetails.billingAmount ?? total;
-
-  const nextBilling = new Date();
-  nextBilling.setDate(nextBilling.getDate() + BILLING_CYCLE_DAYS);
 
   return brokerModel.update(brokerId, {
     subscription_status: "active",
-    next_billing_date: nextBilling.toISOString(),
+    next_billing_date: resolveNextBillingDate(broker),
     billing_amount: billingAmount,
     package: planDetails.package,
     package_limit: plan.packageLimit,
@@ -159,13 +149,17 @@ export const getById = async (req, res, next) => {
       return res.status(403).json({ status: "error", error: "Access denied" });
     }
 
-    const data = await brokerModel.findById(req.params.id);
+    const raw = await brokerModel.findById(req.params.id);
 
-    if (!data) {
+    if (!raw) {
       return res
         .status(404)
         .json({ status: "error", error: "Broker not found" });
     }
+
+    // Lazily enforce expiry so settings / dashboard stay accurate even between
+    // hourly billing-monitor sweeps.
+    const data = await syncBrokerBillingState(raw);
 
     res.json({
       status: "success",

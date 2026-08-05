@@ -170,6 +170,7 @@ export type Database = {
           broker_id: string;
           building_type: Database["public"]["Enums"]["building_type_enum"];
           city: string;
+          closed_at: string | null;
           contract_duration: string | null;
           country: string | null;
           created_at: string;
@@ -201,6 +202,7 @@ export type Database = {
           broker_id: string;
           building_type: Database["public"]["Enums"]["building_type_enum"];
           city: string;
+          closed_at?: string | null;
           contract_duration?: string | null;
           country?: string | null;
           created_at?: string;
@@ -232,6 +234,7 @@ export type Database = {
           broker_id?: string;
           building_type?: Database["public"]["Enums"]["building_type_enum"];
           city?: string;
+          closed_at?: string | null;
           contract_duration?: string | null;
           country?: string | null;
           created_at?: string;

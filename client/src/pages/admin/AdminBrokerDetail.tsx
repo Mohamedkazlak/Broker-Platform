@@ -202,6 +202,32 @@ export default function AdminBrokerDetail() {
             label={t("detail.fields.signupDate")}
             value={formatDate(broker.signupDate)}
           />
+          <InfoRow
+            label={t("detail.fields.billingAmount")}
+            value={
+              broker.billingAmount != null
+                ? Number(broker.billingAmount).toLocaleString(
+                    i18n.language === "ar" ? "ar-EG" : "en-US",
+                  )
+                : null
+            }
+          />
+          <InfoRow
+            label={t("detail.fields.nextBillingDate")}
+            value={
+              broker.nextBillingDate
+                ? formatDate(broker.nextBillingDate)
+                : null
+            }
+          />
+          <InfoRow
+            label={t("detail.fields.daysUntilPayment")}
+            value={
+              broker.daysUntilNextPayment != null
+                ? String(broker.daysUntilNextPayment)
+                : null
+            }
+          />
         </div>
       </div>
 

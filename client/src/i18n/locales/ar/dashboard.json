@@ -12,6 +12,7 @@
     "dashboard": "لوحة التحكم",
     "properties": "العقارات",
     "insights": "الإحصائيات",
+    "revenue": "الإيرادات",
     "settings": "الإعدادات",
     "defaultUser": "وسيط عقاري",
     "defaultRole": "محرر",
@@ -24,6 +25,7 @@
   "overview": {
     "heading": "لوحة التحكم",
     "addProperty": "إضافة العقار",
+    "viewWebsite": "عرض الموقع",
     "stats": {
       "totalProperties": "عدد العقارات",
       "totalPropertiesChange": "{{count}} عدد",
@@ -50,7 +52,14 @@
       "view": "عرض",
       "edit": "تعديل",
       "delete": "حذف",
-      "deleteConfirm": "حذف \"{{title}}\"؟"
+      "deleteConfirm": "حذف \"{{title}}\"؟",
+      "markAsSold": "تحديد كمباع",
+      "markAsRented": "تحديد كمؤجر",
+      "markAsSoldConfirm": "تحديد \"{{title}}\" كمباع؟ سيتم احتساب سعره في الإيرادات.",
+      "markAsRentedConfirm": "تحديد \"{{title}}\" كمؤجر؟ سيتم احتساب الإيجار الشهري في الإيرادات.",
+      "markAsSoldSuccess": "تم تحديد العقار كمباع",
+      "markAsRentedSuccess": "تم تحديد العقار كمؤجر",
+      "markStatusError": "تعذر تحديث حالة العقار"
     },
     "statusForRent": "للإيجار",
     "statusForSale": "للبيع"
@@ -215,6 +224,34 @@
     "sellingRevenue": "إيرادات البيع",
     "rentingRevenue": "إيرادات الإيجار"
   },
+  "revenue": {
+    "heading": "الإيرادات",
+    "subheading": "تتبع الدخل الشهري من العقارات المباعة والمستأجرة",
+    "thisMonthHeading": "هذا الشهر",
+    "thisMonthTotal": "الإيرادات الشهرية",
+    "thisMonthSales": "المبيعات المغلقة",
+    "thisMonthRent": "الإيجار النشط",
+    "lifetimeHeading": "الإجمالي الكلي",
+    "lifetimeTotal": "إجمالي الإيرادات",
+    "lifetimeSales": "إيرادات البيع",
+    "lifetimeRent": "إيرادات الإيجار",
+    "chartHeading": "آخر 12 شهراً",
+    "chartDescription": "تُحسب المبيعات في شهر الإغلاق. ويُحسب الإيجار كل شهر طالما بقي العقار مؤجراً.",
+    "chartSales": "مبيعات",
+    "chartRent": "إيجار",
+    "dealsHeading": "الصفقات المغلقة",
+    "dealsDescription": "{{count}} عقار مباع أو مستأجر",
+    "empty": "لا توجد عقارات مباعة أو مستأجرة بعد. عيّن حالة العقار كمباع أو مستأجر لبدء تتبع الإيرادات.",
+    "statusSold": "مباع",
+    "statusRented": "مستأجر",
+    "perMonth": "/شهر",
+    "table": {
+      "property": "العقار",
+      "status": "الحالة",
+      "amount": "المبلغ",
+      "closed": "تاريخ الإغلاق"
+    }
+  },
   "settings": {
     "heading": "الإعدادات",
     "subheading": "الإعدادات الشخصية والمنصة والباقة",
@@ -275,14 +312,16 @@
       "badgeSubdomain": "نطاق فرعي",
       "badgeCustom": "نطاق مخصص",
       "billingLabel": "الفوترة",
+      "nextBillingLabel": "تاريخ الفوترة التالي",
       "freeNoBilling": "باقة مجانية – بدون فوترة",
       "daysUntil": "{{days}} يومًا حتى الدفعة التالية بقيمة {{amount}}",
       "amount": "{{amount}} جنيه",
       "upgrade": "تغيير الباقة",
       "pastDue": {
         "title": "الدفعة متأخرة",
-        "description": "لم تتم معالجة دفعتك الأخيرة. أعد المحاولة للحفاظ على تفعيل منصتك.",
-        "retry": "إعادة محاولة الدفع"
+        "description": "انتهت فترة اشتراكك. جدّد الاشتراك للحفاظ على تفعيل منصتك بالكامل.",
+        "retry": "تجديد الاشتراك",
+        "billingLine": "متأخر السداد – المستحق {{amount}}"
       },
       "loadError": "تعذّر تحميل تفاصيل حسابك."
     },

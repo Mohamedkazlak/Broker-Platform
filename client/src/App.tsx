@@ -49,6 +49,9 @@ const DashboardProperties = lazy(
 const DashboardInsights = lazy(
   () => import("./pages/dashboard/DashboardInsights"),
 );
+const DashboardRevenue = lazy(
+  () => import("./pages/dashboard/DashboardRevenue"),
+);
 const DashboardSettings = lazy(
   () => import("./pages/dashboard/DashboardSettings"),
 );
@@ -134,6 +137,7 @@ const App = ({ lang }: AppProps) => (
                         element={<DashboardAddProperty />}
                       />
                       <Route path="insights" element={<DashboardInsights />} />
+                      <Route path="revenue" element={<DashboardRevenue />} />
                       <Route path="settings" element={<DashboardSettings />} />
                       <Route path="subscription" element={<Subscription />} />
                     </Route>

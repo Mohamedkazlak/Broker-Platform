@@ -1,5 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, Building2, TrendingUp, Settings, LogOut } from "lucide-react";
+import {
+  Home,
+  Building2,
+  TrendingUp,
+  Wallet,
+  Settings,
+  LogOut,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBroker } from "@/contexts/BrokerContext";
@@ -39,6 +46,11 @@ export function DashboardSidebar({
       to: "/dashboard/insights",
       label: t("sidebar.insights"),
       icon: TrendingUp,
+    },
+    {
+      to: "/dashboard/revenue",
+      label: t("sidebar.revenue"),
+      icon: Wallet,
     },
     { to: "/dashboard/settings", label: t("sidebar.settings"), icon: Settings },
   ];

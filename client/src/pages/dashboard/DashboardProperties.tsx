@@ -9,6 +9,8 @@ import {
   Eye,
   Plus,
   Menu,
+  BadgeCheck,
+  KeyRound,
 } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -32,14 +35,40 @@ import { PropertyImage } from "@/components/properties/PropertyImage";
 import { Property } from "@/components/properties/PropertyCard";
 import { propertyService } from "@/services/propertyService";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { useToast } from "@/hooks/use-toast";
+import {
+  translatedGovernorate,
+  translatedLocationArea,
+  translatedStatus,
+} from "@/utils/propertyLabels";
+
+function statusBadgeClass(status: string) {
+  if (status === "active") return "border-green-500 text-green-600";
+  if (status === "sold") return "border-blue-500 text-blue-600";
+  if (status === "rented") return "border-teal-500 text-teal-600";
+  return "border-yellow-500 text-yellow-600";
+}
 
 export default function DashboardProperties() {
   const { profile, isLoading } = useAuth();
   const { t, i18n } = useTranslation("dashboard");
+  const { t: tProperty } = useTranslation("property");
+  const { t: tGov } = useTranslation("governorates");
+  const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const localeNum = i18n.language === "ar" ? "ar-EG" : "en-US";
+
+  const formatLocation = (property: Property) =>
+    [
+      translatedLocationArea(tProperty, property.location),
+      translatedGovernorate(tGov, property.city),
+    ]
+      .filter(Boolean)
+      .join(", ");
 
   const fetchProperties = async () => {
     if (!profile?.broker_id) return;
@@ -62,16 +91,15 @@ export default function DashboardProperties() {
     currency: string,
     type: "rent" | "sale",
   ) => {
-    const formatted = new Intl.NumberFormat(
-      i18n.language === "ar" ? "ar-EG" : "en-US",
-      {
-        style: "currency",
-        currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      },
-    ).format(price);
-    return type === "rent" ? `${formatted}/mo` : formatted;
+    const formatted = new Intl.NumberFormat(localeNum, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+    return type === "rent"
+      ? `${formatted}${tProperty("listing.priceSuffixMonthShort")}`
+      : formatted;
   };
 
   const filteredProperties = properties.filter((p) => {
@@ -81,6 +109,46 @@ export default function DashboardProperties() {
     const matchesType = filterType === "all" || p.property_type === filterType;
     return matchesSearch && matchesType;
   });
+
+  const markPropertyStatus = async (
+    property: Property,
+    status: "sold" | "rented",
+  ) => {
+    const confirmKey =
+      status === "sold"
+        ? "overview.rowActions.markAsSoldConfirm"
+        : "overview.rowActions.markAsRentedConfirm";
+    if (!window.confirm(t(confirmKey, { title: property.title }))) {
+      return;
+    }
+
+    setUpdatingId(property.id);
+    try {
+      const updated = await propertyService.update(property.id, { status });
+      setProperties((prev) =>
+        prev.map((p) =>
+          p.id === property.id
+            ? { ...p, ...updated, status: updated.status ?? status }
+            : p,
+        ),
+      );
+      toast({
+        title: t(
+          status === "sold"
+            ? "overview.rowActions.markAsSoldSuccess"
+            : "overview.rowActions.markAsRentedSuccess",
+        ),
+      });
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: t("overview.rowActions.markStatusError"),
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -207,8 +275,7 @@ export default function DashboardProperties() {
                               {property.title}
                             </p>
                             <p className="text-sm text-muted-foreground truncate">
-                              {property.location}
-                              {property.city ? `, ${property.city}` : ""}
+                              {formatLocation(property)}
                             </p>
                           </div>
                         </div>
@@ -240,19 +307,15 @@ export default function DashboardProperties() {
                       </td>
                       <td className="px-4 lg:px-6 py-4 hidden lg:table-cell text-muted-foreground">
                         {property.area_sqft
-                          ? `${property.area_sqft.toLocaleString()} sqft`
+                          ? `${property.area_sqft.toLocaleString(localeNum)} ${tProperty("listing.areaUnit")}`
                           : "-"}
                       </td>
                       <td className="px-4 lg:px-6 py-4 hidden lg:table-cell">
                         <Badge
                           variant="outline"
-                          className={
-                            property.status === "active"
-                              ? "border-green-500 text-green-600"
-                              : "border-yellow-500 text-yellow-600"
-                          }
+                          className={statusBadgeClass(property.status)}
                         >
-                          {property.status}
+                          {translatedStatus(tProperty, property.status)}
                         </Badge>
                       </td>
                       <td className="px-4 lg:px-6 py-4 text-end">
@@ -262,6 +325,7 @@ export default function DashboardProperties() {
                               variant="ghost"
                               size="icon"
                               aria-label="actions"
+                              disabled={updatingId === property.id}
                             >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
@@ -281,6 +345,29 @@ export default function DashboardProperties() {
                                 {t("overview.rowActions.edit")}
                               </Link>
                             </DropdownMenuItem>
+                            {property.property_type === "sale" &&
+                              property.status !== "sold" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    markPropertyStatus(property, "sold")
+                                  }
+                                >
+                                  <BadgeCheck className="w-4 h-4 me-2" />
+                                  {t("overview.rowActions.markAsSold")}
+                                </DropdownMenuItem>
+                              )}
+                            {property.property_type === "rent" &&
+                              property.status !== "rented" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    markPropertyStatus(property, "rented")
+                                  }
+                                >
+                                  <KeyRound className="w-4 h-4 me-2" />
+                                  {t("overview.rowActions.markAsRented")}
+                                </DropdownMenuItem>
+                              )}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={async () => {
