@@ -9,8 +9,19 @@
  */
 export const DOMAIN_CURRENCY = "EGP";
 
+/**
+ * The only extensions a broker may pick for a new custom domain. Kept separate
+ * from DOMAIN_TLD_PRICES so restricting what's on sale never changes what an
+ * already-registered domain is billed at.
+ */
+export const ALLOWED_CUSTOM_DOMAIN_TLDS = ["com", "me", "online"];
+
 export const DOMAIN_TLD_PRICES = {
   com: 350,
+  me: 400,
+  online: 250,
+  // Sold before the extension list was narrowed. Retained so existing brokers
+  // keep their original price in order summaries; not selectable for new ones.
   net: 300,
   store: 500,
 };
@@ -24,8 +35,21 @@ export const HARDCODED_TAKEN_DOMAINS = [
   "amazon.com",
 ];
 
+/** The domain's TLD (last label), lowercased. */
+export function getDomainTld(domain) {
+  return String(domain ?? "")
+    .trim()
+    .toLowerCase()
+    .split(".")
+    .pop();
+}
+
+/** Whether a domain's extension is one a broker is currently allowed to buy. */
+export function isAllowedCustomDomainTld(domain) {
+  return ALLOWED_CUSTOM_DOMAIN_TLDS.includes(getDomainTld(domain));
+}
+
 /** Flat price lookup by the domain's TLD (last label). */
 export function priceForDomain(domain) {
-  const tld = String(domain).split(".").pop();
-  return DOMAIN_TLD_PRICES[tld] ?? DEFAULT_DOMAIN_PRICE;
+  return DOMAIN_TLD_PRICES[getDomainTld(domain)] ?? DEFAULT_DOMAIN_PRICE;
 }

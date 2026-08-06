@@ -58,7 +58,9 @@ export function PublicNavbar() {
             <span className="font-display text-lg font-semibold text-foreground">
               {t("brand.name")}
             </span>
-            <p className="text-xs text-muted-foreground">{t("brand.tagline")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("brand.tagline")}
+            </p>
           </div>
         </Link>
 
@@ -71,10 +73,7 @@ export function PublicNavbar() {
               className="text-foreground hover:text-accent-foreground hover:scale-105 hover:shadow-gold transition-all duration-300"
               asChild
             >
-              <Link
-                to={link.href}
-                onClick={(e) => handleLinkClick(e, link)}
-              >
+              <Link to={link.href} onClick={(e) => handleLinkClick(e, link)}>
                 {link.label}
               </Link>
             </Button>
@@ -121,7 +120,10 @@ export function PublicNavbar() {
             ))}
 
             <div className="pt-4 space-y-3">
-              <LanguageSwitcher variant="outline" className="w-full justify-center" />
+              <LanguageSwitcher
+                variant="outline"
+                className="w-full justify-center"
+              />
               <Button
                 variant="ghost"
                 className="w-full justify-start text-lg h-12"

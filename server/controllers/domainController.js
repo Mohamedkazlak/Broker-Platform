@@ -1,6 +1,7 @@
 import { brokerModel } from "../models/brokerModel.js";
 import {
   priceForDomain,
+  isAllowedCustomDomainTld,
   HARDCODED_TAKEN_DOMAINS,
   DOMAIN_CURRENCY,
 } from "../config/domains.js";
@@ -23,6 +24,10 @@ export const checkCustomDomain = async (req, res, next) => {
 
     if (!domain || !DOMAIN_PATTERN.test(domain)) {
       return res.json({ available: false, reason: "invalid" });
+    }
+
+    if (!isAllowedCustomDomainTld(domain)) {
+      return res.json({ available: false, reason: "unsupportedTld" });
     }
 
     const price = priceForDomain(domain);

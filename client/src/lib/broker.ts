@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isPendingSubdomain } from "@/utils/subdomain";
 import { getCurrentSubdomain } from "@/utils/tenant";
+import type { PackageCategory, PlanId } from "@/lib/plans";
 
 export interface Broker {
   id: string;
@@ -12,7 +13,8 @@ export interface Broker {
   phone_number: string;
   whatsapp_number: string;
   governorate: string | null;
-  package: "free" | "plus" | "pro" | "ultra";
+  package: PlanId;
+  package_category: PackageCategory;
   package_limit: number;
   hero_background_url: string | null;
   platform_icon_url: string | null;

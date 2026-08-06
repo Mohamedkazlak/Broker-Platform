@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, Mail, Clock, Send, Loader2 } from "lucide-react";
+import { Phone, Mail, Send, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 
@@ -132,10 +132,10 @@ export default function Contact() {
                         {t("info.phoneLabel")}
                       </h3>
                       <a
-                        href="tel:12345"
+                        href="tel:+201270018663"
                         className="text-muted-foreground hover:text-primary mt-1 block"
                       >
-                        12345
+                        (+20) 127 001 8663
                       </a>
                     </div>
                   </div>
@@ -149,27 +149,11 @@ export default function Contact() {
                         {t("info.emailLabel")}
                       </h3>
                       <a
-                        href="mailto:info@broker-platform.eg"
+                        href="mailto:info@brokerplatform.eg"
                         className="text-muted-foreground hover:text-primary mt-1 block"
                       >
-                        info@broker-platform.eg
+                        info@brokerplatform.eg
                       </a>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5 text-accent" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-foreground">
-                        {t("info.hoursLabel")}
-                      </h3>
-                      <p className="text-muted-foreground mt-1">
-                        {t("info.hoursValueLine1")}
-                        <br />
-                        {t("info.hoursValueLine2")}
-                      </p>
                     </div>
                   </div>
                 </div>

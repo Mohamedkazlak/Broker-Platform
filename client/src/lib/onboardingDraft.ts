@@ -18,7 +18,11 @@ const DRAFT_KEY = "onboarding_draft";
  */
 const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-export type PlanId = "free" | "plus" | "pro" | "ultra";
+import type { PackageCategory, PlanId } from "./plans";
+
+// Re-exported so existing importers of `PlanId` keep working; the canonical
+// definitions live in ./plans alongside the rest of the catalog metadata.
+export type { PackageCategory, PlanId };
 
 export interface OnboardingFormData {
   email: string;
@@ -40,6 +44,8 @@ export interface OnboardingDomainChoice {
 export interface OnboardingDraft {
   formData: OnboardingFormData;
   package?: PlanId;
+  /** Which ladder they picked the package from (free is offered under both). */
+  packageCategory?: PackageCategory;
   domain?: OnboardingDomainChoice;
   /** Epoch ms of the last write, used to expire abandoned drafts. */
   savedAt?: number;

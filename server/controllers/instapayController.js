@@ -346,7 +346,13 @@ async function submitReceiptForBroker(req, res, brokerId) {
 }
 
 async function submitReceiptForDraft(req, res) {
-  const { formData, package: pkg, domain, receipt } = req.body ?? {};
+  const {
+    formData,
+    package: pkg,
+    packageCategory,
+    domain,
+    receipt,
+  } = req.body ?? {};
 
   assertRegistrationFormData(formData);
 
@@ -415,6 +421,7 @@ async function submitReceiptForDraft(req, res) {
       email: normalizedEmail,
     },
     package: pkg,
+    packageCategory,
     domain,
     domainFields,
   });
@@ -657,6 +664,7 @@ export const adminReviewSubmission = async (req, res, next) => {
       const provisioned = await provisionBrokerAccount({
         formData: decrypted.formData,
         package: decrypted.package,
+        packageCategory: decrypted.packageCategory,
         domain: decrypted.domain,
         domainFields: decrypted.domainFields,
         billingAmount: Number(submission.amount),

@@ -16,13 +16,14 @@
     },
     "custom": {
       "title": "Buy your own domain",
-      "description": "Use a domain like yourname.com.",
+      "description": "Use a domain like yourname.com. Available extensions: .com, .me and .online.",
       "label": "Domain name",
       "namePlaceholder": "yourname",
       "checking": "Checking availability…",
       "available": "Available",
       "taken": "This domain is already taken",
       "invalid": "Enter a valid domain name",
+      "unsupportedTld": "Only .com, .me and .online are available right now",
       "price": "{{price}} EGP/year"
     },
     "continue": "Continue to payment",

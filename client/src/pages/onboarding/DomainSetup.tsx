@@ -33,7 +33,12 @@ import {
 
 type DomainMode = "subdomain" | "custom";
 
-const TLD_OPTIONS = ["com", "net", "store", "org", "io"] as const;
+/**
+ * Extensions a broker may buy. Mirrors ALLOWED_CUSTOM_DOMAIN_TLDS in
+ * server/config/domains.js, which is authoritative — this list only keeps the
+ * dropdown from offering something the server would reject.
+ */
+const TLD_OPTIONS = ["com", "me", "online"] as const;
 
 export default function DomainSetup() {
   const navigate = useNavigate();
@@ -45,6 +50,8 @@ export default function DomainSetup() {
   const [currentSubdomain, setCurrentSubdomain] = useState("");
   const [mode, setMode] = useState<DomainMode>("subdomain");
   const [saving, setSaving] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [canUseCustomDomain, setCanUseCustomDomain] = useState(false);
 
   const [subdomainValue, setSubdomainValue] = useState("");
   const [customName, setCustomName] = useState("");
@@ -60,6 +67,7 @@ export default function DomainSetup() {
         navigate("/select-plan", { replace: true });
         return;
       }
+      setSelectedPackage(draft.package);
       if (draft.domain?.domain_type === "subdomain" && draft.domain.subdomain) {
         setSubdomainValue(draft.domain.subdomain);
         setCurrentSubdomain(draft.domain.subdomain);
@@ -99,6 +107,7 @@ export default function DomainSetup() {
           ? ""
           : rawSubdomain;
 
+        setSelectedPackage(broker?.package ?? null);
         setCurrentSubdomain(resolvedSubdomain);
         setSubdomainValue(resolvedSubdomain);
         setMode(broker?.domain_type === "custom" ? "custom" : "subdomain");
@@ -118,6 +127,36 @@ export default function DomainSetup() {
       active = false;
     };
   }, [isDraftFlow, brokerId, navigate, t, toast]);
+
+  // Custom domains are a per-plan capability (Max and Ultra today). The server
+  // rejects them on other plans, so don't offer the option there at all.
+  useEffect(() => {
+    if (!selectedPackage) return;
+
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await api.get("/plans");
+        if (!active) return;
+        const plan = (data?.plans ?? []).find(
+          (p: { id: string }) => p.id === selectedPackage,
+        );
+        setCanUseCustomDomain(!!plan?.customDomain);
+      } catch (err) {
+        console.error("Error loading plans:", err);
+        // Fall back to subdomain-only rather than offering something the
+        // server may refuse at submit time.
+        if (active) setCanUseCustomDomain(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [selectedPackage]);
+
+  useEffect(() => {
+    if (!canUseCustomDomain && mode === "custom") setMode("subdomain");
+  }, [canUseCustomDomain, mode]);
 
   const normalizedSubdomain = subdomainValue.trim().toLowerCase();
   const isOwnSubdomain =
@@ -263,87 +302,89 @@ export default function DomainSetup() {
             )}
           </Card>
 
-          <Card
-            role="button"
-            tabIndex={0}
-            onClick={() => setMode("custom")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") setMode("custom");
-            }}
-            className={`cursor-pointer transition-all ${
-              mode === "custom"
-                ? "border-primary ring-2 ring-primary/30"
-                : "hover:border-primary/40"
-            }`}
-          >
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-accent text-accent-foreground flex items-center justify-center">
-                  <Sparkles className="w-5 h-5" />
+          {canUseCustomDomain && (
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => setMode("custom")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setMode("custom");
+              }}
+              className={`cursor-pointer transition-all ${
+                mode === "custom"
+                  ? "border-primary ring-2 ring-primary/30"
+                  : "hover:border-primary/40"
+              }`}
+            >
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-accent text-accent-foreground flex items-center justify-center">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">
+                      {t("domainSetup.custom.title")}
+                    </CardTitle>
+                    <CardDescription>
+                      {t("domainSetup.custom.description")}
+                    </CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-lg">
-                    {t("domainSetup.custom.title")}
-                  </CardTitle>
-                  <CardDescription>
-                    {t("domainSetup.custom.description")}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            {mode === "custom" && (
-              <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="customName">
-                    {t("domainSetup.custom.label")}
-                  </Label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                      id="customName"
-                      value={customName}
-                      dir="ltr"
-                      placeholder={t("domainSetup.custom.namePlaceholder")}
-                      onChange={(e) =>
-                        setCustomName(
-                          e.target.value
-                            .toLowerCase()
-                            .replace(/[^a-z0-9-]/g, ""),
-                        )
+              </CardHeader>
+              {mode === "custom" && (
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="customName">
+                      {t("domainSetup.custom.label")}
+                    </Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        id="customName"
+                        value={customName}
+                        dir="ltr"
+                        placeholder={t("domainSetup.custom.namePlaceholder")}
+                        onChange={(e) =>
+                          setCustomName(
+                            e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9-]/g, ""),
+                          )
+                        }
+                      />
+                      <span className="text-muted-foreground">.</span>
+                      <Select value={customTld} onValueChange={setCustomTld}>
+                        <SelectTrigger className="w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TLD_OPTIONS.map((tld) => (
+                            <SelectItem key={tld} value={tld}>
+                              .{tld}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span
+                        className="text-sm text-muted-foreground font-medium whitespace-nowrap"
+                        dir="ltr"
+                      >
+                        {customDomainLocalSuffix}
+                      </span>
+                    </div>
+                    <CustomStatusLine
+                      status={customStatus}
+                      price={customPrice}
+                      priceLabel={(price) =>
+                        t("domainSetup.custom.price", {
+                          price: price.toLocaleString(),
+                        })
                       }
                     />
-                    <span className="text-muted-foreground">.</span>
-                    <Select value={customTld} onValueChange={setCustomTld}>
-                      <SelectTrigger className="w-28">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TLD_OPTIONS.map((tld) => (
-                          <SelectItem key={tld} value={tld}>
-                            .{tld}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <span
-                      className="text-sm text-muted-foreground font-medium whitespace-nowrap"
-                      dir="ltr"
-                    >
-                      {customDomainLocalSuffix}
-                    </span>
                   </div>
-                  <CustomStatusLine
-                    status={customStatus}
-                    price={customPrice}
-                    priceLabel={(price) =>
-                      t("domainSetup.custom.price", {
-                        price: price.toLocaleString(),
-                      })
-                    }
-                  />
-                </div>
-              </CardContent>
-            )}
-          </Card>
+                </CardContent>
+              )}
+            </Card>
+          )}
         </div>
 
         <Button
@@ -431,7 +472,11 @@ function CustomStatusLine({
       </p>
     );
   }
-  if (status === "taken" || status === "invalid") {
+  if (
+    status === "taken" ||
+    status === "invalid" ||
+    status === "unsupportedTld"
+  ) {
     return (
       <p className="text-sm text-destructive">
         {t(`domainSetup.custom.${status}`)}

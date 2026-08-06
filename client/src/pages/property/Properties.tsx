@@ -1,70 +1,52 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, Grid, List, X } from "lucide-react";
+import { Search, Grid, List, X, ArrowUpDown } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { PropertyCard, Property } from "@/components/properties/PropertyCard";
+import { PropertySearchFilters } from "@/components/properties/PropertySearchFilters";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useBroker } from "@/contexts/BrokerContext";
 import { propertyService } from "@/services/propertyService";
-import { translatedGovernorate } from "@/utils/propertyLabels";
+import { translatedBuildingType } from "@/utils/propertyLabels";
+import { DEFAULT_HERO_IMAGE, hasBrandingAccess } from "@/lib/brokerBranding";
+import {
+  EMPTY_PROPERTY_FILTERS,
+  PropertyFilterState,
+  applyPropertyFilters,
+  hasActivePropertyFilters,
+  parsePropertyFiltersFromSearchParams,
+  propertyFiltersToSearchParams,
+} from "@/lib/propertyFilters";
+import { cn } from "@/lib/utils";
 
 export default function Properties() {
   const { broker, isLoading: brokerLoading } = useBroker();
-  const { t, i18n } = useTranslation(["property", "governorates"]);
-  const tGov = i18n.getFixedT(i18n.language, "governorates");
+  const { t } = useTranslation("property");
   const { t: tCommon } = useTranslation("common");
   const [searchParams, setSearchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
-  const [propertyType, setPropertyType] = useState(
-    searchParams.get("type") || "all",
-  );
   const [sortBy, setSortBy] = useState("newest");
-  const [priceRange, setPriceRange] = useState("all");
-  const [selectedCity, setSelectedCity] = useState(
-    searchParams.get("city") || "all",
+  const [filters, setFilters] = useState<PropertyFilterState>(() =>
+    parsePropertyFiltersFromSearchParams(searchParams),
   );
-
   const [baseProperties, setBaseProperties] = useState<Property[]>([]);
-
-  const uniqueCities = useMemo(
-    () =>
-      [...new Set(baseProperties.map((p) => p.city).filter(Boolean))].sort(),
-    [baseProperties],
-  );
+  const [minimized, setMinimized] = useState(false);
+  const [fullFilterHeight, setFullFilterHeight] = useState(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const fullFilterRef = useRef<HTMLDivElement>(null);
 
   const filteredProperties = useMemo(() => {
-    let filtered = [...baseProperties];
-
-    if (propertyType !== "all") {
-      filtered = filtered.filter((p) => p.property_type === propertyType);
-    }
-
-    if (selectedCity !== "all") {
-      filtered = filtered.filter((p) => p.city === selectedCity);
-    }
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.location.toLowerCase().includes(query) ||
-          (p.city && p.city.toLowerCase().includes(query)),
-      );
-    }
+    const filtered = applyPropertyFilters(baseProperties, filters);
 
     if (sortBy === "price-low") {
       filtered.sort((a, b) => a.price - b.price);
@@ -79,27 +61,24 @@ export default function Properties() {
     }
 
     return filtered;
-  }, [baseProperties, propertyType, selectedCity, searchQuery, sortBy]);
+  }, [baseProperties, filters, sortBy]);
 
   useEffect(() => {
-    setSearchQuery(searchParams.get("q") || "");
-    setPropertyType(searchParams.get("type") || "all");
-    setSelectedCity(searchParams.get("city") || "all");
+    setFilters(parsePropertyFiltersFromSearchParams(searchParams));
   }, [searchParams]);
 
-  /** One network fetch per tenant — filters/sort/search applied in memory after load. */
   useEffect(() => {
     if (brokerLoading) return;
 
     async function fetchProperties() {
       setIsLoading(true);
       try {
-        const filters: { status?: string; broker_id?: string } = {
+        const apiFilters: { status?: string; broker_id?: string } = {
           status: "active",
         };
         if (broker?.id && broker.id !== "demo-broker-id")
-          filters.broker_id = broker.id;
-        const apiData = await propertyService.getAll(filters);
+          apiFilters.broker_id = broker.id;
+        const apiData = await propertyService.getAll(apiFilters);
         setBaseProperties(Array.isArray(apiData) ? apiData : []);
       } finally {
         setIsLoading(false);
@@ -109,29 +88,229 @@ export default function Properties() {
     fetchProperties();
   }, [brokerLoading, broker?.id]);
 
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setMinimized(!entry.isIntersecting);
+      },
+      {
+        // Collapse once the full filter block scrolls under the navbar
+        rootMargin: "-80px 0px 0px 0px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (minimized) return;
+    const node = fullFilterRef.current;
+    if (!node) return;
+
+    const update = () =>
+      setFullFilterHeight(node.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [minimized]);
+
+  const syncFiltersToUrl = (next: PropertyFilterState) => {
+    setFilters(next);
+    setSearchParams(propertyFiltersToSearchParams(next), { replace: true });
+  };
+
   const clearFilters = () => {
-    setSearchQuery("");
-    setPropertyType("all");
+    setFilters(EMPTY_PROPERTY_FILTERS);
     setSortBy("newest");
-    setPriceRange("all");
-    setSelectedCity("all");
     setSearchParams({});
   };
 
-  const hasActiveFilters =
-    searchQuery ||
-    propertyType !== "all" ||
-    priceRange !== "all" ||
-    selectedCity !== "all";
+  const active = hasActivePropertyFilters(filters);
+
+  const heroImage =
+    broker && hasBrandingAccess(broker.package) && broker.hero_background_url
+      ? broker.hero_background_url
+      : DEFAULT_HERO_IMAGE;
+
+  const sortAndView = (compact?: boolean) => (
+    <div className="flex items-center gap-2 shrink-0 ms-auto">
+      {compact ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d0d5dd] bg-white text-[#344054] hover:bg-secondary/60"
+              aria-label={t("browse.sortPlaceholder")}
+            >
+              <ArrowUpDown className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuRadioGroup value={sortBy} onValueChange={setSortBy}>
+              <DropdownMenuRadioItem value="newest">
+                {t("browse.sortNewest")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="price-low">
+                {t("browse.sortPriceLow")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="price-high">
+                {t("browse.sortPriceHigh")}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="h-10 rounded-full px-4">
+              <ArrowUpDown className="w-4 h-4 me-2" />
+              {t("browse.sortPlaceholder")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuRadioGroup value={sortBy} onValueChange={setSortBy}>
+              <DropdownMenuRadioItem value="newest">
+                {t("browse.sortNewest")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="price-low">
+                {t("browse.sortPriceLow")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="price-high">
+                {t("browse.sortPriceHigh")}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      <div className="flex items-center gap-1 border border-[#d0d5dd] rounded-full p-1 shadow-sm bg-white">
+        <button
+          type="button"
+          onClick={() => setViewMode("grid")}
+          className={cn(
+            "p-2 rounded-full",
+            viewMode === "grid"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          aria-label={t("browse.ariaGridView")}
+        >
+          <Grid className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("list")}
+          className={cn(
+            "p-2 rounded-full",
+            viewMode === "list"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          aria-label={t("browse.ariaListView")}
+        >
+          <List className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+
+  const activeChips = active && (
+    <div className="flex items-center gap-2 mt-3 flex-wrap">
+      <span className="text-sm text-primary-foreground/70">
+        {t("browse.activeFilters")}
+      </span>
+      {filters.q && (
+        <FilterChip
+          label={`${t("browse.searchChipPrefix")} ${filters.q}`}
+          onClear={() => syncFiltersToUrl({ ...filters, q: "" })}
+        />
+      )}
+      {filters.building !== "all" && (
+        <FilterChip
+          label={
+            translatedBuildingType(t, filters.building) ?? filters.building
+          }
+          onClear={() => syncFiltersToUrl({ ...filters, building: "all" })}
+        />
+      )}
+      {(filters.beds || filters.baths) && (
+        <FilterChip
+          label={[
+            filters.beds
+              ? filters.beds === "0"
+                ? t("filters.studio")
+                : filters.beds === "7"
+                  ? t("filters.bedsSevenPlus")
+                  : t("filters.bedsPlus", { count: Number(filters.beds) })
+              : null,
+            filters.baths
+              ? filters.baths === "7"
+                ? t("filters.bathsSevenPlus")
+                : t("filters.bathsPlus", { count: Number(filters.baths) })
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+          onClear={() => syncFiltersToUrl({ ...filters, beds: "", baths: "" })}
+        />
+      )}
+      {(filters.priceMin || filters.priceMax) && (
+        <FilterChip
+          label={t("filters.price")}
+          onClear={() =>
+            syncFiltersToUrl({
+              ...filters,
+              priceMin: "",
+              priceMax: "",
+            })
+          }
+        />
+      )}
+      {(filters.areaMin || filters.areaMax) && (
+        <FilterChip
+          label={t("filters.area")}
+          onClear={() =>
+            syncFiltersToUrl({
+              ...filters,
+              areaMin: "",
+              areaMax: "",
+            })
+          }
+        />
+      )}
+      <button
+        type="button"
+        onClick={clearFilters}
+        className="text-sm text-accent hover:underline"
+      >
+        {tCommon("actions.clearAll")}
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="pt-20">
-        {/* Header */}
-        <div className="bg-primary py-16">
-          <div className="container mx-auto px-4">
+        {/* Hero band: background image + blur through title & filters */}
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0">
+            <img
+              src={heroImage}
+              alt=""
+              className="w-full h-full object-cover scale-110 blur-[3px]"
+            />
+            <div className="absolute inset-0 gradient-hero opacity-55" />
+          </div>
+
+          <div className="relative z-10 container mx-auto px-4 pt-14 pb-6 md:pt-16">
             <h1 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground">
               {t("browse.heading")}
             </h1>
@@ -139,144 +318,48 @@ export default function Properties() {
               {t("browse.subheading")}
             </p>
           </div>
-        </div>
 
-        {/* Filters */}
-        <div className="sticky top-16 lg:top-20 z-40 bg-background border-b border-border py-4">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Search */}
-              <div className="flex-1 relative">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder={t("browse.searchPlaceholder")}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="ps-10"
+          {/* Sentinel: when this leaves the viewport under the navbar, minimize */}
+          <div
+            ref={sentinelRef}
+            className="relative z-10 h-px w-full"
+            aria-hidden
+          />
+
+          {/* Full filters over the blurred background */}
+          {!minimized && (
+            <div ref={fullFilterRef} className="relative z-10 pb-8">
+              <div className="container mx-auto px-4">
+                <PropertySearchFilters
+                  variant="hero"
+                  value={filters}
+                  onChange={syncFiltersToUrl}
+                  onSubmit={() => syncFiltersToUrl(filters)}
+                  trailing={sortAndView(false)}
                 />
-              </div>
-
-              {/* Property Type */}
-              <Select
-                value={propertyType}
-                onValueChange={(val) => {
-                  setPropertyType(val);
-                  setSearchParams((prev) => {
-                    const newParams = new URLSearchParams(prev);
-                    if (val === "all") newParams.delete("type");
-                    else newParams.set("type", val);
-                    return newParams;
-                  });
-                }}
-              >
-                <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder={t("browse.typePlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("browse.allTypes")}</SelectItem>
-                  <SelectItem value="rent">{t("listing.forRent")}</SelectItem>
-                  <SelectItem value="sale">{t("listing.forSale")}</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* City Filter */}
-              <Select
-                value={selectedCity}
-                onValueChange={(val) => {
-                  setSelectedCity(val);
-                  setSearchParams((prev) => {
-                    const newParams = new URLSearchParams(prev);
-                    if (val === "all") newParams.delete("city");
-                    else newParams.set("city", val);
-                    return newParams;
-                  });
-                }}
-              >
-                <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder={t("browse.cityPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("browse.allCities")}</SelectItem>
-                  {uniqueCities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {translatedGovernorate(tGov, city)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Sort */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full lg:w-40">
-                  <SelectValue placeholder={t("browse.sortPlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">
-                    {t("browse.sortNewest")}
-                  </SelectItem>
-                  <SelectItem value="price-low">
-                    {t("browse.sortPriceLow")}
-                  </SelectItem>
-                  <SelectItem value="price-high">
-                    {t("browse.sortPriceHigh")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* View Toggle */}
-              <div className="flex items-center gap-1 border border-input rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                  aria-label={t("browse.ariaGridView")}
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 rounded ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                  aria-label={t("browse.ariaListView")}
-                >
-                  <List className="w-4 h-4" />
-                </button>
+                {activeChips}
               </div>
             </div>
+          )}
+        </section>
 
-            {/* Active Filters */}
-            {hasActiveFilters && (
-              <div className="flex items-center gap-2 mt-4 flex-wrap">
-                <span className="text-sm text-muted-foreground">
-                  {t("browse.activeFilters")}
-                </span>
-                {searchQuery && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full text-sm">
-                    {t("browse.searchChipPrefix")} {searchQuery}
-                    <button onClick={() => setSearchQuery("")}>
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {propertyType !== "all" && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full text-sm">
-                    {propertyType === "rent"
-                      ? t("listing.forRent")
-                      : t("listing.forSale")}
-                    <button onClick={() => setPropertyType("all")}>
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                <button
-                  onClick={clearFilters}
-                  className="text-sm text-primary hover:underline"
-                >
-                  {tCommon("actions.clearAll")}
-                </button>
-              </div>
-            )}
+        {/* Spacer keeps scroll position stable when switching to compact */}
+        {minimized && <div style={{ height: fullFilterHeight }} aria-hidden />}
+
+        {/* Compact sticky bar */}
+        {minimized && (
+          <div className="fixed top-16 lg:top-20 inset-x-0 z-40 border-b border-border bg-white/95 backdrop-blur-md shadow-sm py-2.5">
+            <div className="container mx-auto px-4">
+              <PropertySearchFilters
+                compact
+                value={filters}
+                onChange={syncFiltersToUrl}
+                onSubmit={() => syncFiltersToUrl(filters)}
+                trailing={sortAndView(true)}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Results */}
         <div className="container mx-auto px-4 py-8">
@@ -332,5 +415,22 @@ export default function Properties() {
 
       <Footer />
     </div>
+  );
+}
+
+function FilterChip({
+  label,
+  onClear,
+}: {
+  label: string;
+  onClear: () => void;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 px-3 py-1 bg-secondary rounded-full text-sm">
+      {label}
+      <button type="button" onClick={onClear} aria-label="Clear filter">
+        <X className="w-3 h-3" />
+      </button>
+    </span>
   );
 }

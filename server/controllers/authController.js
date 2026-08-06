@@ -6,8 +6,13 @@ import { instapayModel } from "../models/instapayModel.js";
 import { isValidGovernorate } from "../constants/governorates.js";
 import { validateSubdomainFormat } from "../utils/subdomainValidator.js";
 import { generateDefaultSubdomain } from "../utils/subdomainGenerator.js";
-import { PLANS_BY_ID } from "../config/plans.js";
-import { priceForDomain, DOMAIN_CURRENCY } from "../config/domains.js";
+import { PLANS_BY_ID, resolvePackageCategory } from "../config/plans.js";
+import {
+  priceForDomain,
+  isAllowedCustomDomainTld,
+  ALLOWED_CUSTOM_DOMAIN_TLDS,
+  DOMAIN_CURRENCY,
+} from "../config/domains.js";
 import { addBillingDays } from "../services/billingMonitor.js";
 
 /** Shared anon client for password sign-in (no per-request allocation). */
@@ -133,6 +138,14 @@ export async function resolveDomainFields(formData, pkg, domain) {
         status: 400,
       });
     }
+    if (!isAllowedCustomDomainTld(customDomain)) {
+      throw Object.assign(
+        new Error(
+          `Custom domains must end in ${ALLOWED_CUSTOM_DOMAIN_TLDS.map((tld) => `.${tld}`).join(", ")}`,
+        ),
+        { status: 400, reason: "unsupportedTld" },
+      );
+    }
     const taken = await brokerModel.findByCustomDomain(customDomain);
     if (taken) {
       throw Object.assign(new Error("Custom domain already taken"), {
@@ -194,6 +207,7 @@ export function assertRegistrationFormData(formData) {
 export async function provisionBrokerAccount({
   formData,
   package: pkg,
+  packageCategory,
   domain,
   domainFields: preResolvedDomain,
   billingAmount,
@@ -204,6 +218,8 @@ export async function provisionBrokerAccount({
   if (!plan) {
     throw Object.assign(new Error("Invalid plan selected"), { status: 400 });
   }
+
+  const category = resolvePackageCategory(pkg, packageCategory);
 
   const {
     email,
@@ -274,6 +290,7 @@ export async function provisionBrokerAccount({
       governorate,
       password: "managed-by-supabase-auth",
       package: pkg,
+      package_category: category,
       package_limit: plan.packageLimit,
       subscription_status: "active",
       next_billing_date: nextBilling,
@@ -338,13 +355,21 @@ export async function signInWithPassword(email, password) {
  * Instapay signups do NOT use this endpoint; the account is provisioned when
  * an admin approves the receipt.
  *
- * Body: { formData, package, domain?, paymentOutcome? }
+ * Body: { formData, package, packageCategory?, domain?, paymentOutcome? }
  *   - free: domain optional (auto-generated)
  *   - paid: domain required; paymentOutcome must be "succeed"
+ *   - packageCategory: which ladder they signed up through; ignored unless the
+ *     plan is actually offered under it (see resolvePackageCategory)
  */
 export const completeRegistration = async (req, res, next) => {
   try {
-    const { formData, package: pkg, domain, paymentOutcome } = req.body ?? {};
+    const {
+      formData,
+      package: pkg,
+      packageCategory,
+      domain,
+      paymentOutcome,
+    } = req.body ?? {};
 
     if (!PLANS_BY_ID[pkg]) {
       return res
@@ -362,6 +387,7 @@ export const completeRegistration = async (req, res, next) => {
     const { session, broker } = await provisionBrokerAccount({
       formData,
       package: pkg,
+      packageCategory,
       domain,
     });
 

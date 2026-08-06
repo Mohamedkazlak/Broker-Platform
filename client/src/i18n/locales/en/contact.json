@@ -8,10 +8,7 @@
     "heading": "Contact Information",
     "description": "Reach out to our platform support team. We're here to help!",
     "phoneLabel": "Phone",
-    "emailLabel": "Email",
-    "hoursLabel": "Business Hours",
-    "hoursValueLine1": "Sun - Thu: 9:00 AM - 5:00 PM",
-    "hoursValueLine2": "Fri & Sat: Closed"
+    "emailLabel": "Email"
   },
   "form": {
     "heading": "Send Us a Message",
@@ -20,7 +17,7 @@
     "emailLabel": "Email *",
     "emailPlaceholder": "you@example.com",
     "phoneLabel": "Phone (Optional)",
-    "phonePlaceholder": "+1 (555) 000-0000",
+    "phonePlaceholder": "(+20) 127 001 8663",
     "subjectLabel": "Subject *",
     "subjectPlaceholder": "Property inquiry",
     "messageLabel": "Message *",

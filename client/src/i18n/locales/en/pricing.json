@@ -8,17 +8,18 @@
   "pricePerMonth": "EGP/mo",
   "mostPopular": "Most Popular",
   "getStarted": "Get Started",
-  "plans": {
-    "starter": {
-      "name": "Starter Package",
-      "price": "0",
-      "description": "Great for getting started and exploring the platform",
-      "features": [
-        "Custom subdomain",
-        "Up to 3 property listings",
-        "Mobile responsive website"
-      ]
+  "categories": {
+    "ariaLabel": "Plan category",
+    "personal": {
+      "label": "Personal",
+      "description": "Everything a broker needs to launch their own website and grow it."
     },
+    "enterprise": {
+      "label": "Enterprise",
+      "description": "For agencies and teams that need unlimited listings, a dedicated app, and a dedicated manager."
+    }
+  },
+  "plans": {
     "free": {
       "name": "Starter Package",
       "price": "0",
@@ -37,8 +38,8 @@
       "features": [
         "Custom subdomain",
         "Up to 10 property listings",
-        "Basic branding",
-        "Email support"
+        "Background & icon customization",
+        "Social media links"
       ]
     },
     "pro": {
@@ -46,19 +47,34 @@
       "price": "1,000",
       "description": "Best for growing real estate businesses",
       "features": [
-        "Everything in Plus",
+        "Custom subdomain",
         "Up to 50 property listings",
-        "Custom domain name (e.g. ahmed.com)",
-        "Full customization"
+        "Background & icon customization",
+        "Social media links"
+      ]
+    },
+    "max": {
+      "name": "Max Package",
+      "price": "3,000",
+      "description": "Get your own domain",
+      "features": [
+        "Your own domain (.com, .me or .online)",
+        "Or keep a custom subdomain",
+        "Up to 100 property listings",
+        "Background & icon customization",
+        "Social media links"
       ]
     },
     "ultra": {
       "name": "Ultra Package",
       "price": "5,000",
-      "description": "For agencies and top-tier brokers",
+      "description": "Your own domain, plus a dedicated app and manager",
       "features": [
-        "Everything in Pro",
+        "Your own domain (.com, .me or .online)",
+        "Or keep a custom subdomain",
         "Unlimited property listings",
+        "Background & icon customization",
+        "Social media links",
         "Dedicated mobile app for your website",
         "Dedicated manager"
       ]
@@ -69,8 +85,8 @@
     "subheading": "Have questions? We've got answers.",
     "q1Title": "Can I upgrade my plan later?",
     "q1Answer": "Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.",
-    "q2Title": "Do I need technical skills to get started?",
-    "q2Answer": "Not at all. Our platform is designed to be simple and intuitive, and our team is here to help you launch your website with just a few clicks.",
+    "q2Title": "What's the difference between Personal and Enterprise?",
+    "q2Answer": "Personal plans are the self-serve path for individual brokers. Enterprise adds unlimited listings, a dedicated mobile app, and a dedicated manager for agencies and teams.",
     "q3Title": "What payment methods do you accept?",
     "q3Answer": "We accept all major credit cards, bank transfers, and mobile payment options.",
     "q4Title": "Can I cancel anytime?",
@@ -84,30 +100,7 @@
     "selectPlan": "Select Plan",
     "listingLimit": "Up to {{count}} listings",
     "unlimitedListings": "Unlimited listings",
-    "starterFeatures": [
-      "Standard subdomain",
-      "Up to 3 property listings",
-      "Standard responsive website",
-      "Community support"
-    ],
-    "plusFeatures": [
-      "Custom subdomain",
-      "Up to 10 property listings",
-      "Basic branding",
-      "Email support"
-    ],
-    "proFeatures": [
-      "Everything in Plus",
-      "Up to 50 property listings",
-      "Custom domain name (e.g. ahmed.com)",
-      "Full customization"
-    ],
-    "ultraFeatures": [
-      "Everything in Pro",
-      "Unlimited property listings",
-      "Dedicated mobile app for your website",
-      "Dedicated manager"
-    ],
+    "ownDomainHeadline": "Get your own domain",
     "toasts": {
       "noBrokerTitle": "Error",
       "noBrokerDescription": "No associated platform found. Please register again.",

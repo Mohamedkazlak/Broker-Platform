@@ -168,6 +168,7 @@ export default function Payment() {
         const { error, subdomain } = await completeRegistration({
           formData: draft.formData,
           package: draft.package,
+          packageCategory: draft.packageCategory,
           domain: draft.domain,
           paymentOutcome: "succeed",
         });

@@ -1,13 +1,5 @@
 import { Link } from "react-router-dom";
-import {
-  Phone,
-  Mail,
-  Facebook,
-  Instagram,
-  Twitter,
-  Linkedin,
-  Building2,
-} from "lucide-react";
+import { Phone, Mail, Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useBroker } from "@/contexts/BrokerContext";
 
@@ -16,9 +8,10 @@ export function Footer() {
   const { t } = useTranslation("common");
   const currentYear = new Date().getFullYear();
 
-  const displayPhone = broker?.phone_number || "12345";
-  const displayEmail = broker?.email || "info@broker-platform.eg";
+  const displayPhone = broker?.phone_number || "(+20) 127 001 8663";
+  const displayEmail = broker?.email || "info@brokerplatform.eg";
   const displayName = broker?.platform_name || t("brand.name");
+  const homePath = broker ? "/home" : "/";
 
   return (
     <footer className="bg-primary text-primary-foreground">
@@ -37,36 +30,6 @@ export function Footer() {
             <p className="text-primary-foreground/70 text-sm leading-relaxed">
               {t("footer.description")}
             </p>
-            <div className="flex items-center gap-4">
-              <a
-                href="#"
-                className="text-primary-foreground/60 hover:text-accent transition-colors"
-                aria-label={t("footer.socialFacebook")}
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-primary-foreground/60 hover:text-accent transition-colors"
-                aria-label={t("footer.socialInstagram")}
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-primary-foreground/60 hover:text-accent transition-colors"
-                aria-label={t("footer.socialTwitter")}
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="text-primary-foreground/60 hover:text-accent transition-colors"
-                aria-label={t("footer.socialLinkedIn")}
-              >
-                <Linkedin className="w-5 h-5" />
-              </a>
-            </div>
           </div>
 
           {/* Contact Info */}
@@ -104,13 +67,13 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-6">
             <Link
-              to="/privacy"
+              to={homePath}
               className="text-primary-foreground/60 hover:text-accent text-sm transition-colors"
             >
               {t("footer.privacyPolicy")}
             </Link>
             <Link
-              to="/terms"
+              to={homePath}
               className="text-primary-foreground/60 hover:text-accent text-sm transition-colors"
             >
               {t("footer.termsOfService")}

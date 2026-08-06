@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const DEFAULT_HERO_IMAGE =
   "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&auto=format&fit=crop&q=80";
 
-export const BRANDING_PLANS = ["plus", "pro", "ultra"] as const;
+export const BRANDING_PLANS = ["plus", "pro", "max", "ultra"] as const;
 export type BrandingPlan = (typeof BRANDING_PLANS)[number];
 
 export const PAID_PLANS = BRANDING_PLANS;

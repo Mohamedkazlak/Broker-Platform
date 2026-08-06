@@ -1,12 +1,16 @@
-import { Search, MapPin, Home, DollarSign } from "lucide-react";
+import { MapPin, Home, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useBroker } from "@/contexts/BrokerContext";
 import { DEFAULT_HERO_IMAGE, hasBrandingAccess } from "@/lib/brokerBranding";
 import { useBrokerHeroStats } from "@/hooks/useBrokerHeroStats";
+import { PropertySearchFilters } from "@/components/properties/PropertySearchFilters";
+import {
+  EMPTY_PROPERTY_FILTERS,
+  PropertyFilterState,
+  propertyFiltersToSearchParams,
+} from "@/lib/propertyFilters";
 
 export function HeroSection() {
   const { broker, isLoading: brokerLoading } = useBroker();
@@ -16,24 +20,15 @@ export function HeroSection() {
     broker?.package,
     brokerLoading,
   );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [propertyType, setPropertyType] = useState<"all" | "rent" | "sale">(
-    "all",
+  const [filters, setFilters] = useState<PropertyFilterState>(
+    EMPTY_PROPERTY_FILTERS,
   );
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (searchQuery) params.set("q", searchQuery);
-    if (propertyType !== "all") params.set("type", propertyType);
-    navigate(`/properties?${params.toString()}`);
+  const handleSearch = () => {
+    const params = propertyFiltersToSearchParams(filters);
+    const qs = params.toString();
+    navigate(qs ? `/properties?${qs}` : "/properties");
   };
-
-  const typeOptions: { value: "all" | "rent" | "sale"; label: string }[] = [
-    { value: "all", label: t("hero.typeAll") },
-    { value: "rent", label: t("hero.typeRent") },
-    { value: "sale", label: t("hero.typeBuy") },
-  ];
 
   const stats = heroStats
     ? [
@@ -61,7 +56,7 @@ export function HeroSection() {
       {/* Background Image */}
       <div className="absolute inset-0">
         <img src={heroImage} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 gradient-hero opacity-90" />
+        <div className="absolute inset-0 gradient-hero opacity-55" />
       </div>
 
       {/* Decorative Elements */}
@@ -97,56 +92,15 @@ export function HeroSection() {
           {t("hero.subheadline")}
         </p>
 
-        {/* Search Box */}
-        <form
-          onSubmit={handleSearch}
-          className="hero-text hero-text-delay-3 mt-12 max-w-4xl mx-auto"
-        >
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-3 shadow-xl border border-white/20">
-            <div className="flex flex-col lg:flex-row gap-3">
-              {/* Property Type Toggle */}
-              <div className="flex bg-secondary rounded-xl p-1">
-                {typeOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setPropertyType(option.value)}
-                    className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      propertyType === option.value
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Location Input */}
-              <div className="flex-1 relative">
-                <MapPin className="absolute start-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder={t("hero.locationPlaceholder")}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full ps-12 h-12 border-0 bg-transparent text-foreground placeholder:text-muted-foreground focus-visible:ring-0"
-                />
-              </div>
-
-              {/* Search Button */}
-              <Button
-                type="submit"
-                variant="hero"
-                size="xl"
-                className="lg:w-auto w-full"
-              >
-                <Search className="w-5 h-5" />
-                {t("hero.searchButton")}
-              </Button>
-            </div>
-          </div>
-        </form>
+        {/* Search + filters */}
+        <div className="hero-text hero-text-delay-3 mt-12 max-w-4xl mx-auto text-start">
+          <PropertySearchFilters
+            variant="hero"
+            value={filters}
+            onChange={setFilters}
+            onSubmit={handleSearch}
+          />
+        </div>
 
         {/* Stats — shown for paid brokers with 20+ properties and 2+ cities */}
         {stats.length > 0 && (

@@ -685,7 +685,7 @@ export default function PropertyDetails() {
                       asChild
                     >
                       <a
-                        href={`tel:${broker?.phone_number || "+1 (555) 123-4567"}`}
+                        href={`tel:${broker?.phone_number || "(+20) 127 001 8663"}`}
                       >
                         <Phone className="w-5 h-5" />
                         {t("details.callAgent")}

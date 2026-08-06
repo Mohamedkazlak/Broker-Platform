@@ -6,7 +6,8 @@ export type CustomDomainStatus =
   | "checking"
   | "available"
   | "taken"
-  | "invalid";
+  | "invalid"
+  | "unsupportedTld";
 
 /**
  * Client-side mirror of the server's domain shape gate so obviously-invalid
@@ -66,8 +67,13 @@ export function useCustomDomainAvailability(rawDomain: string): {
 
         if (data?.available) {
           setStatus("available");
+        } else if (
+          data?.reason === "invalid" ||
+          data?.reason === "unsupportedTld"
+        ) {
+          setStatus(data.reason);
         } else {
-          setStatus(data?.reason === "invalid" ? "invalid" : "taken");
+          setStatus("taken");
         }
       } catch {
         if (controller.signal.aborted) return;

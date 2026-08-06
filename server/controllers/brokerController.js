@@ -5,8 +5,13 @@ import {
   generateDefaultSubdomain,
   isPendingSubdomain,
 } from "../utils/subdomainGenerator.js";
-import { PLANS_BY_ID } from "../config/plans.js";
-import { priceForDomain, DOMAIN_CURRENCY } from "../config/domains.js";
+import { PLANS_BY_ID, resolvePackageCategory } from "../config/plans.js";
+import {
+  priceForDomain,
+  isAllowedCustomDomainTld,
+  ALLOWED_CUSTOM_DOMAIN_TLDS,
+  DOMAIN_CURRENCY,
+} from "../config/domains.js";
 import {
   computeDaysUntilNextPayment,
   resolveNextBillingDate,
@@ -70,6 +75,10 @@ export async function activateSubscription(brokerId, planDetails) {
     next_billing_date: resolveNextBillingDate(broker),
     billing_amount: billingAmount,
     package: planDetails.package,
+    package_category: resolvePackageCategory(
+      planDetails.package,
+      broker.package_category,
+    ),
     package_limit: plan.packageLimit,
   });
 }
@@ -186,10 +195,51 @@ export const update = async (req, res, next) => {
     const {
       id,
       package: pkg,
+      package_category,
       package_limit,
       created_at,
       ...safeUpdates
     } = req.body;
+
+    if (safeUpdates.custom_domain !== undefined) {
+      const broker = await brokerModel.findById(req.params.id);
+      if (!broker) {
+        return res
+          .status(404)
+          .json({ status: "error", error: "Broker not found" });
+      }
+
+      const customDomain = String(safeUpdates.custom_domain ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (!PLANS_BY_ID[broker.package]?.customDomain) {
+        return res.status(400).json({
+          status: "error",
+          error: "Custom domains are not available on this plan",
+          reason: "planNotEligible",
+        });
+      }
+
+      if (!isAllowedCustomDomainTld(customDomain)) {
+        return res.status(400).json({
+          status: "error",
+          error: `Custom domains must end in ${ALLOWED_CUSTOM_DOMAIN_TLDS.map((tld) => `.${tld}`).join(", ")}`,
+          reason: "unsupportedTld",
+        });
+      }
+
+      const taken = await brokerModel.findByCustomDomain(customDomain);
+      if (taken && taken.id !== req.params.id) {
+        return res.status(409).json({
+          status: "error",
+          error: "Custom domain already taken",
+          reason: "taken",
+        });
+      }
+
+      safeUpdates.custom_domain = customDomain;
+    }
 
     if (safeUpdates.subdomain !== undefined) {
       const result = validateSubdomainFormat(safeUpdates.subdomain);
@@ -234,13 +284,15 @@ export const selectPlan = async (req, res, next) => {
       return res.status(403).json({ status: "error", error: "Access denied" });
     }
 
-    const { package: pkg } = req.body;
+    const { package: pkg, packageCategory } = req.body;
     const plan = PLANS_BY_ID[pkg];
     if (!plan) {
       return res
         .status(400)
         .json({ status: "error", error: "Invalid plan selected" });
     }
+
+    const category = resolvePackageCategory(pkg, packageCategory);
 
     if (pkg === "free") {
       const broker = await brokerModel.findById(req.params.id);
@@ -260,6 +312,7 @@ export const selectPlan = async (req, res, next) => {
 
       const data = await brokerModel.update(req.params.id, {
         package: "free",
+        package_category: category,
         package_limit: plan.packageLimit,
         subdomain,
         subscription_status: "active",
@@ -277,6 +330,7 @@ export const selectPlan = async (req, res, next) => {
     // finish domain setup (and, later, payment).
     const data = await brokerModel.update(req.params.id, {
       package: pkg,
+      package_category: category,
       package_limit: plan.packageLimit,
     });
     return res.json({

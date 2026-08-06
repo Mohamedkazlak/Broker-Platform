@@ -93,6 +93,7 @@ export default function InstapayReceipt() {
         }
         body.formData = draft.formData;
         body.package = draft.package;
+        body.packageCategory = draft.packageCategory;
         body.domain = draft.domain;
       }
 

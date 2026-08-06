@@ -29,6 +29,7 @@ export type Database = {
           last_name: string;
           next_billing_date: string | null;
           package: Database["public"]["Enums"]["subscription_plan_enum"];
+          package_category: Database["public"]["Enums"]["package_category_enum"];
           package_limit: number;
           password: string;
           phone_number: string;
@@ -53,6 +54,7 @@ export type Database = {
           last_name: string;
           next_billing_date?: string | null;
           package?: Database["public"]["Enums"]["subscription_plan_enum"];
+          package_category?: Database["public"]["Enums"]["package_category_enum"];
           package_limit?: number;
           password: string;
           phone_number: string;
@@ -77,6 +79,7 @@ export type Database = {
           last_name?: string;
           next_billing_date?: string | null;
           package?: Database["public"]["Enums"]["subscription_plan_enum"];
+          package_category?: Database["public"]["Enums"]["package_category_enum"];
           package_limit?: number;
           password?: string;
           phone_number?: string;
@@ -278,9 +281,10 @@ export type Database = {
       building_type_enum: "apartment" | "villa" | "commercial";
       finishing_enum: "economic" | "medium" | "luxury" | "ultra";
       furnished_enum: "furnished" | "unfurnished" | "semi-furnished";
+      package_category_enum: "personal" | "enterprise";
       property_status_enum: "active" | "sold" | "rented" | "draft";
       property_type_enum: "rent" | "sale";
-      subscription_plan_enum: "free" | "plus" | "pro" | "ultra";
+      subscription_plan_enum: "free" | "plus" | "pro" | "max" | "ultra";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -414,9 +418,10 @@ export const Constants = {
       building_type_enum: ["apartment", "villa", "commercial"],
       finishing_enum: ["economic", "medium", "luxury", "ultra"],
       furnished_enum: ["furnished", "unfurnished", "semi-furnished"],
+      package_category_enum: ["personal", "enterprise"],
       property_status_enum: ["active", "sold", "rented", "draft"],
       property_type_enum: ["rent", "sale"],
-      subscription_plan_enum: ["free", "plus", "pro", "ultra"],
+      subscription_plan_enum: ["free", "plus", "pro", "max", "ultra"],
     },
   },
 } as const;

@@ -12,6 +12,7 @@ import { useBroker } from "./BrokerContext";
 import { acceptRelayedSession } from "@/lib/sessionRelay";
 import { isSessionStillValid } from "@/lib/sessionGuard";
 import { buildMainSiteUrl } from "@/utils/tenant";
+import type { PackageCategory } from "@/lib/plans";
 
 interface Profile {
   id: string;
@@ -52,6 +53,7 @@ interface AuthContextType {
       governorate: string;
     };
     package: string;
+    packageCategory?: PackageCategory;
     domain?: {
       domain_type: "subdomain" | "custom";
       subdomain?: string;
@@ -283,6 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       governorate: string;
     };
     package: string;
+    packageCategory?: PackageCategory;
     domain?: {
       domain_type: "subdomain" | "custom";
       subdomain?: string;

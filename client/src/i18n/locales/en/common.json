@@ -7,7 +7,7 @@
     "features": "Features",
     "pricing": "Pricing",
     "about": "About Us",
-    "contact": "Contact",
+    "contact": "Contact Us",
     "login": "Log In",
     "getStarted": "Get Started",
     "home": "Home",
@@ -24,11 +24,7 @@
     "contactUs": "Contact Us",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
-    "rightsReserved": "All rights reserved.",
-    "socialFacebook": "Facebook",
-    "socialInstagram": "Instagram",
-    "socialTwitter": "X (Twitter)",
-    "socialLinkedIn": "LinkedIn"
+    "rightsReserved": "All rights reserved."
   },
   "actions": {
     "cancel": "Cancel",
