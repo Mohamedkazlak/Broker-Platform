@@ -201,14 +201,36 @@ export const update = async (req, res, next) => {
       ...safeUpdates
     } = req.body;
 
-    if (safeUpdates.custom_domain !== undefined) {
-      const broker = await brokerModel.findById(req.params.id);
+    const needsPlanCheck =
+      safeUpdates.custom_domain !== undefined ||
+      safeUpdates.subdomain !== undefined ||
+      safeUpdates.hero_background_url !== undefined ||
+      safeUpdates.platform_icon_url !== undefined;
+
+    let broker = null;
+    if (needsPlanCheck) {
+      broker = await brokerModel.findById(req.params.id);
       if (!broker) {
         return res
           .status(404)
           .json({ status: "error", error: "Broker not found" });
       }
+    }
 
+    // Free plan: standard subdomain only — no custom branding assets.
+    if (
+      broker?.package === "free" &&
+      (safeUpdates.hero_background_url !== undefined ||
+        safeUpdates.platform_icon_url !== undefined)
+    ) {
+      return res.status(400).json({
+        status: "error",
+        error: "Branding customization is not available on the Free plan",
+        reason: "planNotEligible",
+      });
+    }
+
+    if (safeUpdates.custom_domain !== undefined) {
       const customDomain = String(safeUpdates.custom_domain ?? "")
         .trim()
         .toLowerCase();
@@ -248,6 +270,15 @@ export const update = async (req, res, next) => {
           status: "error",
           error: "Invalid subdomain",
           reason: result.reason,
+        });
+      }
+
+      // Free plan keeps the auto-assigned subdomain and cannot change it.
+      if (broker.package === "free" && result.normalized !== broker.subdomain) {
+        return res.status(400).json({
+          status: "error",
+          error: "Subdomain customization is not available on the Free plan",
+          reason: "planNotEligible",
         });
       }
 

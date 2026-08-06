@@ -128,6 +128,7 @@
       "finishingLuxury": "Luxury (high-end materials like marble)",
       "finishingUltra": "Ultra-Super Lux (customized, premium)",
       "bedrooms": "Bedrooms",
+      "studio": "Studio",
       "offices": "Offices",
       "roomCountPlaceholder": "1, 2, 3, etc..",
       "bathrooms": "Bathrooms",
@@ -276,7 +277,10 @@
       "reserved": "This subdomain name isn't available",
       "invalid": "3–63 lowercase letters, numbers, or hyphens",
       "required": "Please enter a subdomain",
-      "unavailable": "This subdomain isn't available"
+      "unavailable": "This subdomain isn't available",
+      "upgradeDescription": "Your Free plan includes a standard subdomain. Upgrade to choose or change a custom one.",
+      "lockedHint": "Subdomain customization is available on paid plans.",
+      "upgradeCta": "Change plan"
     },
     "passwordHeading": "Change Password",
     "passwordDescription": "Update your account password",
@@ -287,7 +291,7 @@
     "branding": {
       "heading": "Page Branding",
       "description": "Customize your homepage background image and platform icon.",
-      "upgradeDescription": "Upgrade to Plus, Pro, or Ultra to customize your homepage background and platform icon.",
+      "upgradeDescription": "Upgrade to a paid plan to customize your homepage background and platform icon.",
       "upgradeCta": "Change plan",
       "backgroundLabel": "Homepage Background",
       "backgroundHint": "Recommended: wide landscape image (1920×1080 or larger).",

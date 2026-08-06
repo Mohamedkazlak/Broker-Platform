@@ -752,18 +752,36 @@ export default function DashboardAddProperty() {
                       ? t("addProperty.fields.offices")
                       : t("addProperty.fields.bedrooms")}
                   </Label>
-                  <Input
-                    id={
-                      form.building_type === "commercial"
-                        ? "offices"
-                        : "bedrooms"
-                    }
-                    type="number"
-                    min="0"
-                    placeholder={t("addProperty.fields.roomCountPlaceholder")}
-                    value={form.bedrooms}
-                    onChange={(e) => handleChange("bedrooms", e.target.value)}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id={
+                        form.building_type === "commercial"
+                          ? "offices"
+                          : "bedrooms"
+                      }
+                      type="number"
+                      min="0"
+                      placeholder={t("addProperty.fields.roomCountPlaceholder")}
+                      value={form.bedrooms}
+                      onChange={(e) => handleChange("bedrooms", e.target.value)}
+                      className="flex-1"
+                    />
+                    {form.building_type !== "commercial" && (
+                      <Button
+                        type="button"
+                        variant={form.bedrooms === "0" ? "default" : "outline"}
+                        className="shrink-0"
+                        onClick={() =>
+                          handleChange(
+                            "bedrooms",
+                            form.bedrooms === "0" ? "" : "0",
+                          )
+                        }
+                      >
+                        {t("addProperty.fields.studio")}
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bathrooms">

@@ -60,10 +60,15 @@ export async function uploadBrokerBranding(
     heroBackgroundUrl?: string | null;
     platformIconUrl?: string | null;
   },
+  pkg?: string | null,
 ): Promise<{
   heroBackgroundUrl: string | null;
   platformIconUrl: string | null;
 }> {
+  if (!hasBrandingAccess(pkg)) {
+    throw new Error("Branding customization is not available on this plan");
+  }
+
   const updates: { hero_background_url?: string; platform_icon_url?: string } =
     {};
 

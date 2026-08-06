@@ -33,7 +33,11 @@ import {
   type BrandingFiles,
 } from "@/components/settings/BrandingFields";
 import { AccountDetails } from "@/components/settings/AccountDetails";
-import { hasBrandingAccess, uploadBrokerBranding } from "@/lib/brokerBranding";
+import {
+  hasBrandingAccess,
+  isPaidPlan,
+  uploadBrokerBranding,
+} from "@/lib/brokerBranding";
 import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
 import { isValidGovernorate } from "@/constants/governorates";
@@ -75,15 +79,22 @@ const DashboardSettings = () => {
     }));
   }, [broker?.subdomain]);
 
+  const canCustomizeSubdomain = isPaidPlan(broker?.package);
+  const canCustomizeBranding = hasBrandingAccess(broker?.package);
+
   const normalizedDomain = platformForm.domain.trim().toLowerCase();
   const isOwnSubdomain =
     normalizedDomain.length > 0 && normalizedDomain === currentSubdomain;
   const { status: liveSubdomainStatus } = useSubdomainAvailability(
-    !isOwnSubdomain ? platformForm.domain : "",
+    canCustomizeSubdomain && !isOwnSubdomain ? platformForm.domain : "",
   );
   const subdomainStatus = isOwnSubdomain ? "current" : liveSubdomainStatus;
-  const subdomainChanged = normalizedDomain !== currentSubdomain;
-  const canSavePlatform = !subdomainChanged || subdomainStatus === "available";
+  const subdomainChanged =
+    canCustomizeSubdomain && normalizedDomain !== currentSubdomain;
+  const canSavePlatform =
+    !canCustomizeSubdomain ||
+    !subdomainChanged ||
+    subdomainStatus === "available";
 
   const [passwordForm, setPasswordForm] = useState({
     new_password: "",
@@ -105,8 +116,6 @@ const DashboardSettings = () => {
   const [savingPlatform, setSavingPlatform] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingBranding, setSavingBranding] = useState(false);
-
-  const canCustomizeBranding = hasBrandingAccess(broker?.package);
 
   const handleSavePersonal = async () => {
     if (
@@ -174,7 +183,7 @@ const DashboardSettings = () => {
   };
 
   const handleSavePlatform = async () => {
-    if (!normalizedDomain) {
+    if (canCustomizeSubdomain && !normalizedDomain) {
       toast({
         title: t("settings.toasts.errorSaving"),
         description: t("settings.subdomain.required"),
@@ -222,7 +231,7 @@ const DashboardSettings = () => {
       if (broker && broker.id !== "demo-broker-id") {
         await api.patch(`/brokers/${broker.id}`, {
           platform_name: platformForm.platform_name,
-          subdomain: normalizedDomain,
+          ...(canCustomizeSubdomain ? { subdomain: normalizedDomain } : {}),
         });
       }
 
@@ -237,7 +246,6 @@ const DashboardSettings = () => {
         return;
       }
 
-      setCurrentSubdomain(normalizedDomain);
       toast({ title: t("settings.toasts.platformUpdated") });
     } catch (err: any) {
       toast({
@@ -263,10 +271,15 @@ const DashboardSettings = () => {
 
     setSavingBranding(true);
     try {
-      const urls = await uploadBrokerBranding(broker.id, brandingFiles, {
-        heroBackgroundUrl,
-        platformIconUrl,
-      });
+      const urls = await uploadBrokerBranding(
+        broker.id,
+        brandingFiles,
+        {
+          heroBackgroundUrl,
+          platformIconUrl,
+        },
+        broker.package,
+      );
       setHeroBackgroundUrl(urls.heroBackgroundUrl);
       setPlatformIconUrl(urls.platformIconUrl);
       setBrandingFiles({ hero: null, icon: null });
@@ -446,7 +459,9 @@ const DashboardSettings = () => {
               </CardTitle>
             </div>
             <CardDescription>
-              {t("settings.platformDescription")}
+              {canCustomizeSubdomain
+                ? t("settings.platformDescription")
+                : t("settings.subdomain.upgradeDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -472,6 +487,7 @@ const DashboardSettings = () => {
                   id="domain"
                   dir="ltr"
                   value={platformForm.domain}
+                  disabled={!canCustomizeSubdomain}
                   onChange={(e) =>
                     setPlatformForm((p) => ({
                       ...p,
@@ -485,9 +501,22 @@ const DashboardSettings = () => {
                   {t("settings.subdomain.suffix")}
                 </span>
               </div>
-              <SubdomainStatusLine status={subdomainStatus} />
+              {canCustomizeSubdomain ? (
+                <SubdomainStatusLine status={subdomainStatus} />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.subdomain.lockedHint")}
+                </p>
+              )}
             </div>
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {!canCustomizeSubdomain && (
+                <Button variant="outline" asChild>
+                  <Link to="/dashboard/subscription">
+                    {t("settings.subdomain.upgradeCta")}
+                  </Link>
+                </Button>
+              )}
               <Button
                 onClick={handleSavePlatform}
                 disabled={savingPlatform || !canSavePlatform}

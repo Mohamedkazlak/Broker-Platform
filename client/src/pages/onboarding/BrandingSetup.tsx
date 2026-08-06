@@ -153,10 +153,15 @@ export default function BrandingSetup() {
 
     setSaving(true);
     try {
-      await uploadBrokerBranding(broker.id, brandingFiles, {
-        heroBackgroundUrl: broker.hero_background_url,
-        platformIconUrl: broker.platform_icon_url,
-      });
+      await uploadBrokerBranding(
+        broker.id,
+        brandingFiles,
+        {
+          heroBackgroundUrl: broker.hero_background_url,
+          platformIconUrl: broker.platform_icon_url,
+        },
+        broker.package,
+      );
       toast({ title: t("brandingSetup.toasts.savedTitle") });
       await goToDashboard();
     } catch (err) {
