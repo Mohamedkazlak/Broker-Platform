@@ -32,6 +32,7 @@ import { PropertyImage } from "@/components/properties/PropertyImage";
 import { propertyService } from "@/services/propertyService";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { ViewBrokerWebsiteButton } from "@/components/dashboard/ViewBrokerWebsiteButton";
+import { SocialLinksNudge } from "@/components/dashboard/SocialLinksNudge";
 import { useToast } from "@/hooks/use-toast";
 import {
   computeMonthlyRevenue,
@@ -230,6 +231,8 @@ export default function Dashboard() {
 
         {/* Content */}
         <div className="p-4 lg:p-8 space-y-8">
+          <SocialLinksNudge />
+
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
             {stats.map((stat) => (

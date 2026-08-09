@@ -35,6 +35,10 @@ export type Database = {
           phone_number: string;
           platform_icon_url: string | null;
           platform_name: string;
+          social_facebook_url: string | null;
+          social_instagram_url: string | null;
+          social_tiktok_url: string | null;
+          social_whatsapp_url: string | null;
           subdomain: string;
           subscription_status: string;
           updated_at: string;
@@ -60,6 +64,10 @@ export type Database = {
           phone_number: string;
           platform_icon_url?: string | null;
           platform_name: string;
+          social_facebook_url?: string | null;
+          social_instagram_url?: string | null;
+          social_tiktok_url?: string | null;
+          social_whatsapp_url?: string | null;
           subdomain: string;
           subscription_status?: string;
           updated_at?: string;
@@ -85,6 +93,10 @@ export type Database = {
           phone_number?: string;
           platform_icon_url?: string | null;
           platform_name?: string;
+          social_facebook_url?: string | null;
+          social_instagram_url?: string | null;
+          social_tiktok_url?: string | null;
+          social_whatsapp_url?: string | null;
           subdomain?: string;
           subscription_status?: string;
           updated_at?: string;

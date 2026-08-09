@@ -130,6 +130,8 @@
     "rent": "إيجار",
     "search": "بحث",
     "searchPlaceholder": "المدينة أو الحي أو المبنى",
+    "city": "المدينة",
+    "anyCity": "أي مدينة",
     "propertyType": "نوع العقار",
     "anyPropertyType": "أي نوع عقار",
     "bedsBaths": "غرف وحمامات",

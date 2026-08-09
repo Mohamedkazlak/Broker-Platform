@@ -22,6 +22,12 @@
       "editor": "Editor"
     }
   },
+  "socialNudge": {
+    "title": "Add your social media to complete your store",
+    "description": "Link Facebook, Instagram, WhatsApp, or TikTok in Settings.",
+    "cta": "Open Settings",
+    "dismiss": "Dismiss"
+  },
   "overview": {
     "heading": "Dashboard",
     "addProperty": "Add Property",
@@ -307,6 +313,22 @@
         "tooLarge": "Image must be 5 MB or smaller."
       }
     },
+    "socialMedia": {
+      "heading": "Social Media",
+      "description": "Add links so clients can find you on social media.",
+      "upgradeDescription": "Upgrade to a paid plan to add social media links on your store.",
+      "upgradeCta": "Change plan",
+      "platforms": {
+        "facebook": "Facebook",
+        "instagram": "Instagram",
+        "whatsapp": "WhatsApp",
+        "tiktok": "TikTok"
+      },
+      "errors": {
+        "invalid": "Please enter a valid link or username.",
+        "fixInvalid": "Fix the highlighted social links, or leave them empty."
+      }
+    },
     "account": {
       "heading": "Account Details",
       "description": "Your current plan, domain, and billing status.",
@@ -333,6 +355,7 @@
       "personalUpdated": "Personal info updated successfully",
       "platformUpdated": "Platform settings updated successfully",
       "brandingUpdated": "Branding updated successfully",
+      "socialUpdated": "Social media links updated successfully",
       "passwordUpdated": "Password changed successfully",
       "errorSaving": "Error saving",
       "governorateRequired": "Please select a valid governorate",

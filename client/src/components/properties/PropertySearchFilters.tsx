@@ -18,7 +18,11 @@ import {
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { translatedBuildingType } from "@/utils/propertyLabels";
+import {
+  translatedBuildingType,
+  translatedGovernorate,
+} from "@/utils/propertyLabels";
+import { EGYPT_GOVERNORATES } from "@/constants/governorates";
 import {
   BATH_OPTIONS,
   BED_OPTIONS,
@@ -28,7 +32,7 @@ import {
 } from "@/lib/propertyFilters";
 import { cn } from "@/lib/utils";
 
-type PanelId = "building" | "beds" | "price" | "area" | "listing";
+type PanelId = "city" | "building" | "beds" | "price" | "area" | "listing";
 
 const pillClass =
   "inline-flex h-10 items-center gap-2 rounded-full border border-[#d0d5dd] bg-white px-4 text-sm font-medium text-[#344054] shadow-sm transition-colors hover:bg-gray-50 shrink-0";
@@ -51,6 +55,7 @@ interface PanelCoords {
   top: number;
   left: number;
   width: number;
+  maxHeight: number;
 }
 
 function FilterPill({
@@ -218,7 +223,6 @@ function FilterPanelPortal({
     const rect = anchor.getBoundingClientRect();
     const gap = 8;
     const maxWidth = Math.min(preferredWidth, window.innerWidth - 16);
-    const panelHeight = innerRef.current?.offsetHeight ?? 280;
 
     let left = rect.left;
     if (left + maxWidth > window.innerWidth - 8) {
@@ -226,25 +230,25 @@ function FilterPanelPortal({
     }
     left = Math.max(8, left);
 
-    const spaceBelow = window.innerHeight - rect.bottom - gap;
-    const spaceAbove = rect.top - gap;
-    const placeAbove = spaceBelow < panelHeight && spaceAbove > spaceBelow;
+    // Always open below the trigger (never flip upward).
+    const top = rect.bottom + gap;
+    const maxHeight = Math.max(160, window.innerHeight - top - 8);
 
     const next: PanelCoords = {
-      top: placeAbove
-        ? Math.max(8, rect.top - gap - panelHeight)
-        : rect.bottom + gap,
+      top,
       left,
       width: maxWidth,
+      maxHeight,
     };
 
-    setPlacement(placeAbove ? "above" : "below");
+    setPlacement("below");
     setCoords((prev) => {
       if (
         prev &&
         prev.top === next.top &&
         prev.left === next.left &&
-        prev.width === next.width
+        prev.width === next.width &&
+        prev.maxHeight === next.maxHeight
       ) {
         return prev;
       }
@@ -280,11 +284,12 @@ function FilterPanelPortal({
       ref={setRefs}
       id={id}
       role="dialog"
-      className="fixed z-[200] rounded-2xl border border-[#eaecf0] bg-white p-4 shadow-xl max-h-[min(28rem,calc(100vh-1rem))] overflow-y-auto"
+      className="fixed z-[200] rounded-2xl border border-[#eaecf0] bg-white p-4 shadow-xl overflow-y-auto"
       style={{
         top: coords.top,
         left: coords.left,
         width: coords.width,
+        maxHeight: Math.min(448, coords.maxHeight),
       }}
       data-placement={placement}
     >
@@ -304,6 +309,7 @@ export function PropertySearchFilters({
   trailing,
 }: PropertySearchFiltersProps) {
   const { t, i18n } = useTranslation("property");
+  const { t: tGov } = useTranslation("governorates");
   const locale = i18n.language?.startsWith("ar") ? "ar-EG" : "en-US";
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
   const rootRef = useRef<HTMLFormElement>(null);
@@ -363,6 +369,10 @@ export function PropertySearchFilters({
     value.building === "all"
       ? t("filters.propertyType")
       : (translatedBuildingType(t, value.building) ?? value.building);
+
+  const cityLabel = value.city
+    ? translatedGovernorate(tGov, value.city) || value.city
+    : t("filters.city");
 
   const bedsBathsLabel = (() => {
     if (!value.beds && !value.baths) return t("filters.bedsBaths");
@@ -447,6 +457,43 @@ export function PropertySearchFilters({
             >
               {tab.label}
             </button>
+          ))}
+        </div>
+      </FilterPanelPortal>
+
+      <FilterPanelPortal
+        open={openPanel === "city"}
+        anchor={triggerRefs.current.city ?? null}
+        panelRef={(node) => {
+          panelNodeRef.current = node;
+        }}
+        id={`${uid}-city`}
+        preferredWidth={384}
+      >
+        <p className="text-sm font-semibold text-[#344054] mb-3">
+          {t("filters.city")}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Chip
+            selected={!value.city}
+            onClick={() => {
+              patch({ city: "" });
+              setOpenPanel(null);
+            }}
+          >
+            {t("filters.anyCity")}
+          </Chip>
+          {EGYPT_GOVERNORATES.map((slug) => (
+            <Chip
+              key={slug}
+              selected={value.city === slug}
+              onClick={() => {
+                patch({ city: value.city === slug ? "" : slug });
+                setOpenPanel(null);
+              }}
+            >
+              {tGov(slug)}
+            </Chip>
           ))}
         </div>
       </FilterPanelPortal>
@@ -599,6 +646,15 @@ export function PropertySearchFilters({
           />
 
           <FilterPill
+            label={cityLabel}
+            active={Boolean(value.city)}
+            open={openPanel === "city"}
+            onClick={() => togglePanel("city")}
+            panelId={`${uid}-city`}
+            buttonRef={setTriggerRef("city")}
+          />
+
+          <FilterPill
             label={buildingLabel}
             active={value.building !== "all"}
             open={openPanel === "building"}
@@ -735,6 +791,15 @@ export function PropertySearchFilters({
 
           {/* Filter pills */}
           <div className="flex flex-wrap items-center gap-2">
+            <FilterPill
+              label={cityLabel}
+              active={Boolean(value.city)}
+              open={openPanel === "city"}
+              onClick={() => togglePanel("city")}
+              panelId={`${uid}-city`}
+              buttonRef={setTriggerRef("city")}
+            />
+
             <FilterPill
               label={buildingLabel}
               active={value.building !== "all"}

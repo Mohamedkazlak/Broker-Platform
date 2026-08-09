@@ -24,6 +24,7 @@ import {
   clearPostPaymentPending,
   isPostPaymentPending,
 } from "@/lib/postPayment";
+import { markSocialLinksNudgeEligible } from "@/lib/socialLinksNudge";
 
 export {
   markPostPaymentPending,
@@ -120,6 +121,9 @@ export default function BrandingSetup() {
 
   const goToDashboard = async () => {
     clearPostPaymentPending();
+    if (broker?.id) {
+      markSocialLinksNudgeEligible(broker.id);
+    }
     const sub =
       broker?.subdomain || sessionStorage.getItem("broker_subdomain") || null;
     sessionStorage.removeItem("broker_subdomain");

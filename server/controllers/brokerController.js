@@ -17,6 +17,10 @@ import {
   resolveNextBillingDate,
   syncBrokerBillingState,
 } from "../services/billingMonitor.js";
+import {
+  hasSocialLinkUpdates,
+  normalizeSocialUpdates,
+} from "../utils/socialLinks.js";
 
 /**
  * Compute a broker's order total from server-side config only: the plan price
@@ -205,7 +209,8 @@ export const update = async (req, res, next) => {
       safeUpdates.custom_domain !== undefined ||
       safeUpdates.subdomain !== undefined ||
       safeUpdates.hero_background_url !== undefined ||
-      safeUpdates.platform_icon_url !== undefined;
+      safeUpdates.platform_icon_url !== undefined ||
+      hasSocialLinkUpdates(safeUpdates);
 
     let broker = null;
     if (needsPlanCheck) {
@@ -228,6 +233,27 @@ export const update = async (req, res, next) => {
         error: "Branding customization is not available on the Free plan",
         reason: "planNotEligible",
       });
+    }
+
+    // Free plan: no social media storefront links.
+    if (broker?.package === "free" && hasSocialLinkUpdates(safeUpdates)) {
+      return res.status(400).json({
+        status: "error",
+        error: "Social media links are not available on the Free plan",
+        reason: "planNotEligible",
+      });
+    }
+
+    if (hasSocialLinkUpdates(safeUpdates)) {
+      const normalized = normalizeSocialUpdates(safeUpdates);
+      if (!normalized.ok) {
+        return res.status(400).json({
+          status: "error",
+          error: "Invalid social media link",
+          reason: "invalidSocialLink",
+          field: normalized.field,
+        });
+      }
     }
 
     if (safeUpdates.custom_domain !== undefined) {

@@ -9,7 +9,7 @@ import { isPendingSubdomain } from "../utils/subdomainGenerator.js";
 
 /** Columns safe to expose on public subdomain lookup (no password hash). */
 const BROKER_PUBLIC_FIELDS =
-  "id, first_name, last_name, platform_name, subdomain, email, phone_number, whatsapp_number, governorate, package, package_category, package_limit, hero_background_url, platform_icon_url, created_at, updated_at";
+  "id, first_name, last_name, platform_name, subdomain, email, phone_number, whatsapp_number, governorate, package, package_category, package_limit, hero_background_url, platform_icon_url, social_facebook_url, social_instagram_url, social_whatsapp_url, social_tiktok_url, created_at, updated_at";
 
 export const brokerModel = {
   async findBySubdomain(subdomain) {

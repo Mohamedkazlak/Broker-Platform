@@ -24,7 +24,13 @@
     "contactUs": "اتصل بنا",
     "privacyPolicy": "سياسة الخصوصية",
     "termsOfService": "الشروط والأحكام",
-    "rightsReserved": "جميع الحقوق محفوظة."
+    "rightsReserved": "جميع الحقوق محفوظة.",
+    "social": {
+      "facebook": "فيسبوك",
+      "instagram": "إنستغرام",
+      "whatsapp": "واتساب",
+      "tiktok": "تيك توك"
+    }
   },
   "actions": {
     "cancel": "إلغاء",

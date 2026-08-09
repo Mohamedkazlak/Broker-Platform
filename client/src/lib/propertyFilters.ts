@@ -1,3 +1,8 @@
+import {
+  isValidGovernorate,
+  type GovernorateSlug,
+} from "@/constants/governorates";
+
 export type ListingType = "all" | "sale" | "rent";
 export type BuildingTypeFilter = "all" | "apartment" | "villa" | "commercial";
 
@@ -5,6 +10,8 @@ export interface PropertyFilterState {
   q: string;
   type: ListingType;
   building: BuildingTypeFilter;
+  /** Governorate slug, or "" for any city */
+  city: string;
   /** "" | "0" (studio) | "1"…"7" (7 means 7+) */
   beds: string;
   baths: string;
@@ -18,6 +25,7 @@ export const EMPTY_PROPERTY_FILTERS: PropertyFilterState = {
   q: "",
   type: "sale",
   building: "all",
+  city: "",
   beds: "",
   baths: "",
   priceMin: "",
@@ -79,10 +87,16 @@ export function parsePropertyFiltersFromSearchParams(
     areaMax = max || "";
   }
 
+  const cityParam = params.get("city") || "";
+  const city: GovernorateSlug | "" = isValidGovernorate(cityParam)
+    ? cityParam
+    : "";
+
   return {
     q: params.get("q") || "",
     type,
     building,
+    city,
     beds: params.get("beds") || "",
     baths: params.get("baths") || "",
     priceMin,
@@ -99,6 +113,7 @@ export function propertyFiltersToSearchParams(
   if (filters.q) params.set("q", filters.q);
   if (filters.type !== "all") params.set("type", filters.type);
   if (filters.building !== "all") params.set("building", filters.building);
+  if (filters.city) params.set("city", filters.city);
   if (filters.beds) params.set("beds", filters.beds);
   if (filters.baths) params.set("baths", filters.baths);
   if (filters.priceMin) params.set("priceMin", filters.priceMin);
@@ -114,6 +129,7 @@ export function hasActivePropertyFilters(
   return (
     Boolean(filters.q) ||
     filters.building !== "all" ||
+    Boolean(filters.city) ||
     Boolean(filters.beds) ||
     Boolean(filters.baths) ||
     Boolean(filters.priceMin) ||
@@ -147,6 +163,13 @@ export function applyPropertyFilters<T extends FilterableProperty>(
 
   if (filters.building !== "all") {
     filtered = filtered.filter((p) => p.building_type === filters.building);
+  }
+
+  if (filters.city) {
+    const city = filters.city.toLowerCase();
+    filtered = filtered.filter(
+      (p) => p.city != null && p.city.toLowerCase() === city,
+    );
   }
 
   if (filters.beds !== "") {

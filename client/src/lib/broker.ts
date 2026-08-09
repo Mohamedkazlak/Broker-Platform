@@ -18,6 +18,10 @@ export interface Broker {
   package_limit: number;
   hero_background_url: string | null;
   platform_icon_url: string | null;
+  social_facebook_url: string | null;
+  social_instagram_url: string | null;
+  social_whatsapp_url: string | null;
+  social_tiktok_url: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -25,6 +25,7 @@ import {
   Building2,
   Lock,
   Palette,
+  Share2,
   Check,
   Loader2,
 } from "lucide-react";
@@ -32,16 +33,44 @@ import {
   BrandingFields,
   type BrandingFiles,
 } from "@/components/settings/BrandingFields";
+import {
+  SocialMediaFields,
+  type SocialFormValues,
+} from "@/components/settings/SocialMediaFields";
 import { AccountDetails } from "@/components/settings/AccountDetails";
 import {
   hasBrandingAccess,
   isPaidPlan,
   uploadBrokerBranding,
 } from "@/lib/brokerBranding";
+import {
+  normalizeSocialForm,
+  socialLinksFromBroker,
+  socialLinksToDb,
+  type SocialPlatform,
+} from "@/lib/socialLinks";
+import { dismissSocialLinksNudge } from "@/lib/socialLinksNudge";
 import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
 import { isValidGovernorate } from "@/constants/governorates";
 import { isValidPhoneNumber } from "@/utils/phoneNumber";
+
+function socialFormFromBroker(
+  broker: {
+    social_facebook_url?: string | null;
+    social_instagram_url?: string | null;
+    social_whatsapp_url?: string | null;
+    social_tiktok_url?: string | null;
+  } | null,
+): SocialFormValues {
+  const links = socialLinksFromBroker(broker);
+  return {
+    facebook: links.facebook ?? "",
+    instagram: links.instagram ?? "",
+    whatsapp: links.whatsapp ?? "",
+    tiktok: links.tiktok ?? "",
+  };
+}
 
 const DashboardSettings = () => {
   const navigate = useNavigate();
@@ -81,6 +110,7 @@ const DashboardSettings = () => {
 
   const canCustomizeSubdomain = isPaidPlan(broker?.package);
   const canCustomizeBranding = hasBrandingAccess(broker?.package);
+  const canCustomizeSocial = hasBrandingAccess(broker?.package);
 
   const normalizedDomain = platformForm.domain.trim().toLowerCase();
   const isOwnSubdomain =
@@ -112,10 +142,28 @@ const DashboardSettings = () => {
     broker?.platform_icon_url ?? null,
   );
 
+  const [socialForm, setSocialForm] = useState<SocialFormValues>(() =>
+    socialFormFromBroker(broker),
+  );
+  const [socialErrors, setSocialErrors] = useState<
+    Partial<Record<SocialPlatform, string>>
+  >({});
+
+  useEffect(() => {
+    if (!broker) return;
+    setSocialForm(socialFormFromBroker(broker));
+  }, [
+    broker?.social_facebook_url,
+    broker?.social_instagram_url,
+    broker?.social_whatsapp_url,
+    broker?.social_tiktok_url,
+  ]);
+
   const [savingPersonal, setSavingPersonal] = useState(false);
   const [savingPlatform, setSavingPlatform] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingBranding, setSavingBranding] = useState(false);
+  const [savingSocial, setSavingSocial] = useState(false);
 
   const handleSavePersonal = async () => {
     if (
@@ -292,6 +340,58 @@ const DashboardSettings = () => {
       });
     } finally {
       setSavingBranding(false);
+    }
+  };
+
+  const handleSocialChange = (platform: SocialPlatform, value: string) => {
+    setSocialForm((prev) => ({ ...prev, [platform]: value }));
+    setSocialErrors((prev) => {
+      if (!prev[platform]) return prev;
+      const next = { ...prev };
+      delete next[platform];
+      return next;
+    });
+  };
+
+  const handleSaveSocial = async () => {
+    if (!broker || broker.id === "demo-broker-id") return;
+    if (!canCustomizeSocial) return;
+
+    const { links, errors } = normalizeSocialForm(socialForm);
+    if (Object.keys(errors).length > 0) {
+      const mapped: Partial<Record<SocialPlatform, string>> = {};
+      for (const platform of Object.keys(errors) as SocialPlatform[]) {
+        mapped[platform] = t("settings.socialMedia.errors.invalid");
+      }
+      setSocialErrors(mapped);
+      toast({
+        title: t("settings.toasts.errorSaving"),
+        description: t("settings.socialMedia.errors.fixInvalid"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingSocial(true);
+    try {
+      await api.patch(`/brokers/${broker.id}`, socialLinksToDb(links));
+      setSocialForm({
+        facebook: links.facebook ?? "",
+        instagram: links.instagram ?? "",
+        whatsapp: links.whatsapp ?? "",
+        tiktok: links.tiktok ?? "",
+      });
+      setSocialErrors({});
+      dismissSocialLinksNudge(broker.id);
+      toast({ title: t("settings.toasts.socialUpdated") });
+    } catch (err: any) {
+      toast({
+        title: t("settings.toasts.errorSaving"),
+        description: err?.response?.data?.error || err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSocial(false);
     }
   };
 
@@ -563,6 +663,47 @@ const DashboardSettings = () => {
                 <Button onClick={handleSaveBranding} disabled={savingBranding}>
                   <Save className="h-4 w-4 me-2" />
                   {savingBranding
+                    ? tCommon("actions.saving")
+                    : tCommon("actions.saveChanges")}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">
+                {t("settings.socialMedia.heading")}
+              </CardTitle>
+            </div>
+            <CardDescription>
+              {canCustomizeSocial
+                ? t("settings.socialMedia.description")
+                : t("settings.socialMedia.upgradeDescription")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <SocialMediaFields
+              values={socialForm}
+              errors={socialErrors}
+              disabled={!canCustomizeSocial}
+              onChange={handleSocialChange}
+            />
+            {!canCustomizeSocial && (
+              <Button variant="outline" asChild>
+                <Link to="/dashboard/subscription">
+                  {t("settings.socialMedia.upgradeCta")}
+                </Link>
+              </Button>
+            )}
+            {canCustomizeSocial && (
+              <div className="flex justify-end">
+                <Button onClick={handleSaveSocial} disabled={savingSocial}>
+                  <Save className="h-4 w-4 me-2" />
+                  {savingSocial
                     ? tCommon("actions.saving")
                     : tCommon("actions.saveChanges")}
                 </Button>

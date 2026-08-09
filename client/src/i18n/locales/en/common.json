@@ -24,7 +24,13 @@
     "contactUs": "Contact Us",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
-    "rightsReserved": "All rights reserved."
+    "rightsReserved": "All rights reserved.",
+    "social": {
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp",
+      "tiktok": "TikTok"
+    }
   },
   "actions": {
     "cancel": "Cancel",

@@ -2,6 +2,13 @@ import { Link } from "react-router-dom";
 import { Phone, Mail, Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useBroker } from "@/contexts/BrokerContext";
+import { SocialPlatformIcon } from "@/components/settings/SocialPlatformIcon";
+import { hasBrandingAccess } from "@/lib/brokerBranding";
+import {
+  SOCIAL_PLATFORMS,
+  socialLinksFromBroker,
+  type SocialPlatform,
+} from "@/lib/socialLinks";
 
 export function Footer() {
   const { broker } = useBroker();
@@ -12,6 +19,12 @@ export function Footer() {
   const displayEmail = broker?.email || "info@brokerplatform.eg";
   const displayName = broker?.platform_name || t("brand.name");
   const homePath = broker ? "/home" : "/";
+
+  const socialLinks = socialLinksFromBroker(broker);
+  const showSocial =
+    Boolean(broker) &&
+    hasBrandingAccess(broker?.package) &&
+    SOCIAL_PLATFORMS.some((p) => Boolean(socialLinks[p]));
 
   return (
     <footer className="bg-primary text-primary-foreground">
@@ -30,6 +43,29 @@ export function Footer() {
             <p className="text-primary-foreground/70 text-sm leading-relaxed">
               {t("footer.description")}
             </p>
+            {showSocial && (
+              <div className="flex items-center gap-2 pt-1">
+                {SOCIAL_PLATFORMS.map((platform: SocialPlatform) => {
+                  const href = socialLinks[platform];
+                  if (!href) return null;
+                  return (
+                    <a
+                      key={platform}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary-foreground/10 text-primary-foreground/80 hover:bg-accent hover:text-accent-foreground transition-colors"
+                      aria-label={t(`footer.social.${platform}`)}
+                    >
+                      <SocialPlatformIcon
+                        platform={platform}
+                        className="h-4 w-4"
+                      />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Contact Info */}

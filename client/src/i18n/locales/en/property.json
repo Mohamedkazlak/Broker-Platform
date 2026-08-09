@@ -130,6 +130,8 @@
     "rent": "Rent",
     "search": "Search",
     "searchPlaceholder": "City, community or building",
+    "city": "City",
+    "anyCity": "Any city",
     "propertyType": "Property type",
     "anyPropertyType": "Any property type",
     "bedsBaths": "Beds & Baths",

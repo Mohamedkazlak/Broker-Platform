@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useBroker } from "@/contexts/BrokerContext";
 import { propertyService } from "@/services/propertyService";
-import { translatedBuildingType } from "@/utils/propertyLabels";
+import {
+  translatedBuildingType,
+  translatedGovernorate,
+} from "@/utils/propertyLabels";
 import { DEFAULT_HERO_IMAGE, hasBrandingAccess } from "@/lib/brokerBranding";
 import {
   EMPTY_PROPERTY_FILTERS,
@@ -32,6 +35,7 @@ export default function Properties() {
   const { broker, isLoading: brokerLoading } = useBroker();
   const { t } = useTranslation("property");
   const { t: tCommon } = useTranslation("common");
+  const { t: tGov } = useTranslation("governorates");
   const [searchParams, setSearchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -237,6 +241,12 @@ export default function Properties() {
             translatedBuildingType(t, filters.building) ?? filters.building
           }
           onClear={() => syncFiltersToUrl({ ...filters, building: "all" })}
+        />
+      )}
+      {filters.city && (
+        <FilterChip
+          label={translatedGovernorate(tGov, filters.city) || filters.city}
+          onClear={() => syncFiltersToUrl({ ...filters, city: "" })}
         />
       )}
       {(filters.beds || filters.baths) && (
