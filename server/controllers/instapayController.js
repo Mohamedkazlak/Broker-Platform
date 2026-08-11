@@ -1,7 +1,6 @@
 import crypto from "crypto";
 import { brokerModel } from "../models/brokerModel.js";
 import { instapayModel } from "../models/instapayModel.js";
-import { profileModel } from "../models/profileModel.js";
 import { activateSubscription } from "./brokerController.js";
 import {
   assertRegistrationFormData,
@@ -13,7 +12,12 @@ import {
 import { supabaseAdmin } from "../config/supabase.js";
 import { PLANS_BY_ID } from "../config/plans.js";
 import { priceForDomain, DOMAIN_CURRENCY } from "../config/domains.js";
-import { encryptString, decryptString } from "../utils/secretBox.js";
+import {
+  encryptRegistrationPayload,
+  decryptRegistrationPayload,
+} from "../utils/registrationPayload.js";
+import { createClaimToken, hashClaimToken } from "../utils/claimToken.js";
+import { resolveBrokerIdFromAuth } from "../utils/resolveBrokerFromAuth.js";
 import {
   INSTAPAY,
   INSTAPAY_ALLOWED_MIME,
@@ -129,47 +133,6 @@ async function signedReceiptUrl(receiptPath) {
   return data?.signedUrl ?? null;
 }
 
-function hashClaimToken(token) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-function createClaimToken() {
-  const token = crypto.randomBytes(32).toString("hex");
-  return { token, hash: hashClaimToken(token) };
-}
-
-function encryptRegistrationPayload({
-  formData,
-  package: pkg,
-  domain,
-  domainFields,
-}) {
-  const passwordEnc = encryptString(formData.password);
-  const { password: _omit, ...safeForm } = formData;
-  return {
-    formData: { ...safeForm, passwordEnc },
-    package: pkg,
-    domain,
-    domainFields,
-  };
-}
-
-function decryptRegistrationPayload(payload) {
-  if (!payload?.formData?.passwordEnc) {
-    throw Object.assign(new Error("Registration payload is missing"), {
-      status: 500,
-    });
-  }
-  const password = decryptString(payload.formData.passwordEnc);
-  const { passwordEnc: _omit, ...rest } = payload.formData;
-  return {
-    formData: { ...rest, password },
-    package: payload.package,
-    domain: payload.domain,
-    domainFields: payload.domainFields,
-  };
-}
-
 function toSubmissionDto(
   row,
   { includeReceiptUrl = false, receiptUrl = null } = {},
@@ -212,21 +175,6 @@ function applicantFromRow(row, broker = null) {
     plan: row.package,
     subdomain: row.reserved_subdomain,
   };
-}
-
-async function resolveBrokerIdFromAuth(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) return null;
-
-  const token = authHeader.split(" ")[1];
-  const {
-    data: { user },
-    error,
-  } = await supabaseAdmin.auth.getUser(token);
-  if (error || !user) return null;
-
-  const row = await profileModel.findBrokerIdByUserId(user.id);
-  return row?.broker_id ?? null;
 }
 
 /**

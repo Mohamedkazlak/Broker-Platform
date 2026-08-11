@@ -48,9 +48,13 @@
       "instapay": "Pay with Instapay"
     },
     "backToMethods": "Back to payment methods",
-    "succeedButton": "Simulate Successful Payment",
-    "failButton": "Simulate Failed Payment",
-    "processing": "Processing payment…",
+    "payButton": "Pay Now",
+    "processing": "Redirecting to secure checkout…",
+    "confirming": {
+      "heading": "Confirming your payment",
+      "subheading": "This only takes a moment — please don't close this page.",
+      "pollError": "Still checking… this is taking longer than usual."
+    },
     "failed": {
       "title": "Payment failed",
       "description": "Your payment couldn't be processed. No changes were charged.",

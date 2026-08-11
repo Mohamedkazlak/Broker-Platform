@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import {
@@ -24,6 +25,14 @@ import {
   getOnboardingDraft,
   hasOnboardingDraft,
 } from "@/lib/onboardingDraft";
+import {
+  clearReachiClaimToken,
+  createBrokerCheckoutSession,
+  createDraftCheckoutSession,
+  getReachiClaimToken,
+  pollPaymentStatus,
+  saveReachiClaimToken,
+} from "@/lib/reachiPayment";
 
 interface OrderSummary {
   package: string;
@@ -38,27 +47,124 @@ interface OrderSummary {
 
 type PaymentMethod = "card" | "instapay" | null;
 
-/** Artificial delay so the simulated charge feels like a real round-trip. */
-const PROCESSING_DELAY_MS = 1200;
+const POLL_MS = 4000;
 
 export default function Payment() {
   const navigate = useNavigate();
-  const { profile, completeRegistration } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation("onboarding");
 
   const brokerId = profile?.broker_id;
   const isDraftFlow = !brokerId && hasOnboardingDraft();
 
+  // Are we back from the payment.reachi.ai checkout page (return_url)? That
+  // status is UX-only — the poll below (driven by the claim token) is what
+  // actually confirms payment, since only the webhook is authoritative.
+  const returnStatus = useRef(searchParams.get("status")).current;
+  const isReturningFromGateway = returnStatus !== null;
+
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState<OrderSummary | null>(null);
   const [method, setMethod] = useState<PaymentMethod>(null);
   const [processing, setProcessing] = useState(false);
+  const [confirming, setConfirming] = useState(isReturningFromGateway);
   const [failed, setFailed] = useState(false);
+  const [pollError, setPollError] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
+  // Strip ?status=...&order_id=...&session_id=...&sig= as soon as we've read
+  // them so a refresh mid-poll doesn't re-trigger this branch.
   useEffect(() => {
-    if (paymentSuccess || isPostPaymentPending()) return;
+    if (isReturningFromGateway) {
+      navigate(window.location.pathname, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Poll payment status by claim token once we're back from the gateway.
+  useEffect(() => {
+    if (!isReturningFromGateway || paymentSuccess) return;
+
+    const claimToken = getReachiClaimToken();
+    if (!claimToken) {
+      // Lost the token (different browser/device, or storage cleared) — we
+      // can't confirm anything here; send them back to try again.
+      setConfirming(false);
+      setFailed(true);
+      setMethod("card");
+      return;
+    }
+
+    if (returnStatus === "failed" || returnStatus === "expired") {
+      // Still worth a couple of polls in case the webhook already landed
+      // (e.g. user double-backed), but don't wait long.
+      setConfirming(false);
+      setFailed(true);
+      setMethod("card");
+      clearReachiClaimToken();
+      return;
+    }
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const poll = async () => {
+      try {
+        const payload = await pollPaymentStatus(claimToken);
+        if (cancelled) return;
+        setPollError(false);
+
+        if (payload.status === "completed") {
+          if (payload.session?.access_token && payload.session?.refresh_token) {
+            await supabase.auth.setSession({
+              access_token: payload.session.access_token,
+              refresh_token: payload.session.refresh_token,
+            });
+          }
+          if (payload.subdomain) {
+            sessionStorage.setItem("broker_subdomain", payload.subdomain);
+          }
+          clearOnboardingDraft();
+          clearReachiClaimToken();
+          markPostPaymentPending();
+          setConfirming(false);
+          setPaymentSuccess(true);
+          return;
+        }
+
+        if (payload.status === "failed" || payload.status === "expired") {
+          clearReachiClaimToken();
+          setConfirming(false);
+          setFailed(true);
+          setMethod("card");
+          return;
+        }
+
+        timer = setTimeout(poll, POLL_MS);
+      } catch (err) {
+        console.error("Payment status poll failed:", err);
+        if (cancelled) return;
+        setPollError(true);
+        timer = setTimeout(poll, POLL_MS);
+      }
+    };
+
+    poll();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReturningFromGateway, returnStatus, paymentSuccess]);
+
+  useEffect(() => {
+    // While we're confirming a just-completed gateway redirect, hold off —
+    // once that resolves (success renders its own card; failure falls
+    // through here) we need the order summary regardless.
+    if (paymentSuccess || isPostPaymentPending() || confirming) return;
 
     let active = true;
 
@@ -139,85 +245,48 @@ export default function Payment() {
     return () => {
       active = false;
     };
-  }, [isDraftFlow, brokerId, paymentSuccess, navigate, t, toast]);
+  }, [isDraftFlow, brokerId, paymentSuccess, confirming, navigate, t, toast]);
 
   const amount = (value: number) =>
     t("payment.amount", { amount: value.toLocaleString() });
 
-  const handlePay = async (outcome: "succeed" | "fail") => {
+  const handleCheckout = async () => {
     if (processing) return;
     setProcessing(true);
     setFailed(false);
 
-    await new Promise((resolve) => setTimeout(resolve, PROCESSING_DELAY_MS));
-
-    if (outcome === "fail") {
-      setFailed(true);
-      setProcessing(false);
-      return;
-    }
-
     try {
+      const returnPath = window.location.pathname;
+      let payUrl: string;
+      let claimToken: string | null;
+
       if (isDraftFlow) {
         const draft = getOnboardingDraft();
         if (!draft?.package || !draft.domain) {
           navigate("/select-plan", { replace: true });
+          setProcessing(false);
           return;
         }
-
-        const { error, subdomain } = await completeRegistration({
+        ({ payUrl, claimToken } = await createDraftCheckoutSession({
           formData: draft.formData,
           package: draft.package,
           packageCategory: draft.packageCategory,
           domain: draft.domain,
-          paymentOutcome: "succeed",
-        });
-
-        if (error) {
-          toast({
-            title: t("payment.toasts.errorTitle"),
-            description: error.message,
-            variant: "destructive",
-          });
-          setProcessing(false);
-          return;
-        }
-
-        if (subdomain) {
-          sessionStorage.setItem("broker_subdomain", subdomain);
-        }
-        markPostPaymentPending();
-        clearOnboardingDraft();
-        setPaymentSuccess(true);
-        setProcessing(false);
-        return;
+          returnPath,
+        }));
+      } else {
+        ({ payUrl, claimToken } = await createBrokerCheckoutSession(returnPath));
       }
 
-      if (!brokerId) {
-        setProcessing(false);
-        return;
+      if (claimToken) {
+        saveReachiClaimToken(claimToken);
       }
 
-      const { data } = await api.post(`/brokers/${brokerId}/simulate-payment`, {
-        outcome: "succeed",
-      });
-
-      if (data?.outcome === "succeed") {
-        const sub =
-          data?.subdomain || sessionStorage.getItem("broker_subdomain");
-        if (sub) {
-          sessionStorage.setItem("broker_subdomain", sub);
-        }
-        markPostPaymentPending();
-        setPaymentSuccess(true);
-        setProcessing(false);
-        return;
-      }
-
-      setFailed(true);
-      setProcessing(false);
+      // Full browser navigation to the gateway — everything from here (card
+      // form, 3DS) happens on payment.reachi.ai.
+      window.location.href = payUrl;
     } catch (err) {
-      console.error("Error simulating payment:", err);
+      console.error("Error starting checkout:", err);
       toast({
         title: t("payment.toasts.errorTitle"),
         description: t("payment.toasts.errorDescription"),
@@ -227,7 +296,7 @@ export default function Payment() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !confirming) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -235,7 +304,34 @@ export default function Payment() {
     );
   }
 
-  if (!summary) return null;
+  if (confirming) {
+    return (
+      <div className="min-h-screen bg-background py-20 px-4">
+        <div className="container mx-auto max-w-lg">
+          <Card className="shadow-lg">
+            <CardContent className="pt-10 pb-8 text-center space-y-6">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h1 className="font-display text-3xl font-bold">
+                  {t("payment.confirming.heading")}
+                </h1>
+                <p className="text-muted-foreground">
+                  {t("payment.confirming.subheading")}
+                </p>
+              </div>
+              {pollError && (
+                <p className="text-sm text-destructive">
+                  {t("payment.confirming.pollError")}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (paymentSuccess) {
     return (
@@ -268,6 +364,8 @@ export default function Payment() {
       </div>
     );
   }
+
+  if (!summary) return null;
 
   return (
     <div className="min-h-screen bg-background py-20 px-4">
@@ -358,53 +456,25 @@ export default function Payment() {
             )}
 
             <div className="mt-8 space-y-3">
-              {failed ? (
-                <Button
-                  variant="hero"
-                  size="lg"
-                  className="w-full"
-                  disabled={processing}
-                  onClick={() => handlePay("succeed")}
-                >
-                  {processing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    t("payment.failed.retry")
-                  )}
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="hero"
-                    size="lg"
-                    className="w-full"
-                    disabled={processing}
-                    onClick={() => handlePay("succeed")}
-                  >
-                    {processing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin me-2" />
-                        {t("payment.processing")}
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 me-2" />
-                        {t("payment.succeedButton")}
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full"
-                    disabled={processing}
-                    onClick={() => handlePay("fail")}
-                  >
-                    <XCircle className="w-4 h-4 me-2" />
-                    {t("payment.failButton")}
-                  </Button>
-                </>
-              )}
+              <Button
+                variant="hero"
+                size="lg"
+                className="w-full"
+                disabled={processing}
+                onClick={handleCheckout}
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin me-2" />
+                    {t("payment.processing")}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 me-2" />
+                    {failed ? t("payment.failed.retry") : t("payment.payButton")}
+                  </>
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 className="w-full"

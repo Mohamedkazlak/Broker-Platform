@@ -23,6 +23,8 @@ import contactRoutes from "./routes/contactRoutes.js";
 import translateRoutes from "./routes/translateRoutes.js";
 import instapayRoutes from "./routes/instapayRoutes.js";
 import webhookRoutes from "./routes/webhooks.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import paymentWebhookRoutes from "./routes/paymentWebhookRoutes.js";
 import {
   apiLimiter,
   authLimiter,
@@ -99,9 +101,11 @@ app.use(
   }),
 );
 
-// Webhook routes — mounted before JSON body parser so Paymob HMAC verification
-// can read the raw request body when implemented.
+// Webhook routes — mounted before JSON body parser so HMAC verification can
+// read the exact raw request bytes (Paymob stub, and the live Reachi payment
+// gateway webhook).
 app.use("/api/webhooks", webhookRoutes);
+app.use("/api/payments/webhook", paymentWebhookRoutes);
 
 // Parse JSON bodies
 app.use(express.json({ limit: "10mb" }));
@@ -133,6 +137,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/domains", domainRoutes);
 app.use("/api/instapay", instapayRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/translate", translateRoutes);
 

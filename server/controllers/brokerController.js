@@ -27,7 +27,7 @@ import {
  * for their current package plus the mock domain price (re-derived from the
  * flat TLD table when they chose a custom domain). Never trusts client input.
  */
-function buildOrderSummary(broker) {
+export function buildOrderSummary(broker) {
   const plan = PLANS_BY_ID[broker.package] ?? null;
   const planPrice = plan?.price ?? 0;
   const isCustom = broker.domain_type === "custom" && !!broker.custom_domain;
@@ -425,31 +425,14 @@ export const getOrderSummary = async (req, res, next) => {
 };
 
 /**
- * PAYMENT INTEGRATION BOUNDARY
- * ─────────────────────────────────────────────────────────────────────────────
- * This endpoint currently simulates payment for prototyping purposes.
- * When integrating Paymob (or any other PSP), REPLACE this handler with:
- *
- * 1. Create a Paymob order via their API (POST /ecommerce/orders)
- * 2. Obtain an Paymob payment token
- * 3. Return the payment iframe URL to the client
- * 4. Receive the webhook callback at POST /api/webhooks/paymob (to be created)
- * 5. In the webhook handler, verify HMAC signature, then call activateSubscription()
- *
- * The activateSubscription() helper below handles all subscription state changes
- * and is shared between simulate-payment and the future Paymob webhook handler.
- *
- * Required env vars for production:
- *   PAYMOB_API_KEY, PAYMOB_INTEGRATION_ID, PAYMOB_HMAC_SECRET
- *
- * Webhook URL (must be public HTTPS — configure after VPS deploy):
- *   https://myflats.com/api/webhooks/paymob
- * ─────────────────────────────────────────────────────────────────────────────
- *
  * POST /api/brokers/:id/simulate-payment { outcome: 'succeed' | 'fail' }
- * Authenticated — simulates a payment processor. No real charge happens; this
- * exercises the same pending → active/past_due transition a real provider
- * would, so a real integration later only touches this endpoint.
+ * Authenticated — dev/testing fallback only. The real card-payment flow is
+ * POST /api/payments/checkout (redirects to payment.reachi.ai) + the
+ * POST /api/payments/webhook handler in paymentController.js, which is what
+ * the client actually calls now (see onboarding/Payment.tsx). This endpoint
+ * stays around for local testing when REACHI_PLATFORM_API_KEY isn't
+ * configured — it exercises the same pending → active/past_due transition
+ * without hitting the gateway.
  *
  * The charged amount is always recomputed server-side from the plan + domain
  * choice (never trusts a client-sent total).
