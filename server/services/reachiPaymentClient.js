@@ -57,9 +57,15 @@ export async function createPaymentSession({
   const body = await res.json().catch(() => null);
 
   if (!res.ok) {
+    // Pass through Reachi's own 4xx as-is (e.g. 400 "return_url not on an
+    // allowed domain" is US sending bad input, not a gateway outage — losing
+    // that distinction as a blanket 502 is exactly what turned a fixable
+    // config mismatch into an opaque crash for the checkout caller). Only
+    // fall back to 502 for a genuinely unexpected upstream status.
+    const status = res.status >= 400 && res.status < 500 ? res.status : 502;
     throw Object.assign(
       new Error(body?.error || `Reachi session creation failed (${res.status})`),
-      { status: res.status === 409 ? 409 : 502, details: body?.details },
+      { status, details: body?.details },
     );
   }
 
@@ -86,9 +92,10 @@ export async function refundPaymentSession(sessionId, { amount, reason }) {
 
   const body = await res.json().catch(() => null);
   if (!res.ok) {
+    const status = res.status >= 400 && res.status < 500 ? res.status : 502;
     throw Object.assign(
       new Error(body?.error || `Reachi refund failed (${res.status})`),
-      { status: 502, details: body?.details },
+      { status, details: body?.details },
     );
   }
   return body;

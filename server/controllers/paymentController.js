@@ -60,10 +60,19 @@ export const checkout = async (req, res, next) => {
   try {
     const brokerId = await resolveBrokerIdFromAuth(req);
 
+    // Must be awaited, not just returned: a bare `return checkoutForX(...)`
+    // hands back a pending promise before this try/catch is done running,
+    // so a later rejection (e.g. Reachi rejecting our return_url) skips this
+    // catch entirely and falls through to the generic error handler, which
+    // only reads `err.statusCode` (not our `err.status`) and — in
+    // production — masks everything as an opaque 500. Awaiting keeps the
+    // rejection inside this try block so the real status/message make it
+    // back to the client.
     if (brokerId) {
-      return checkoutForBroker(req, res, brokerId);
+      await checkoutForBroker(req, res, brokerId);
+    } else {
+      await checkoutForDraft(req, res);
     }
-    return checkoutForDraft(req, res);
   } catch (error) {
     if (error.status) {
       return res

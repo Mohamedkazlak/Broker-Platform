@@ -203,11 +203,15 @@ export const submitReceipt = async (req, res, next) => {
   try {
     const brokerId = await resolveBrokerIdFromAuth(req);
 
+    // Awaited (not just returned) so a rejection stays inside this try/catch
+    // — see the identical fix in paymentController.js's checkout() for why
+    // a bare `return submitReceiptForX(...)` would otherwise skip the catch
+    // below and fall through to the generic error handler as an opaque 500.
     if (brokerId) {
-      return submitReceiptForBroker(req, res, brokerId);
+      await submitReceiptForBroker(req, res, brokerId);
+    } else {
+      await submitReceiptForDraft(req, res);
     }
-
-    return submitReceiptForDraft(req, res);
   } catch (error) {
     if (error.status) {
       return res
