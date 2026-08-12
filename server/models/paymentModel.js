@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "../config/supabase.js";
 
 const COLUMNS =
-  "id, order_id, session_id, broker_id, package, package_category, amount, currency, status, registration_payload, claim_token_hash, transaction_id, pay_url, expires_at, completed_at, created_at, updated_at";
+  "id, order_id, session_id, broker_id, package, package_category, amount, currency, status, registration_payload, claim_token_hash, requested_domain_type, requested_subdomain, requested_custom_domain, transaction_id, pay_url, expires_at, completed_at, created_at, updated_at";
 
 export const paymentModel = {
   async create(row) {
@@ -17,6 +17,9 @@ export const paymentModel = {
         status: "pending",
         registration_payload: row.registrationPayload ?? null,
         claim_token_hash: row.claimTokenHash ?? null,
+        requested_domain_type: row.requestedDomainType ?? null,
+        requested_subdomain: row.requestedSubdomain ?? null,
+        requested_custom_domain: row.requestedCustomDomain ?? null,
       })
       .select(COLUMNS)
       .single();

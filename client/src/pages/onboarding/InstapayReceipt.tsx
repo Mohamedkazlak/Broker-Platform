@@ -9,6 +9,12 @@ import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { getOnboardingDraft, hasOnboardingDraft } from "@/lib/onboardingDraft";
 import {
+  clearPlanChangeDraft,
+  getPlanChangeDraft,
+  planChangeRequestBody,
+} from "@/lib/planChange";
+import { buildSubdomainRedirect } from "@/lib/sessionRelay";
+import {
   fileToReceiptPayload,
   saveInstapayClaimToken,
   validateInstapayReceiptFile,
@@ -18,11 +24,15 @@ export default function InstapayReceipt() {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
   const { toast } = useToast();
-  const { t } = useTranslation("onboarding");
+  const { t, i18n } = useTranslation("onboarding");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const brokerId = profile?.broker_id;
   const isDraftFlow = !brokerId && hasOnboardingDraft();
+  // Upgrade / downgrade: the receipt buys the plan held in this draft, and the
+  // broker goes back to their dashboard to wait for the admin's review instead
+  // of sitting on the onboarding pending screen.
+  const [planChange] = useState(() => getPlanChangeDraft());
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -95,15 +105,42 @@ export default function InstapayReceipt() {
         body.package = draft.package;
         body.packageCategory = draft.packageCategory;
         body.domain = draft.domain;
+      } else if (brokerId && planChange) {
+        Object.assign(body, planChangeRequestBody(planChange));
       }
 
       const { data } = await api.post("/instapay/submit-receipt", body);
 
-      if (data?.claimToken) {
+      // The claim token only exists to let the onboarding pending screen poll
+      // without a session; a signed-in broker changing plans reads their status
+      // from the dashboard instead.
+      if (data?.claimToken && !data?.planChange) {
         saveInstapayClaimToken(data.claimToken);
       }
       if (data?.subdomain) {
         sessionStorage.setItem("broker_subdomain", data.subdomain);
+      }
+
+      // Plan change: nothing about the account moves until an admin approves,
+      // so hand them back to the dashboard they already have.
+      if (data?.planChange) {
+        clearPlanChangeDraft();
+        toast({
+          title: t("instapay.receipt.planChangeSubmittedTitle"),
+          description: t("instapay.receipt.planChangeSubmittedDescription"),
+        });
+        const subdomain =
+          data?.subdomain ?? sessionStorage.getItem("broker_subdomain");
+        if (subdomain) {
+          window.location.href = await buildSubdomainRedirect(
+            subdomain,
+            "/dashboard",
+            i18n.language,
+          );
+          return;
+        }
+        navigate("/dashboard", { replace: true });
+        return;
       }
 
       // Keep the local draft until approval so reject → retry still works.

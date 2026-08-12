@@ -37,13 +37,7 @@ import {
   formatRevenue,
   type RevenueStats,
 } from "@/utils/formatRevenue";
-
-const PLAN_LIMITS: Record<string, number> = {
-  free: 3,
-  plus: 10,
-  pro: 50,
-  ultra: Infinity,
-};
+import { UNLIMITED_PACKAGE_LIMIT, type PlanId } from "@/lib/plans";
 
 interface PropertyStats {
   active: number;
@@ -59,6 +53,14 @@ const EMPTY_REVENUE: RevenueStats = {
   currency: "EGP",
 };
 
+const FALLBACK_PLAN_LIMITS: Record<PlanId, number> = {
+  free: 3,
+  plus: 10,
+  pro: 50,
+  max: 100,
+  ultra: UNLIMITED_PACKAGE_LIMIT,
+};
+
 export default function DashboardInsights() {
   const { profile, isLoading } = useAuth();
   const { t, i18n } = useTranslation("dashboard");
@@ -72,22 +74,22 @@ export default function DashboardInsights() {
   });
   const [revenueStats, setRevenueStats] = useState<RevenueStats>(EMPTY_REVENUE);
   const [loadingData, setLoadingData] = useState(true);
-  const [adminPackage, setAdminPackage] = useState<string>("free");
+  const [brokerPackage, setBrokerPackage] = useState<PlanId>("free");
+  const [packageLimit, setPackageLimit] = useState<number>(
+    FALLBACK_PLAN_LIMITS.free,
+  );
 
-  const plan = adminPackage || "free";
-  const planLimit = PLAN_LIMITS[plan] || 3;
+  const isUnlimited = packageLimit >= UNLIMITED_PACKAGE_LIMIT;
   const usedSlots = propertyStats.total;
-  const usagePercent =
-    planLimit === Infinity
-      ? 0
-      : Math.min(100, Math.round((usedSlots / planLimit) * 100));
-
-  const planLabels: Record<string, string> = {
-    free: tPricing("plans.starter.name"),
-    plus: tPricing("plans.plus.name"),
-    pro: tPricing("plans.pro.name"),
-    ultra: tPricing("plans.ultra.name"),
-  };
+  const usagePercent = isUnlimited
+    ? 0
+    : Math.min(100, Math.round((usedSlots / Math.max(packageLimit, 1)) * 100));
+  const remainingSlots = isUnlimited
+    ? 0
+    : Math.max(0, packageLimit - usedSlots);
+  const planName = tPricing(`plans.${brokerPackage}.name`, {
+    defaultValue: brokerPackage,
+  });
 
   useEffect(() => {
     if (!profile?.broker_id) return;
@@ -100,7 +102,7 @@ export default function DashboardInsights() {
       const [brokerRes, propertiesRes] = await Promise.all([
         supabase
           .from("brokers")
-          .select("package")
+          .select("package, package_limit")
           .eq("id", profile!.broker_id)
           .single(),
         supabase
@@ -110,7 +112,14 @@ export default function DashboardInsights() {
       ]);
 
       if (brokerRes.data) {
-        setAdminPackage(brokerRes.data.package);
+        const pkg = (brokerRes.data.package || "free") as PlanId;
+        setBrokerPackage(pkg);
+        const limitFromBroker = brokerRes.data.package_limit;
+        setPackageLimit(
+          typeof limitFromBroker === "number" && limitFromBroker > 0
+            ? limitFromBroker
+            : (FALLBACK_PLAN_LIMITS[pkg] ?? FALLBACK_PLAN_LIMITS.free),
+        );
       }
 
       if (propertiesRes.data) {
@@ -194,12 +203,12 @@ export default function DashboardInsights() {
               </div>
               <CardDescription>
                 {t("insights.packageUsageDescription", {
-                  plan: planLabels[plan],
+                  plan: planName,
                 })}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {planLimit === Infinity ? (
+              {isUnlimited ? (
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-5 h-5 text-primary" />
                   <p className="text-foreground font-medium">
@@ -213,7 +222,7 @@ export default function DashboardInsights() {
                       <Trans
                         i18nKey="insights.listingsUsed"
                         t={t}
-                        values={{ used: usedSlots, limit: planLimit }}
+                        values={{ used: usedSlots, limit: packageLimit }}
                         components={{
                           strong: (
                             <span className="font-semibold text-foreground" />
@@ -223,7 +232,7 @@ export default function DashboardInsights() {
                     </span>
                     <span className="text-muted-foreground">
                       {t("insights.listingsRemaining", {
-                        count: planLimit - usedSlots,
+                        count: remainingSlots,
                       })}
                     </span>
                   </div>

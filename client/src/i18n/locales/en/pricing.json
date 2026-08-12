@@ -98,6 +98,7 @@
     "recommended": "RECOMMENDED",
     "currencyShort": "EGP/mo",
     "selectPlan": "Select Plan",
+    "currentPlan": "Current Plan",
     "listingLimit": "Up to {{count}} listings",
     "unlimitedListings": "Unlimited listings",
     "ownDomainHeadline": "Get your own domain",

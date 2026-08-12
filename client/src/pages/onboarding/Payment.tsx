@@ -26,6 +26,13 @@ import {
   hasOnboardingDraft,
 } from "@/lib/onboardingDraft";
 import {
+  clearPlanChangeDraft,
+  getPlanChangeDraft,
+  planChangeRequestBody,
+  planChangeSummaryParams,
+} from "@/lib/planChange";
+import { buildSubdomainRedirect } from "@/lib/sessionRelay";
+import {
   clearReachiClaimToken,
   createBrokerCheckoutSession,
   createDraftCheckoutSession,
@@ -54,10 +61,25 @@ export default function Payment() {
   const [searchParams] = useSearchParams();
   const { profile } = useAuth();
   const { toast } = useToast();
-  const { t } = useTranslation("onboarding");
+  const { t, i18n } = useTranslation("onboarding");
+  const { t: tPricing } = useTranslation("pricing");
 
   const brokerId = profile?.broker_id;
   const isDraftFlow = !brokerId && hasOnboardingDraft();
+
+  // Upgrade / downgrade of a live subscription: this pays for the plan held in
+  // the draft, and success sends them back to the dashboard rather than on
+  // through onboarding. `?renew=1` (the past-due retry link) means the opposite
+  // — pay for the plan they already have — so it drops any upgrade they started
+  // and walked away from.
+  const [planChange] = useState(() => {
+    if (searchParams.get("renew")) {
+      clearPlanChangeDraft();
+      return null;
+    }
+    return getPlanChangeDraft();
+  });
+  const isPlanChange = !!brokerId && !!planChange;
 
   // Are we back from the payment.reachi.ai checkout page (return_url)? That
   // status is UX-only — the poll below (driven by the claim token) is what
@@ -67,6 +89,7 @@ export default function Payment() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState<OrderSummary | null>(null);
+  const [currentPackage, setCurrentPackage] = useState<string | null>(null);
   const [method, setMethod] = useState<PaymentMethod>(null);
   const [processing, setProcessing] = useState(false);
   const [confirming, setConfirming] = useState(isReturningFromGateway);
@@ -127,8 +150,11 @@ export default function Payment() {
             sessionStorage.setItem("broker_subdomain", payload.subdomain);
           }
           clearOnboardingDraft();
+          clearPlanChangeDraft();
           clearReachiClaimToken();
-          markPostPaymentPending();
+          // Branding setup is an onboarding step — a plan change goes straight
+          // back to the dashboard instead.
+          if (!isPlanChange) markPostPaymentPending();
           setConfirming(false);
           setPaymentSuccess(true);
           return;
@@ -157,8 +183,7 @@ export default function Payment() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReturningFromGateway, returnStatus, paymentSuccess]);
+  }, [isReturningFromGateway, returnStatus, paymentSuccess, isPlanChange]);
 
   useEffect(() => {
     // While we're confirming a just-completed gateway redirect, hold off —
@@ -221,7 +246,14 @@ export default function Payment() {
           return;
         }
 
-        const { data } = await api.get(`/brokers/${brokerId}/order-summary`);
+        // With a plan change in flight the quote is for the plan they're
+        // moving to; the server re-validates and re-prices it either way.
+        const { data } = await api.get(`/brokers/${brokerId}/order-summary`, {
+          params:
+            isPlanChange && planChange
+              ? planChangeSummaryParams(planChange)
+              : undefined,
+        });
         if (!active) return;
         const s: OrderSummary = data?.summary;
         if (s?.package === "free") {
@@ -229,6 +261,7 @@ export default function Payment() {
           return;
         }
         setSummary(s);
+        setCurrentPackage(data?.planChange?.currentPackage ?? null);
         setIsLoading(false);
       } catch (err) {
         console.error("Error loading order summary:", err);
@@ -245,10 +278,33 @@ export default function Payment() {
     return () => {
       active = false;
     };
-  }, [isDraftFlow, brokerId, paymentSuccess, confirming, navigate, t, toast]);
+  }, [
+    isDraftFlow,
+    isPlanChange,
+    planChange,
+    brokerId,
+    paymentSuccess,
+    confirming,
+    navigate,
+    t,
+    toast,
+  ]);
 
   const amount = (value: number) =>
     t("payment.amount", { amount: value.toLocaleString() });
+
+  const goToDashboard = async () => {
+    const sub = sessionStorage.getItem("broker_subdomain");
+    if (sub) {
+      window.location.href = await buildSubdomainRedirect(
+        sub,
+        "/dashboard",
+        i18n.language,
+      );
+      return;
+    }
+    navigate("/dashboard");
+  };
 
   const handleCheckout = async () => {
     if (processing) return;
@@ -275,7 +331,12 @@ export default function Payment() {
           returnPath,
         }));
       } else {
-        ({ payUrl, claimToken } = await createBrokerCheckoutSession(returnPath));
+        ({ payUrl, claimToken } = await createBrokerCheckoutSession(
+          returnPath,
+          isPlanChange && planChange
+            ? planChangeRequestBody(planChange)
+            : undefined,
+        ));
       }
 
       if (claimToken) {
@@ -344,19 +405,27 @@ export default function Payment() {
               </div>
               <div className="space-y-2">
                 <h1 className="font-display text-3xl font-bold">
-                  {t("payment.success.title")}
+                  {isPlanChange
+                    ? t("payment.planChange.successTitle")
+                    : t("payment.success.title")}
                 </h1>
                 <p className="text-muted-foreground">
-                  {t("payment.success.description")}
+                  {isPlanChange
+                    ? t("payment.planChange.successDescription")
+                    : t("payment.success.description")}
                 </p>
               </div>
               <Button
                 variant="hero"
                 size="lg"
                 className="w-full"
-                onClick={() => navigate("/branding-setup")}
+                onClick={() =>
+                  isPlanChange ? goToDashboard() : navigate("/branding-setup")
+                }
               >
-                {t("payment.success.continue")}
+                {isPlanChange
+                  ? t("payment.planChange.backToDashboard")
+                  : t("payment.success.continue")}
               </Button>
             </CardContent>
           </Card>
@@ -372,9 +441,22 @@ export default function Payment() {
       <div className="container mx-auto max-w-lg">
         <div className="text-center mb-10">
           <h1 className="font-display text-4xl font-bold mb-4">
-            {t("payment.heading")}
+            {isPlanChange
+              ? t("payment.planChange.heading")
+              : t("payment.heading")}
           </h1>
-          <p className="text-muted-foreground">{t("payment.subheading")}</p>
+          <p className="text-muted-foreground">
+            {isPlanChange && currentPackage
+              ? t("payment.planChange.subheading", {
+                  from: tPricing(`plans.${currentPackage}.name`, {
+                    defaultValue: currentPackage,
+                  }),
+                  to: tPricing(`plans.${summary.package}.name`, {
+                    defaultValue: summary.planName,
+                  }),
+                })
+              : t("payment.subheading")}
+          </p>
         </div>
 
         <Card>
@@ -387,7 +469,11 @@ export default function Payment() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">
-                {t("payment.planLine", { name: summary.planName })}
+                {t("payment.planLine", {
+                  name: tPricing(`plans.${summary.package}.name`, {
+                    defaultValue: summary.planName,
+                  }),
+                })}
               </span>
               <span className="font-medium">{amount(summary.planPrice)}</span>
             </div>
@@ -471,7 +557,9 @@ export default function Payment() {
                 ) : (
                   <>
                     <CheckCircle2 className="w-4 h-4 me-2" />
-                    {failed ? t("payment.failed.retry") : t("payment.payButton")}
+                    {failed
+                      ? t("payment.failed.retry")
+                      : t("payment.payButton")}
                   </>
                 )}
               </Button>

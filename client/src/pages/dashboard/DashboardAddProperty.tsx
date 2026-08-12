@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Menu,
@@ -8,6 +8,8 @@ import {
   ChevronUp,
   ChevronDown,
   Star,
+  Film,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,25 @@ import {
   normalizePropertyGallery,
   normalizePropertyImageLink,
 } from "@/utils/propertyImageLinks";
+import { cn } from "@/lib/utils";
+
+type MediaSourceTab = "link" | "device";
+
+type MediaItem = {
+  id: string;
+  mediaType: "image" | "video";
+  source: "url" | "file";
+  url?: string;
+  file?: File;
+  previewUrl?: string;
+};
+
+function createMediaId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `media-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
 
 export default function DashboardAddProperty() {
   const { id: editId } = useParams();
@@ -50,7 +71,9 @@ export default function DashboardAddProperty() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadingProperty, setLoadingProperty] = useState(isEdit);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const mediaItemsRef = useRef<MediaItem[]>([]);
+  const [mediaSourceTab, setMediaSourceTab] = useState<MediaSourceTab>("link");
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [imageLinkDraft, setImageLinkDraft] = useState("");
   const [videoLinkDraft, setVideoLinkDraft] = useState("");
@@ -82,8 +105,6 @@ export default function DashboardAddProperty() {
     furnished: "" as "" | "furnished" | "unfurnished" | "semi-furnished",
     featured: false,
     status: "active",
-    image_urls: [] as string[],
-    video_urls: [] as string[],
     amenities: [] as string[],
   });
 
@@ -143,19 +164,39 @@ export default function DashboardAddProperty() {
               | "semi-furnished") ?? "",
           featured: p.featured ?? false,
           status: p.status ?? "active",
-          image_urls: normalizePropertyGallery(
-            p.image_url,
-            Array.isArray((p as { image_urls?: string[] }).image_urls)
-              ? (p as { image_urls?: string[] }).image_urls!
-              : [],
-          ),
-          video_urls: Array.isArray((p as { video_urls?: string[] }).video_urls)
-            ? (p as { video_urls?: string[] }).video_urls!
-            : [],
           amenities: normalizeAmenityPersistedList(
             Array.isArray(p.amenities) ? p.amenities : [],
           ),
         });
+        const imageUrls = normalizePropertyGallery(
+          p.image_url,
+          Array.isArray((p as { image_urls?: string[] }).image_urls)
+            ? (p as { image_urls?: string[] }).image_urls!
+            : [],
+        );
+        const videoUrls = Array.isArray(
+          (p as { video_urls?: string[] }).video_urls,
+        )
+          ? (p as { video_urls?: string[] }).video_urls!
+          : [];
+        setMediaItems([
+          ...imageUrls.map(
+            (url): MediaItem => ({
+              id: createMediaId(),
+              mediaType: "image",
+              source: "url",
+              url,
+            }),
+          ),
+          ...videoUrls.map(
+            (url): MediaItem => ({
+              id: createMediaId(),
+              mediaType: "video",
+              source: "url",
+              url,
+            }),
+          ),
+        ]);
       } catch {
         if (!cancelled)
           toast({
@@ -171,46 +212,64 @@ export default function DashboardAddProperty() {
     };
   }, [editId, isEdit, toast, t]);
 
+  useEffect(() => {
+    mediaItemsRef.current = mediaItems;
+  }, [mediaItems]);
+
+  useEffect(() => {
+    return () => {
+      mediaItemsRef.current.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+    };
+  }, []);
+
+  const mediaCount = mediaItems.length;
+
+  const firstImageIndex = useMemo(
+    () => mediaItems.findIndex((item) => item.mediaType === "image"),
+    [mediaItems],
+  );
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      const totalMediaCount =
-        form.image_urls.length +
-        form.video_urls.length +
-        selectedFiles.length +
-        newFiles.length;
+    if (!e.target.files) return;
+    const newFiles = Array.from(e.target.files);
+    e.target.value = "";
 
-      if (totalMediaCount > 20) {
-        toast({
-          title: t("addProperty.toasts.tooManyTitle"),
-          description: t("addProperty.toasts.tooManyDescription"),
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const oversizedFiles = newFiles.filter(
-        (file) => file.size > 50 * 1024 * 1024,
-      );
-      if (oversizedFiles.length > 0) {
-        toast({
-          title: t("addProperty.toasts.fileTooLargeTitle"),
-          description: t("addProperty.toasts.fileTooLargeDescription"),
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setSelectedFiles((prev) => [...prev, ...newFiles]);
+    if (mediaCount + newFiles.length > 20) {
+      toast({
+        title: t("addProperty.toasts.tooManyTitle"),
+        description: t("addProperty.toasts.tooManyDescription"),
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  const removeSelectedFile = (index: number) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+    const oversizedFiles = newFiles.filter(
+      (file) => file.size > 50 * 1024 * 1024,
+    );
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: t("addProperty.toasts.fileTooLargeTitle"),
+        description: t("addProperty.toasts.fileTooLargeDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const mediaCount =
-    form.image_urls.length + form.video_urls.length + selectedFiles.length;
+    const nextItems: MediaItem[] = newFiles.map((file) => {
+      const isVideo = file.type.startsWith("video/");
+      return {
+        id: createMediaId(),
+        mediaType: isVideo ? "video" : "image",
+        source: "file",
+        file,
+        previewUrl: URL.createObjectURL(file),
+      };
+    });
+
+    setMediaItems((prev) => [...prev, ...nextItems]);
+  };
 
   const addImageLink = () => {
     const result = normalizePropertyImageLink(imageLinkDraft);
@@ -234,36 +293,72 @@ export default function DashboardAddProperty() {
       return;
     }
 
-    if (form.image_urls.includes(result.url)) {
+    if (
+      mediaItems.some(
+        (item) =>
+          item.mediaType === "image" &&
+          item.source === "url" &&
+          item.url === result.url,
+      )
+    ) {
       setImageLinkError(t("addProperty.fields.imageLinkDuplicate"));
       return;
     }
 
-    setForm((prev) => ({
+    setMediaItems((prev) => [
       ...prev,
-      image_urls: [...prev.image_urls, result.url],
-    }));
+      {
+        id: createMediaId(),
+        mediaType: "image",
+        source: "url",
+        url: result.url,
+      },
+    ]);
     setImageLinkDraft("");
     setImageLinkError(null);
   };
 
-  const moveImage = (index: number, direction: -1 | 1) => {
-    setForm((prev) => {
-      const next = [...prev.image_urls];
+  const addVideoLink = () => {
+    const url = videoLinkDraft.trim();
+    if (!url) return;
+    if (mediaCount >= 20) {
+      toast({
+        title: t("addProperty.toasts.tooManyTitle"),
+        description: t("addProperty.toasts.tooManyDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+    setMediaItems((prev) => [
+      ...prev,
+      {
+        id: createMediaId(),
+        mediaType: "video",
+        source: "url",
+        url,
+      },
+    ]);
+    setVideoLinkDraft("");
+  };
+
+  const moveMedia = (index: number, direction: -1 | 1) => {
+    setMediaItems((prev) => {
       const target = index + direction;
-      if (target < 0 || target >= next.length) return prev;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
       const tmp = next[index];
       next[index] = next[target];
       next[target] = tmp;
-      return { ...prev, image_urls: next };
+      return next;
     });
   };
 
-  const removeImageAt = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      image_urls: prev.image_urls.filter((_, j) => j !== index),
-    }));
+  const removeMediaAt = (index: number) => {
+    setMediaItems((prev) => {
+      const item = prev[index];
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((_, j) => j !== index);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -280,55 +375,63 @@ export default function DashboardAddProperty() {
 
     setSubmitting(true);
     try {
-      const finalImageUrls = [...form.image_urls];
-      const finalVideoUrls = [...form.video_urls];
+      const finalImageUrls: string[] = [];
+      const finalVideoUrls: string[] = [];
+      const filesToUpload = mediaItems.filter((item) => item.source === "file");
+      let uploadedCount = 0;
 
-      if (selectedFiles.length > 0) {
-        let uploadedCount = 0;
+      if (filesToUpload.length > 0) {
         setUploadProgress(
           t("addProperty.toasts.uploading", {
             uploaded: 0,
-            total: selectedFiles.length,
+            total: filesToUpload.length,
           }),
         );
-
-        for (const file of selectedFiles) {
-          const fileExt = file.name.split(".").pop();
-          const isVideo = file.type.startsWith("video/");
-          const prefix = isVideo ? "vid" : "img";
-          const fileName = `${form.property_code}-${prefix}-${Math.random()
-            .toString(36)
-            .substring(2, 9)}.${fileExt}`;
-          const filePath = `${fileName}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from("property-images")
-            .upload(filePath, file);
-
-          if (uploadError) {
-            console.error("Error uploading file:", uploadError);
-            throw new Error(`Failed to upload ${file.name}`);
-          }
-
-          const { data } = supabase.storage
-            .from("property-images")
-            .getPublicUrl(filePath);
-
-          if (isVideo) {
-            finalVideoUrls.push(data.publicUrl);
-          } else {
-            finalImageUrls.push(data.publicUrl);
-          }
-
-          uploadedCount++;
-          setUploadProgress(
-            t("addProperty.toasts.uploading", {
-              uploaded: uploadedCount,
-              total: selectedFiles.length,
-            }),
-          );
-        }
       }
+
+      for (const item of mediaItems) {
+        if (item.source === "url" && item.url) {
+          if (item.mediaType === "image") finalImageUrls.push(item.url);
+          else finalVideoUrls.push(item.url);
+          continue;
+        }
+
+        if (item.source !== "file" || !item.file) continue;
+
+        const file = item.file;
+        const fileExt = file.name.split(".").pop();
+        const isVideo = item.mediaType === "video";
+        const prefix = isVideo ? "vid" : "img";
+        const fileName = `${form.property_code}-${prefix}-${Math.random()
+          .toString(36)
+          .substring(2, 9)}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("property-images")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error("Error uploading file:", uploadError);
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        const { data } = supabase.storage
+          .from("property-images")
+          .getPublicUrl(filePath);
+
+        if (isVideo) finalVideoUrls.push(data.publicUrl);
+        else finalImageUrls.push(data.publicUrl);
+
+        uploadedCount++;
+        setUploadProgress(
+          t("addProperty.toasts.uploading", {
+            uploaded: uploadedCount,
+            total: filesToUpload.length,
+          }),
+        );
+      }
+
       setUploadProgress(null);
 
       const payload = {
@@ -933,257 +1036,275 @@ export default function DashboardAddProperty() {
             </div>
 
             {/* Media */}
-            <div className="bg-card rounded-xl border border-border shadow-card p-6 space-y-5">
-              <h2 className="font-display text-lg font-semibold text-foreground">
-                {t("addProperty.sections.media")}
-              </h2>
-
-              <div className="space-y-2">
-                <Label htmlFor="image_link">
-                  {t("addProperty.fields.imageLink")}
-                </Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    id="image_link"
-                    type="url"
-                    placeholder={t("addProperty.fields.imageLinkPlaceholder")}
-                    value={imageLinkDraft}
-                    onChange={(e) => {
-                      setImageLinkDraft(e.target.value);
-                      if (imageLinkError) setImageLinkError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addImageLink();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addImageLink}
-                    className="shrink-0"
-                  >
-                    <Link2 className="w-4 h-4 me-2" />
-                    {t("addProperty.fields.addImageLink")}
-                  </Button>
-                </div>
-                {imageLinkError ? (
-                  <p className="text-sm text-destructive">{imageLinkError}</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {t("addProperty.fields.imageLinkHint")}
-                  </p>
-                )}
+            <div className="bg-card rounded-xl border border-border shadow-card p-6 space-y-6">
+              <div className="space-y-1">
+                <h2 className="font-display text-lg font-semibold text-foreground">
+                  {t("addProperty.sections.media")}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {t("addProperty.fields.mediaIntro")}
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="video_url">
-                  {t("addProperty.fields.videoUrl")}
-                </Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    id="video_url"
-                    type="url"
-                    placeholder={t("addProperty.fields.videoUrlPlaceholder")}
-                    value={videoLinkDraft}
-                    onChange={(e) => setVideoLinkDraft(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="shrink-0"
-                    onClick={() => {
-                      const url = videoLinkDraft.trim();
-                      if (!url) return;
-                      if (mediaCount >= 20) {
-                        toast({
-                          title: t("addProperty.toasts.tooManyTitle"),
-                          description: t(
-                            "addProperty.toasts.tooManyDescription",
-                          ),
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      setForm((prev) => ({
-                        ...prev,
-                        video_urls: [...prev.video_urls, url],
-                      }));
-                      setVideoLinkDraft("");
-                    }}
-                  >
-                    <Upload className="w-4 h-4 me-2" />
-                    {t("addProperty.fields.attachVideoUrl")}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,video/*"
-                    onChange={handleFileSelect}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    id="file-upload"
-                  />
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    className="pointer-events-none"
-                  >
-                    <Upload className="w-4 h-4 me-2" />
-                    {t("addProperty.fields.uploadMedia")}
-                  </Button>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {t("addProperty.fields.uploadHint")}
-                </span>
-              </div>
-
-              {(form.image_urls.length > 0 ||
-                form.video_urls.length > 0 ||
-                selectedFiles.length > 0) && (
-                <div className="space-y-4">
-                  <p className="text-sm font-medium">
-                    {t("addProperty.fields.includedMedia", {
-                      count: mediaCount,
-                    })}
-                  </p>
-
-                  {form.image_urls.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        {t("addProperty.fields.coverIsFirst")}
-                      </p>
-                      <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {form.image_urls.map((url, i) => (
-                          <li
-                            key={`img-${url}-${i}`}
-                            className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border"
-                          >
-                            <PropertyImage
-                              src={url}
-                              alt=""
-                              className="w-full h-full object-cover"
-                              unavailableClassName="w-full h-full"
-                              compact
-                            />
-                            {i === 0 && (
-                              <span className="absolute top-2 start-2 inline-flex items-center gap-1 rounded bg-accent text-accent-foreground text-[10px] font-medium px-1.5 py-0.5">
-                                <Star className="w-3 h-3" />
-                                {t("addProperty.fields.coverBadge")}
-                              </span>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
-                              <div className="flex gap-1">
-                                <button
-                                  type="button"
-                                  className="text-white bg-black/40 p-1 rounded disabled:opacity-40"
-                                  disabled={i === 0}
-                                  onClick={() => moveImage(i, -1)}
-                                  aria-label={t("addProperty.fields.moveUp")}
-                                >
-                                  <ChevronUp className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="text-white bg-black/40 p-1 rounded disabled:opacity-40"
-                                  disabled={i === form.image_urls.length - 1}
-                                  onClick={() => moveImage(i, 1)}
-                                  aria-label={t("addProperty.fields.moveDown")}
-                                >
-                                  <ChevronDown className="w-4 h-4" />
-                                </button>
-                              </div>
-                              <span className="text-[10px] text-white truncate w-full text-center px-1 bg-black/40 rounded">
-                                {url}
-                              </span>
-                              <button
-                                type="button"
-                                className="text-white hover:text-destructive bg-black/40 px-2 py-1 rounded text-xs"
-                                onClick={() => removeImageAt(i)}
-                              >
-                                {t("addProperty.fields.removeLink")}
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMediaSourceTab("link")}
+                  className={cn(
+                    "flex items-start gap-3 rounded-xl border p-4 text-start transition-colors",
+                    mediaSourceTab === "link"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/40",
                   )}
+                >
+                  <div className="mt-0.5 rounded-lg bg-background border border-border p-2">
+                    <Link2 className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {t("addProperty.fields.mediaOptionLink")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("addProperty.fields.mediaOptionLinkHint")}
+                    </p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMediaSourceTab("device")}
+                  className={cn(
+                    "flex items-start gap-3 rounded-xl border p-4 text-start transition-colors",
+                    mediaSourceTab === "device"
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/40",
+                  )}
+                >
+                  <div className="mt-0.5 rounded-lg bg-background border border-border p-2">
+                    <Upload className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {t("addProperty.fields.mediaOptionDevice")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("addProperty.fields.mediaOptionDeviceHint")}
+                    </p>
+                  </div>
+                </button>
+              </div>
 
-                  {(form.video_urls.length > 0 || selectedFiles.length > 0) && (
-                    <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {form.video_urls.map((url, i) => (
+              {mediaSourceTab === "link" ? (
+                <div className="space-y-5 rounded-xl border border-border bg-muted/20 p-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="image_link">
+                      {t("addProperty.fields.imageLink")}
+                    </Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        id="image_link"
+                        type="url"
+                        placeholder={t(
+                          "addProperty.fields.imageLinkPlaceholder",
+                        )}
+                        value={imageLinkDraft}
+                        onChange={(e) => {
+                          setImageLinkDraft(e.target.value);
+                          if (imageLinkError) setImageLinkError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addImageLink();
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addImageLink}
+                        className="shrink-0"
+                      >
+                        <ImageIcon className="w-4 h-4 me-2" />
+                        {t("addProperty.fields.addImageLink")}
+                      </Button>
+                    </div>
+                    {imageLinkError ? (
+                      <p className="text-sm text-destructive">
+                        {imageLinkError}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {t("addProperty.fields.imageLinkHint")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="video_url">
+                      {t("addProperty.fields.videoUrl")}
+                    </Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        id="video_url"
+                        type="url"
+                        placeholder={t(
+                          "addProperty.fields.videoUrlPlaceholder",
+                        )}
+                        value={videoLinkDraft}
+                        onChange={(e) => setVideoLinkDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addVideoLink();
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={addVideoLink}
+                      >
+                        <Film className="w-4 h-4 me-2" />
+                        {t("addProperty.fields.attachVideoUrl")}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center space-y-3">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-background border border-border flex items-center justify-center">
+                    <Upload className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">
+                      {t("addProperty.fields.uploadMedia")}
+                    </p>
+                    <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                      {t("addProperty.fields.uploadHint")}
+                    </p>
+                  </div>
+                  <div className="relative inline-flex">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*"
+                      onChange={handleFileSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      id="file-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="pointer-events-none"
+                    >
+                      <Upload className="w-4 h-4 me-2" />
+                      {t("addProperty.fields.chooseFiles")}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {mediaItems.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <p className="text-sm font-medium">
+                      {t("addProperty.fields.includedMedia", {
+                        count: mediaCount,
+                      })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("addProperty.fields.coverIsFirst")}
+                    </p>
+                  </div>
+
+                  <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {mediaItems.map((item, i) => {
+                      const previewSrc =
+                        item.source === "file" ? item.previewUrl : item.url;
+                      const label =
+                        item.source === "file" ? item.file?.name : item.url;
+                      const isCover = i === firstImageIndex;
+
+                      return (
                         <li
-                          key={`video-url-${i}`}
+                          key={item.id}
                           className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border"
                         >
-                          <video
-                            src={url}
-                            className="w-full h-full object-cover"
-                            controls={false}
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
-                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">
-                              {url}
-                            </span>
-                            <button
-                              type="button"
-                              className="text-white hover:text-destructive bg-black/40 px-2 py-1 rounded text-xs"
-                              onClick={() =>
-                                setForm((prev) => ({
-                                  ...prev,
-                                  video_urls: prev.video_urls.filter(
-                                    (_, j) => j !== i,
-                                  ),
-                                }))
-                              }
-                            >
-                              {t("addProperty.fields.removeVideo")}
-                            </button>
-                          </div>
-                        </li>
-                      ))}
-                      {selectedFiles.map((file, i) => (
-                        <li
-                          key={`file-${i}`}
-                          className="relative group aspect-video bg-muted rounded-md overflow-hidden border border-border"
-                        >
-                          {file.type.startsWith("image/") ? (
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
+                          {item.mediaType === "image" ? (
+                            item.source === "file" ? (
+                              <img
+                                src={previewSrc}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <PropertyImage
+                                src={previewSrc}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                unavailableClassName="w-full h-full"
+                                compact
+                              />
+                            )
                           ) : (
                             <video
-                              src={URL.createObjectURL(file)}
+                              src={previewSrc}
                               className="w-full h-full object-cover"
                               controls={false}
                             />
                           )}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
-                            <span className="text-xs text-white truncate w-full text-center px-1 mb-2 bg-black/40 rounded">
-                              {file.name}
+
+                          {isCover && (
+                            <span className="absolute top-2 start-2 inline-flex items-center gap-1 rounded bg-accent text-accent-foreground text-[10px] font-medium px-1.5 py-0.5">
+                              <Star className="w-3 h-3" />
+                              {t("addProperty.fields.coverBadge")}
+                            </span>
+                          )}
+
+                          <span className="absolute top-2 end-2 rounded bg-black/50 text-white text-[10px] px-1.5 py-0.5">
+                            {item.source === "file"
+                              ? t("addProperty.fields.sourceDevice")
+                              : t("addProperty.fields.sourceLink")}
+                          </span>
+
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                className="text-white bg-black/40 p-1 rounded disabled:opacity-40"
+                                disabled={i === 0}
+                                onClick={() => moveMedia(i, -1)}
+                                aria-label={t("addProperty.fields.moveUp")}
+                              >
+                                <ChevronUp className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                className="text-white bg-black/40 p-1 rounded disabled:opacity-40"
+                                disabled={i === mediaItems.length - 1}
+                                onClick={() => moveMedia(i, 1)}
+                                aria-label={t("addProperty.fields.moveDown")}
+                              >
+                                <ChevronDown className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <span className="text-[10px] text-white truncate w-full text-center px-1 bg-black/40 rounded">
+                              {label}
                             </span>
                             <button
                               type="button"
                               className="text-white hover:text-destructive bg-black/40 px-2 py-1 rounded text-xs"
-                              onClick={() => removeSelectedFile(i)}
+                              onClick={() => removeMediaAt(i)}
                             >
-                              {t("addProperty.fields.removeFile")}
+                              {t("addProperty.fields.removeMedia")}
                             </button>
                           </div>
                         </li>
-                      ))}
-                    </ul>
-                  )}
+                      );
+                    })}
+                  </ul>
                 </div>
               )}
             </div>

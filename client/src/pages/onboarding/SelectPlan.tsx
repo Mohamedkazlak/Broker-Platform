@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import axios from "axios";
 import {
@@ -21,6 +21,7 @@ import {
   updateOnboardingDraft,
 } from "@/lib/onboardingDraft";
 import { isPostPaymentPending } from "@/lib/postPayment";
+import { clearPlanChangeDraft, savePlanChangeDraft } from "@/lib/planChange";
 import { PlanCategoryTabs } from "@/components/pricing/PlanCategoryTabs";
 import {
   DEFAULT_PACKAGE_CATEGORY,
@@ -37,6 +38,7 @@ const PANEL_ID = "select-plan-panel";
 
 export default function SelectPlan() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { profile, completeRegistration } = useAuth();
   const { toast } = useToast();
   const { t, i18n } = useTranslation("pricing");
@@ -44,12 +46,23 @@ export default function SelectPlan() {
   const [plans, setPlans] = useState<ApiPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [selecting, setSelecting] = useState<string | null>(null);
+  const [currentPackage, setCurrentPackage] = useState<PlanId | null>(null);
   const [category, setCategory] = useState<PackageCategory>(
     DEFAULT_PACKAGE_CATEGORY,
   );
 
   const draft = getOnboardingDraft();
   const isDraftFlow = !!draft && !profile?.broker_id;
+  const brokerId = profile?.broker_id;
+
+  // Set when the broker arrived from the dashboard's plan grid, which has
+  // already had them pick — jump straight into that plan rather than making
+  // them choose twice.
+  const preselectedPlan = useRef(searchParams.get("plan"))
+    .current as PlanId | null;
+  const preselectedCategory = useRef(searchParams.get("category"))
+    .current as PackageCategory | null;
+  const autoSelected = useRef(false);
 
   useEffect(() => {
     if (isPostPaymentPending()) {
@@ -85,6 +98,24 @@ export default function SelectPlan() {
     };
   }, [t, toast]);
 
+  // Existing broker: knowing the plan they're on lets the grid mark it as
+  // current instead of offering a "change" the server would reject.
+  useEffect(() => {
+    if (!brokerId) return;
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await api.get(`/brokers/${brokerId}`);
+        if (active) setCurrentPackage(data?.data?.package ?? null);
+      } catch (err) {
+        console.error("Error loading current plan:", err);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [brokerId]);
+
   const formatLimit = (limit: number) =>
     limit >= UNLIMITED_PACKAGE_LIMIT
       ? t("subscription.unlimitedListings")
@@ -107,6 +138,8 @@ export default function SelectPlan() {
 
   const handleSelectPlan = async (planId: PlanId) => {
     setSelecting(planId);
+    // Any half-finished upgrade is superseded by this choice.
+    clearPlanChangeDraft();
 
     // New signup: hold data in draft until free activation or paid payment.
     if (isDraftFlow) {
@@ -178,7 +211,18 @@ export default function SelectPlan() {
         package: planId,
         packageCategory: category,
       });
-      const { redirect, subdomain } = res.data ?? {};
+      const { redirect, subdomain, planChange } = res.data ?? {};
+
+      // Upgrade / downgrade of a live subscription: nothing was written, so the
+      // choice travels in a draft through domain setup and payment.
+      if (planChange) {
+        savePlanChangeDraft({
+          package: res.data?.package ?? planId,
+          packageCategory: res.data?.packageCategory ?? category,
+        });
+        navigate("/domain-setup");
+        return;
+      }
 
       if (redirect === "dashboard") {
         const sub = subdomain || sessionStorage.getItem("broker_subdomain");
@@ -226,6 +270,35 @@ export default function SelectPlan() {
     }
   };
 
+  // Arriving from the dashboard with ?plan=… means the choice was already made
+  // there; start it once the broker's own plan is known so we don't kick off a
+  // "change" to the plan they're already on.
+  useEffect(() => {
+    if (autoSelected.current) return;
+    if (!preselectedPlan || !brokerId || isDraftFlow) return;
+    if (!PLAN_CATEGORIES[preselectedPlan] || currentPackage === null) return;
+    if (preselectedPlan === currentPackage) {
+      autoSelected.current = true;
+      return;
+    }
+
+    autoSelected.current = true;
+    const categories = PLAN_CATEGORIES[preselectedPlan];
+    const resolved =
+      preselectedCategory && categories.includes(preselectedCategory)
+        ? preselectedCategory
+        : categories[0];
+    setCategory(resolved);
+    void handleSelectPlan(preselectedPlan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    preselectedPlan,
+    preselectedCategory,
+    brokerId,
+    isDraftFlow,
+    currentPackage,
+  ]);
+
   const canSelect = isDraftFlow || !!profile?.broker_id;
 
   return (
@@ -268,9 +341,16 @@ export default function SelectPlan() {
           >
             {visiblePlans.map((plan) => {
               const colors = planColors[plan.id];
+              const isCurrent = plan.id === currentPackage;
               const Icon = planIcons[plan.id] ?? Globe;
               const highlighted = plan.recommended && category === "personal";
               const solidButton = plan.id === "pro";
+              const featuresVal = t(`plans.${plan.id}.features`, {
+                returnObjects: true,
+              }) as string[];
+              const features = Array.isArray(featuresVal)
+                ? featuresVal
+                : plan.features;
               return (
                 <Card
                   key={`${category}-${plan.id}`}
@@ -292,7 +372,7 @@ export default function SelectPlan() {
                       <Icon className="w-5 h-5" />
                     </div>
                     <CardTitle className="font-display text-xl md:text-2xl font-bold pe-14">
-                      {plan.name}
+                      {t(`plans.${plan.id}.name`)}
                     </CardTitle>
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <span className="font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground">
@@ -309,18 +389,24 @@ export default function SelectPlan() {
                   <CardContent className="flex flex-1 flex-col gap-5 px-5 pb-5 md:px-6 md:pb-6 pt-0">
                     <Button
                       onClick={() => handleSelectPlan(plan.id)}
-                      disabled={selecting !== null || !canSelect}
-                      className={`w-full h-10 md:h-11 rounded-full text-sm font-semibold transition-colors duration-300 ${colors.button}`}
-                      variant={solidButton ? "default" : "outline"}
+                      disabled={selecting !== null || !canSelect || isCurrent}
+                      className={`w-full h-10 md:h-11 rounded-full text-sm font-semibold transition-colors duration-300 ${
+                        isCurrent ? "" : colors.button
+                      }`}
+                      variant={
+                        solidButton && !isCurrent ? "default" : "outline"
+                      }
                     >
                       {selecting === plan.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : isCurrent ? (
+                        t("subscription.currentPlan")
                       ) : (
                         t("subscription.selectPlan")
                       )}
                     </Button>
                     <ul className="space-y-3">
-                      {plan.features.map((feature, idx) => (
+                      {features.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2.5">
                           <div
                             className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${colors.icon}`}

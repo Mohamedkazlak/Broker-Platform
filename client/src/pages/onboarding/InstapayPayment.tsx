@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getOnboardingDraft, hasOnboardingDraft } from "@/lib/onboardingDraft";
+import { getPlanChangeDraft, planChangeSummaryParams } from "@/lib/planChange";
 import { INSTAPAY_ACCOUNT } from "@/lib/instapay";
 import api from "@/lib/api";
 
@@ -27,6 +28,9 @@ export default function InstapayPayment() {
 
   const [checking, setChecking] = useState(true);
   const [amountLabel, setAmountLabel] = useState<string | null>(null);
+  // An upgrade / downgrade is priced from the plan being moved to, which lives
+  // in the draft until it's paid for.
+  const [planChange] = useState(() => getPlanChangeDraft());
 
   useEffect(() => {
     let active = true;
@@ -68,7 +72,9 @@ export default function InstapayPayment() {
           return;
         }
 
-        const { data } = await api.get(`/brokers/${brokerId}/order-summary`);
+        const { data } = await api.get(`/brokers/${brokerId}/order-summary`, {
+          params: planChange ? planChangeSummaryParams(planChange) : undefined,
+        });
         if (!active) return;
         const total = data?.summary?.total ?? 0;
         setAmountLabel(t("payment.amount", { amount: total.toLocaleString() }));
@@ -88,7 +94,7 @@ export default function InstapayPayment() {
     return () => {
       active = false;
     };
-  }, [brokerId, isDraftFlow, navigate, t, toast]);
+  }, [brokerId, isDraftFlow, planChange, navigate, t, toast]);
 
   const copyHandle = async () => {
     try {

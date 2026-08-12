@@ -86,6 +86,11 @@ export interface InstapaySubmission {
   createdAt: string;
   updatedAt: string;
   receiptUrl?: string | null;
+  /** Plan this payment buys — differs from `broker.plan` on an upgrade/downgrade. */
+  requestedPackage: string | null;
+  requestedDomainType: string | null;
+  requestedSubdomain: string | null;
+  requestedCustomDomain: string | null;
   broker: InstapayBrokerInfo | null;
 }
 

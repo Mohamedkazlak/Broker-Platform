@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBroker } from "@/contexts/BrokerContext";
 import api from "@/lib/api";
 import { buildMainSiteUrl } from "@/utils/tenant";
+import { PlanChangeStatus } from "@/components/dashboard/PlanChangeStatus";
 
 interface AccountData {
   package: string;
@@ -42,6 +43,7 @@ export function AccountDetails() {
   const { profile } = useAuth();
   const { broker } = useBroker();
   const { t, i18n } = useTranslation("dashboard");
+  const { t: tPricing } = useTranslation("pricing");
 
   const [account, setAccount] = useState<AccountData | null>(null);
   const [plans, setPlans] = useState<ApiPlan[]>([]);
@@ -107,7 +109,9 @@ export function AccountDetails() {
     }
 
     const plan = plans.find((p) => p.id === account.package);
-    const planName = plan?.name ?? account.package;
+    const planName = tPricing(`plans.${account.package}.name`, {
+      defaultValue: plan?.name ?? account.package,
+    });
     const isCustom =
       account.domain_type === "custom" && !!account.custom_domain;
     const isFree = account.package === "free";
@@ -116,6 +120,8 @@ export function AccountDetails() {
 
     return (
       <div className="space-y-5">
+        <PlanChangeStatus />
+
         {isPastDue && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <div className="flex items-start gap-3">
@@ -130,7 +136,7 @@ export function AccountDetails() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => goToMainHost("/payment")}
+                  onClick={() => goToMainHost("/payment?renew=1")}
                 >
                   <CreditCard className="w-4 h-4 me-2" />
                   {t("settings.account.pastDue.retry")}

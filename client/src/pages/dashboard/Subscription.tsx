@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Card,
@@ -10,9 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { buildSubdomainRedirect } from "@/lib/sessionRelay";
-import type { Database } from "@/integrations/supabase/types";
+import { buildMainSiteUrl } from "@/utils/tenant";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Loader2 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
@@ -28,10 +25,9 @@ import {
 const PANEL_ID = "dashboard-subscription-panel";
 
 export default function Subscription() {
-  const navigate = useNavigate();
   const { profile } = useAuth();
   const { toast } = useToast();
-  const { t } = useTranslation("dashboard");
+  const { t, i18n } = useTranslation("dashboard");
   const { t: tPricing } = useTranslation("pricing");
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [category, setCategory] = useState<PackageCategory>(
@@ -56,7 +52,12 @@ export default function Subscription() {
     };
   });
 
-  const handleSelectPlan = async (planId: string) => {
+  /**
+   * Changing plan is never a straight write to the broker row: it has to be
+   * priced, paid for, and (with Instapay) approved. That whole flow lives on
+   * the main host, so this hands off to it with the chosen plan.
+   */
+  const handleSelectPlan = (planId: string) => {
     if (!profile?.broker_id) {
       toast({
         title: t("subscription.toasts.errorTitle"),
@@ -67,53 +68,9 @@ export default function Subscription() {
     }
 
     setIsLoading(planId);
-    try {
-      const { error } = await supabase
-        .from("brokers")
-        .update({
-          package:
-            planId as Database["public"]["Enums"]["subscription_plan_enum"],
-        })
-        .eq("id", profile.broker_id);
-
-      if (error) throw error;
-
-      toast({
-        title: t("subscription.toasts.selectedTitle"),
-        description: t("subscription.toasts.selectedDescription"),
-      });
-
-      let brokerSubdomain = sessionStorage.getItem("broker_subdomain");
-      if (!brokerSubdomain) {
-        const { data: brokerData } = await supabase
-          .from("brokers")
-          .select("subdomain")
-          .eq("id", profile.broker_id)
-          .single();
-        brokerSubdomain = brokerData?.subdomain || null;
-      }
-
-      sessionStorage.removeItem("broker_subdomain");
-
-      if (brokerSubdomain) {
-        const redirectUrl = await buildSubdomainRedirect(
-          brokerSubdomain,
-          "/dashboard",
-        );
-        window.location.href = redirectUrl;
-      } else {
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      console.error("Error updating plan:", err);
-      toast({
-        title: t("subscription.toasts.updateFailedTitle"),
-        description: t("subscription.toasts.updateFailedDescription"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(null);
-    }
+    window.location.href = buildMainSiteUrl(
+      `/${i18n.language}/select-plan?plan=${planId}&category=${category}`,
+    );
   };
 
   return (

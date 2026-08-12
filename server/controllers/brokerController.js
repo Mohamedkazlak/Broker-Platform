@@ -7,85 +7,22 @@ import {
 } from "../utils/subdomainGenerator.js";
 import { PLANS_BY_ID, resolvePackageCategory } from "../config/plans.js";
 import {
-  priceForDomain,
   isAllowedCustomDomainTld,
   ALLOWED_CUSTOM_DOMAIN_TLDS,
-  DOMAIN_CURRENCY,
 } from "../config/domains.js";
 import {
   computeDaysUntilNextPayment,
-  resolveNextBillingDate,
   syncBrokerBillingState,
 } from "../services/billingMonitor.js";
+import {
+  activateSubscription,
+  resolvePlanChange,
+} from "../services/subscription.js";
+import { buildOrderSummary } from "../utils/orderSummary.js";
 import {
   hasSocialLinkUpdates,
   normalizeSocialUpdates,
 } from "../utils/socialLinks.js";
-
-/**
- * Compute a broker's order total from server-side config only: the plan price
- * for their current package plus the mock domain price (re-derived from the
- * flat TLD table when they chose a custom domain). Never trusts client input.
- */
-export function buildOrderSummary(broker) {
-  const plan = PLANS_BY_ID[broker.package] ?? null;
-  const planPrice = plan?.price ?? 0;
-  const isCustom = broker.domain_type === "custom" && !!broker.custom_domain;
-  const domainPrice = isCustom ? priceForDomain(broker.custom_domain) : 0;
-
-  return {
-    package: broker.package,
-    planName: plan?.name ?? broker.package,
-    planPrice,
-    currency: plan?.currency ?? DOMAIN_CURRENCY,
-    domainType: broker.domain_type,
-    customDomain: isCustom ? broker.custom_domain : null,
-    domainPrice,
-    total: planPrice + domainPrice,
-  };
-}
-
-/**
- * Activates a paid subscription after successful payment.
- * Shared by simulate-payment, Instapay approval, and the future Paymob webhook.
- *
- * Always restarts `next_billing_date` to now + 30 days (plan change mid-month,
- * renewal, or first activation all get a fresh cycle after successful payment).
- *
- * @param {string} brokerId
- * @param {{ package: string, billingAmount?: number }} planDetails
- *   `package` — plan id from the catalog; `billingAmount` optional override
- *   (defaults to server-computed order total: plan price + custom domain fee).
- */
-export async function activateSubscription(brokerId, planDetails) {
-  const plan = PLANS_BY_ID[planDetails.package];
-  if (!plan) {
-    throw new Error(`Invalid plan: ${planDetails.package}`);
-  }
-
-  const broker = await brokerModel.findById(brokerId);
-  if (!broker) {
-    throw new Error("Broker not found");
-  }
-
-  const { total } = buildOrderSummary({
-    ...broker,
-    package: planDetails.package,
-  });
-  const billingAmount = planDetails.billingAmount ?? total;
-
-  return brokerModel.update(brokerId, {
-    subscription_status: "active",
-    next_billing_date: resolveNextBillingDate(broker),
-    billing_amount: billingAmount,
-    package: planDetails.package,
-    package_category: resolvePackageCategory(
-      planDetails.package,
-      broker.package_category,
-    ),
-    package_limit: plan.packageLimit,
-  });
-}
 
 /**
  * GET /api/brokers/check-subdomain?subdomain=...
@@ -329,11 +266,16 @@ export const update = async (req, res, next) => {
 
 /**
  * POST /api/brokers/:id/select-plan
- * Authenticated — onboarding plan selection step (runs on the main host while
- * subscription_status is still 'pending').
+ * Authenticated — plan selection, used both during onboarding (while
+ * subscription_status is still 'pending') and later from the dashboard.
  *
  * - free: activate immediately (status 'active', no billing) → relay to dashboard.
- * - paid: persist the chosen package but stay 'pending' → continue to domain setup.
+ * - paid, not yet active: persist the chosen package but stay 'pending' →
+ *   continue to domain setup.
+ * - paid, already active: this is an upgrade / downgrade. Nothing is persisted —
+ *   the broker keeps the plan they paid for until the new one is paid for and
+ *   (for Instapay) approved. The chosen plan travels with the client through
+ *   domain setup and payment, and is re-validated server-side at every step.
  */
 export const selectPlan = async (req, res, next) => {
   try {
@@ -349,16 +291,16 @@ export const selectPlan = async (req, res, next) => {
         .json({ status: "error", error: "Invalid plan selected" });
     }
 
+    const broker = await brokerModel.findById(req.params.id);
+    if (!broker) {
+      return res
+        .status(404)
+        .json({ status: "error", error: "Broker not found" });
+    }
+
     const category = resolvePackageCategory(pkg, packageCategory);
 
     if (pkg === "free") {
-      const broker = await brokerModel.findById(req.params.id);
-      if (!broker) {
-        return res
-          .status(404)
-          .json({ status: "error", error: "Broker not found" });
-      }
-
       const subdomain =
         broker.subdomain && !isPendingSubdomain(broker.subdomain)
           ? broker.subdomain
@@ -367,11 +309,15 @@ export const selectPlan = async (req, res, next) => {
               brokerModel.findIdBySubdomain.bind(brokerModel),
             );
 
+      // Downgrading to Free costs nothing, so it applies right away — and the
+      // custom domain goes with it, since Free doesn't include one.
       const data = await brokerModel.update(req.params.id, {
         package: "free",
         package_category: category,
         package_limit: plan.packageLimit,
         subdomain,
+        domain_type: "subdomain",
+        custom_domain: null,
         subscription_status: "active",
         next_billing_date: null,
         billing_amount: 0,
@@ -383,8 +329,26 @@ export const selectPlan = async (req, res, next) => {
       });
     }
 
-    // Paid plans: lock in the package now, but keep them 'pending' until they
-    // finish domain setup (and, later, payment).
+    if (broker.subscription_status === "active") {
+      // Validates the target plan without writing anything; the real switch
+      // happens on payment (card) or admin approval (Instapay).
+      const change = await resolvePlanChange(broker, {
+        package: pkg,
+        packageCategory,
+      });
+
+      return res.json({
+        status: "success",
+        redirect: "domain-setup",
+        planChange: true,
+        package: change.package,
+        packageCategory: change.packageCategory,
+        subdomain: broker.subdomain,
+      });
+    }
+
+    // Paid plans mid-onboarding: lock in the package now, but keep them
+    // 'pending' until they finish domain setup (and, later, payment).
     const data = await brokerModel.update(req.params.id, {
       package: pkg,
       package_category: category,
@@ -396,6 +360,11 @@ export const selectPlan = async (req, res, next) => {
       subdomain: data.subdomain,
     });
   } catch (error) {
+    if (error.status) {
+      return res
+        .status(error.status)
+        .json({ status: "error", error: error.message, reason: error.reason });
+    }
     next(error);
   }
 };
@@ -404,6 +373,10 @@ export const selectPlan = async (req, res, next) => {
  * GET /api/brokers/:id/order-summary
  * Authenticated — server-computed order breakdown (plan + optional custom
  * domain) for the payment page. The amount is always derived server-side.
+ *
+ * Optional query params quote a plan the broker is *considering* rather than
+ * the one on their row, so an upgrade / downgrade can be priced before it is
+ * paid for: ?package=max&domainType=custom&customDomain=foo.com
  */
 export const getOrderSummary = async (req, res, next) => {
   try {
@@ -418,8 +391,40 @@ export const getOrderSummary = async (req, res, next) => {
         .json({ status: "error", error: "Broker not found" });
     }
 
+    const requestedPackage = req.query.package;
+    if (requestedPackage) {
+      const change = await resolvePlanChange(broker, {
+        package: requestedPackage,
+        packageCategory: req.query.packageCategory,
+        domain: req.query.domainType
+          ? {
+              domain_type: req.query.domainType,
+              subdomain: req.query.subdomain,
+              custom_domain: req.query.customDomain,
+            }
+          : undefined,
+      });
+
+      return res.json({
+        status: "success",
+        summary: change.summary,
+        planChange: {
+          currentPackage: broker.package,
+          package: change.package,
+          domainType: change.domain_type,
+          subdomain: change.subdomain,
+          customDomain: change.custom_domain,
+        },
+      });
+    }
+
     res.json({ status: "success", summary: buildOrderSummary(broker) });
   } catch (error) {
+    if (error.status) {
+      return res
+        .status(error.status)
+        .json({ status: "error", error: error.message, reason: error.reason });
+    }
     next(error);
   }
 };

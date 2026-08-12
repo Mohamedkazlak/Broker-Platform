@@ -14,6 +14,7 @@ import {
   Menu,
   BadgeCheck,
   KeyRound,
+  Undo2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { ViewBrokerWebsiteButton } from "@/components/dashboard/ViewBrokerWebsit
 import { CopyBrokerLinkButton } from "@/components/dashboard/CopyBrokerLinkButton";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { SocialLinksNudge } from "@/components/dashboard/SocialLinksNudge";
+import { PlanChangeStatus } from "@/components/dashboard/PlanChangeStatus";
 import { useToast } from "@/hooks/use-toast";
 import {
   computeMonthlyRevenue,
@@ -46,6 +48,15 @@ import {
   translatedStatus,
 } from "@/utils/propertyLabels";
 
+type StatusAction = "sold" | "rented" | "active";
+type StatusActionKind = "sold" | "not_sold" | "rented" | "not_rented";
+
+interface PendingStatusChange {
+  property: Property;
+  status: StatusAction;
+  kind: StatusActionKind;
+}
+
 function statusBadgeClass(status: string) {
   if (status === "active") return "border-green-500 text-green-600";
   if (status === "sold") return "border-blue-500 text-blue-600";
@@ -53,15 +64,34 @@ function statusBadgeClass(status: string) {
   return "border-yellow-500 text-yellow-600";
 }
 
+function statusActionCopyKey(
+  kind: StatusActionKind,
+  part: "Confirm" | "Success",
+) {
+  switch (kind) {
+    case "sold":
+      return `overview.rowActions.markAsSold${part}`;
+    case "not_sold":
+      return `overview.rowActions.markAsNotSold${part}`;
+    case "rented":
+      return `overview.rowActions.markAsRented${part}`;
+    case "not_rented":
+      return `overview.rowActions.markAsNotRented${part}`;
+  }
+}
+
 export default function Dashboard() {
   const { profile, isLoading } = useAuth();
   const { t, i18n } = useTranslation("dashboard");
   const { t: tProperty } = useTranslation("property");
+  const { t: tCommon } = useTranslation("common");
   const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [pendingStatusChange, setPendingStatusChange] =
+    useState<PendingStatusChange | null>(null);
   const activeCount = properties.filter((p) => p.status === "active").length;
   const totalCount = properties.length;
   const activePct =
@@ -145,17 +175,17 @@ export default function Dashboard() {
       p.location.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const markPropertyStatus = async (
+  const requestStatusChange = (
     property: Property,
-    status: "sold" | "rented",
+    status: StatusAction,
+    kind: StatusActionKind,
   ) => {
-    const confirmKey =
-      status === "sold"
-        ? "overview.rowActions.markAsSoldConfirm"
-        : "overview.rowActions.markAsRentedConfirm";
-    if (!window.confirm(t(confirmKey, { title: property.title }))) {
-      return;
-    }
+    setPendingStatusChange({ property, status, kind });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+    const { property, status, kind } = pendingStatusChange;
 
     setUpdatingId(property.id);
     try {
@@ -168,12 +198,9 @@ export default function Dashboard() {
         ),
       );
       toast({
-        title: t(
-          status === "sold"
-            ? "overview.rowActions.markAsSoldSuccess"
-            : "overview.rowActions.markAsRentedSuccess",
-        ),
+        title: t(statusActionCopyKey(kind, "Success")),
       });
+      setPendingStatusChange(null);
     } catch (e) {
       console.error(e);
       toast({
@@ -235,6 +262,7 @@ export default function Dashboard() {
 
         {/* Content */}
         <div className="p-4 lg:p-8 space-y-8">
+          <PlanChangeStatus />
           <SocialLinksNudge />
 
           {/* Stats Grid */}
@@ -256,31 +284,29 @@ export default function Dashboard() {
                       {stat.change}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <stat.icon className="w-6 h-6 text-primary" />
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <stat.icon className="w-5 h-5 text-primary" />
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Properties Table */}
+          {/* Recent Properties */}
           <div className="bg-card rounded-xl border border-border shadow-card">
-            <div className="p-4 lg:p-6 border-b border-border">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="font-display text-lg font-semibold text-foreground">
-                  {t("overview.recentPropertiesHeading")}
-                </h2>
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder={t("overview.searchPlaceholder")}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="ps-9"
-                  />
-                </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 lg:p-6 border-b border-border">
+              <h2 className="font-display text-lg font-semibold text-foreground">
+                {t("overview.recentPropertiesHeading")}
+              </h2>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder={t("overview.searchPlaceholder")}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="ps-9"
+                />
               </div>
             </div>
 
@@ -296,6 +322,12 @@ export default function Dashboard() {
                     </th>
                     <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3">
                       {t("overview.table.price")}
+                    </th>
+                    <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden sm:table-cell">
+                      {t("overview.table.beds")}
+                    </th>
+                    <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden lg:table-cell">
+                      {t("overview.table.area")}
                     </th>
                     <th className="text-start text-sm font-medium text-muted-foreground px-4 lg:px-6 py-3 hidden lg:table-cell">
                       {t("overview.table.status")}
@@ -347,13 +379,23 @@ export default function Dashboard() {
                         </Badge>
                       </td>
                       <td className="px-4 lg:px-6 py-4">
-                        <span className="font-medium text-foreground tabular-nums">
+                        <span className="font-medium text-foreground">
                           {formatPrice(
                             property.price,
                             property.currency,
                             property.property_type,
                           )}
                         </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 hidden sm:table-cell text-muted-foreground">
+                        {property.bedrooms ?? "-"}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 hidden lg:table-cell text-muted-foreground">
+                        {property.area_sqft
+                          ? `${property.area_sqft.toLocaleString(
+                              i18n.language === "ar" ? "ar-EG" : "en-US",
+                            )} ${tProperty("listing.areaUnit")}`
+                          : "-"}
                       </td>
                       <td className="px-4 lg:px-6 py-4 hidden lg:table-cell">
                         <Badge
@@ -394,22 +436,60 @@ export default function Dashboard() {
                               property.status !== "sold" && (
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    markPropertyStatus(property, "sold")
+                                    requestStatusChange(
+                                      property,
+                                      "sold",
+                                      "sold",
+                                    )
                                   }
                                 >
                                   <BadgeCheck className="w-4 h-4 me-2" />
                                   {t("overview.rowActions.markAsSold")}
                                 </DropdownMenuItem>
                               )}
+                            {property.property_type === "sale" &&
+                              property.status === "sold" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    requestStatusChange(
+                                      property,
+                                      "active",
+                                      "not_sold",
+                                    )
+                                  }
+                                >
+                                  <Undo2 className="w-4 h-4 me-2" />
+                                  {t("overview.rowActions.markAsNotSold")}
+                                </DropdownMenuItem>
+                              )}
                             {property.property_type === "rent" &&
                               property.status !== "rented" && (
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    markPropertyStatus(property, "rented")
+                                    requestStatusChange(
+                                      property,
+                                      "rented",
+                                      "rented",
+                                    )
                                   }
                                 >
                                   <KeyRound className="w-4 h-4 me-2" />
                                   {t("overview.rowActions.markAsRented")}
+                                </DropdownMenuItem>
+                              )}
+                            {property.property_type === "rent" &&
+                              property.status === "rented" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    requestStatusChange(
+                                      property,
+                                      "active",
+                                      "not_rented",
+                                    )
+                                  }
+                                >
+                                  <Undo2 className="w-4 h-4 me-2" />
+                                  {t("overview.rowActions.markAsNotRented")}
                                 </DropdownMenuItem>
                               )}
                             <DropdownMenuSeparator />
@@ -456,6 +536,46 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      {pendingStatusChange && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="status-confirm-title"
+            className="w-full max-w-md rounded-xl bg-card border border-border shadow-lg p-6"
+          >
+            <h3
+              id="status-confirm-title"
+              className="font-display text-lg font-semibold text-foreground"
+            >
+              {t("overview.rowActions.confirmTitle")}
+            </h3>
+            <p className="text-muted-foreground mt-2">
+              {t(statusActionCopyKey(pendingStatusChange.kind, "Confirm"), {
+                title: pendingStatusChange.property.title,
+              })}
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setPendingStatusChange(null)}
+                disabled={updatingId === pendingStatusChange.property.id}
+              >
+                {tCommon("actions.cancel")}
+              </Button>
+              <Button
+                onClick={confirmStatusChange}
+                disabled={updatingId === pendingStatusChange.property.id}
+              >
+                {updatingId === pendingStatusChange.property.id
+                  ? tCommon("actions.updating")
+                  : t("overview.rowActions.confirm")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

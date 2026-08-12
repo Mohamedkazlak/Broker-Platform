@@ -16,7 +16,7 @@
     "comingSoon": "قريباً"
   },
   "login": {
-    "title": "تسجيل دخول المشرف",
+    "title": "تسجيل دخول الأدمن",
     "subtitle": "الدخول مخصص لإدارة المنصة فقط.",
     "email": "البريد الإلكتروني",
     "password": "كلمة المرور",
@@ -33,8 +33,8 @@
     "totalBrokers": "إجمالي الوسطاء",
     "activeBrokers": "الوسطاء النشطون",
     "pendingBrokers": "الوسطاء قيد الانتظار",
-    "pastDueBrokers": "الوسطاء متأخرو السداد",
-    "newThisMonth": "الجدد هذا الشهر",
+    "pastDueBrokers": "الوسطاء المتأخرون في السداد",
+    "newThisMonth": "الوسطاء الجدد هذا الشهر",
     "pendingInstapayReviews": "مراجعات إنستاباي المعلقة",
     "unreadMessages": "الرسائل غير المقروءة"
   },
@@ -99,9 +99,9 @@
       "plan": "الباقة",
       "status": "الحالة",
       "signupDate": "تاريخ التسجيل",
-      "billingAmount": "مبلغ الفوترة",
-      "nextBillingDate": "تاريخ الفوترة التالي",
-      "daysUntilPayment": "الأيام حتى الدفعة"
+      "billingAmount": "مبلغ الفاتورة",
+      "nextBillingDate": "تاريخ الفاتورة التالي",
+      "daysUntilPayment": "الأيام حتى الدفع"
     }
   },
   "placeholders": {
@@ -138,6 +138,7 @@
     "actionErrorDescription": "تعذّر تحديث هذا الطلب. يرجى المحاولة مرة أخرى.",
     "table": {
       "broker": "الوسيط",
+      "plan": "الباقة",
       "amount": "المبلغ",
       "submitted": "تاريخ الإرسال",
       "receipt": "الإيصال",

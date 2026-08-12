@@ -1,7 +1,8 @@
 import crypto from "crypto";
 import { brokerModel } from "../models/brokerModel.js";
 import { paymentModel } from "../models/paymentModel.js";
-import { activateSubscription, buildOrderSummary } from "./brokerController.js";
+import { applyPlanChange, resolvePlanChange } from "../services/subscription.js";
+import { buildOrderSummary } from "../utils/orderSummary.js";
 import {
   assertRegistrationFormData,
   buildRegistrationOrderSummary,
@@ -89,20 +90,32 @@ async function checkoutForBroker(req, res, brokerId) {
     return res.status(404).json({ status: "error", error: "Broker not found" });
   }
 
-  if (broker.package === "free") {
-    return res
-      .status(400)
-      .json({ status: "error", error: "The Free plan doesn't require payment" });
-  }
+  // An upgrade / downgrade names the plan (and optionally the domain) it is
+  // paying for; without one this is the normal "pay for the plan already on my
+  // row" case.
+  const change = await resolvePlanChange(broker, {
+    package: req.body?.package,
+    packageCategory: req.body?.packageCategory,
+    domain: req.body?.domain,
+  });
 
-  if (broker.subscription_status === "active") {
-    return res
-      .status(400)
-      .json({ status: "error", error: "Subscription is already active" });
+  if (!change) {
+    if (broker.package === "free") {
+      return res.status(400).json({
+        status: "error",
+        error: "The Free plan doesn't require payment",
+      });
+    }
+
+    if (broker.subscription_status === "active") {
+      return res
+        .status(400)
+        .json({ status: "error", error: "Subscription is already active" });
+    }
   }
 
   const returnUrl = buildReturnUrl(req.body?.returnPath);
-  const summary = buildOrderSummary(broker);
+  const summary = change ? change.summary : buildOrderSummary(broker);
 
   const orderId = `bp_${crypto.randomUUID()}`;
   const { token, hash } = createClaimToken();
@@ -124,11 +137,16 @@ async function checkoutForBroker(req, res, brokerId) {
   const created = await paymentModel.create({
     orderId,
     brokerId,
-    package: broker.package,
-    packageCategory: broker.package_category,
+    package: change?.package ?? broker.package,
+    packageCategory: change?.packageCategory ?? broker.package_category,
     amount: summary.total,
     currency: summary.currency,
     claimTokenHash: hash,
+    // Only set for a plan change — the webhook switches the broker over to
+    // these once the payment clears.
+    requestedDomainType: change?.domain_type ?? null,
+    requestedSubdomain: change?.subdomain ?? null,
+    requestedCustomDomain: change?.custom_domain ?? null,
   });
   await paymentModel.update(created.id, {
     session_id: session.session_id,
@@ -207,6 +225,27 @@ async function checkoutForDraft(req, res) {
   });
 
   res.json({ status: "success", payUrl: session.pay_url, claimToken: token });
+}
+
+/**
+ * The plan + domain a completed session paid for. Sessions created before plan
+ * changes existed have no requested_* values, so they fall back to the broker's
+ * own — making approval a plain activation.
+ */
+async function planChangeFromSession(session) {
+  const broker = await brokerModel.findById(session.broker_id);
+  const domainType = session.requested_domain_type ?? broker.domain_type;
+  const customDomain =
+    session.requested_custom_domain ?? broker.custom_domain ?? null;
+  const wantsCustom = domainType === "custom" && !!customDomain;
+
+  return {
+    package: session.package ?? broker.package,
+    packageCategory: session.package_category ?? broker.package_category,
+    domain_type: wantsCustom ? "custom" : "subdomain",
+    subdomain: session.requested_subdomain ?? broker.subdomain,
+    custom_domain: wantsCustom ? customDomain : null,
+  };
 }
 
 function buildLineItems(summary) {
@@ -340,8 +379,7 @@ export const handleWebhook = async (req, res) => {
       let brokerId = session.broker_id;
 
       if (brokerId) {
-        await activateSubscription(brokerId, {
-          package: session.package,
+        await applyPlanChange(brokerId, await planChangeFromSession(session), {
           billingAmount: Number(amount),
         });
       } else {

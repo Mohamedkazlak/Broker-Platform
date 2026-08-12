@@ -586,10 +586,11 @@ const DashboardSettings = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="domain">{t("settings.domain")}</Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" dir="ltr">
                 <Input
                   id="domain"
                   dir="ltr"
+                  className="text-start"
                   value={platformForm.domain}
                   disabled={!canCustomizeSubdomain}
                   onChange={(e) =>
@@ -601,7 +602,10 @@ const DashboardSettings = () => {
                     }))
                   }
                 />
-                <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                <span
+                  className="text-sm text-muted-foreground font-medium whitespace-nowrap"
+                  dir="ltr"
+                >
                   {t("settings.subdomain.suffix")}
                 </span>
               </div>

@@ -30,6 +30,7 @@ import {
   hasOnboardingDraft,
   updateOnboardingDraft,
 } from "@/lib/onboardingDraft";
+import { getPlanChangeDraft, updatePlanChangeDraft } from "@/lib/planChange";
 
 type DomainMode = "subdomain" | "custom";
 
@@ -59,6 +60,12 @@ export default function DomainSetup() {
 
   const brokerId = profile?.broker_id;
   const isDraftFlow = !brokerId && hasOnboardingDraft();
+
+  // Upgrade / downgrade in progress: the domain belongs to the pending change,
+  // not to the account, so it's held in the draft until the payment for it
+  // clears instead of being saved onto the broker here.
+  const [planChange] = useState(() => getPlanChangeDraft());
+  const isPlanChange = !!brokerId && !!planChange;
 
   useEffect(() => {
     if (isDraftFlow) {
@@ -97,7 +104,7 @@ export default function DomainSetup() {
         const broker = data?.data;
         if (!active) return;
 
-        if (broker?.package === "free") {
+        if (!isPlanChange && broker?.package === "free") {
           navigate("/select-plan", { replace: true });
           return;
         }
@@ -107,10 +114,32 @@ export default function DomainSetup() {
           ? ""
           : rawSubdomain;
 
-        setSelectedPackage(broker?.package ?? null);
+        // Capabilities follow the plan being bought, not the one being left.
+        setSelectedPackage(planChange?.package ?? broker?.package ?? null);
         setCurrentSubdomain(resolvedSubdomain);
-        setSubdomainValue(resolvedSubdomain);
-        setMode(broker?.domain_type === "custom" ? "custom" : "subdomain");
+
+        const chosen = planChange?.domain;
+        if (chosen?.domain_type === "custom" && chosen.custom_domain) {
+          setMode("custom");
+          const [name, ...tldParts] = chosen.custom_domain.split(".");
+          setCustomName(name ?? "");
+          if (tldParts.length) setCustomTld(tldParts.join("."));
+          setSubdomainValue(resolvedSubdomain);
+        } else {
+          setSubdomainValue(chosen?.subdomain ?? resolvedSubdomain);
+          setMode(
+            !chosen && broker?.domain_type === "custom"
+              ? "custom"
+              : "subdomain",
+          );
+          if (!chosen && broker?.domain_type === "custom") {
+            const [name, ...tldParts] = String(
+              broker.custom_domain ?? "",
+            ).split(".");
+            setCustomName(name ?? "");
+            if (tldParts.length) setCustomTld(tldParts.join("."));
+          }
+        }
         setIsLoading(false);
       } catch (err) {
         console.error("Error loading broker:", err);
@@ -126,7 +155,7 @@ export default function DomainSetup() {
     return () => {
       active = false;
     };
-  }, [isDraftFlow, brokerId, navigate, t, toast]);
+  }, [isDraftFlow, isPlanChange, planChange, brokerId, navigate, t, toast]);
 
   // Custom domains are a per-plan capability (Max and Ultra today). The server
   // rejects them on other plans, so don't offer the option there at all.
@@ -210,6 +239,14 @@ export default function DomainSetup() {
       return;
     }
 
+    // Plan change: the domain moves with the plan, so it stays in the draft
+    // until the payment behind it is confirmed.
+    if (isPlanChange) {
+      updatePlanChangeDraft({ domain: payload });
+      navigate("/payment");
+      return;
+    }
+
     try {
       await api.patch(`/brokers/${brokerId}`, payload);
       navigate("/payment");
@@ -279,11 +316,12 @@ export default function DomainSetup() {
                   <Label htmlFor="subdomain">
                     {t("domainSetup.subdomain.label")}
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" dir="ltr">
                     <Input
                       id="subdomain"
                       value={subdomainValue}
                       dir="ltr"
+                      className="text-start"
                       onChange={(e) =>
                         setSubdomainValue(
                           e.target.value
@@ -292,7 +330,10 @@ export default function DomainSetup() {
                         )
                       }
                     />
-                    <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+                    <span
+                      className="text-sm text-muted-foreground font-medium whitespace-nowrap"
+                      dir="ltr"
+                    >
                       {t("domainSetup.subdomain.suffix")}
                     </span>
                   </div>
@@ -337,11 +378,15 @@ export default function DomainSetup() {
                     <Label htmlFor="customName">
                       {t("domainSetup.custom.label")}
                     </Label>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div
+                      className="flex flex-wrap items-center gap-2"
+                      dir="ltr"
+                    >
                       <Input
                         id="customName"
                         value={customName}
                         dir="ltr"
+                        className="text-start"
                         placeholder={t("domainSetup.custom.namePlaceholder")}
                         onChange={(e) =>
                           setCustomName(

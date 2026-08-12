@@ -1,3 +1,5 @@
+import api from "@/lib/api";
+
 /** Platform Instapay account shown on the manual payment QR step. */
 export const INSTAPAY_ACCOUNT = {
   handle: "mohamadkazlak@instapay",
@@ -16,9 +18,7 @@ export const INSTAPAY_ALLOWED_MIME = [
 const CLAIM_TOKEN_KEY = "instapay_claim_token";
 
 export type InstapaySubmissionStatus =
-  | "pending_review"
-  | "approved"
-  | "rejected";
+  "pending_review" | "approved" | "rejected";
 
 export interface InstapayReceiptPayload {
   data: string;
@@ -75,4 +75,47 @@ export function clearInstapayClaimToken() {
 
 export function hasInstapayClaimToken(): boolean {
   return Boolean(sessionStorage.getItem(CLAIM_TOKEN_KEY));
+}
+
+/** The broker's own latest receipt, as returned by GET /instapay/my-submission. */
+export interface MyInstapaySubmission {
+  id: string;
+  status: InstapaySubmissionStatus;
+  amount: number;
+  currency: string;
+  rejectionReason: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  /** Plan this payment buys — differs from `currentPackage` on a plan change. */
+  requestedPackage: string | null;
+  currentPackage: string | null;
+}
+
+export async function fetchMyInstapaySubmission(): Promise<MyInstapaySubmission | null> {
+  const { data } = await api.get<{ data: MyInstapaySubmission | null }>(
+    "/instapay/my-submission",
+  );
+  return data?.data ?? null;
+}
+
+/**
+ * A rejected receipt has nothing left to poll, so the only way to stop showing
+ * it is for the broker to acknowledge it.
+ */
+const DISMISSED_REJECTION_KEY = "instapay_dismissed_rejection";
+
+export function dismissInstapayRejection(submissionId: string) {
+  try {
+    localStorage.setItem(DISMISSED_REJECTION_KEY, submissionId);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isInstapayRejectionDismissed(submissionId: string): boolean {
+  try {
+    return localStorage.getItem(DISMISSED_REJECTION_KEY) === submissionId;
+  } catch {
+    return false;
+  }
 }

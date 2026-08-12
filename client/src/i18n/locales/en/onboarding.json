@@ -70,6 +70,13 @@
       "title": "Payment Successful",
       "description": "Your platform is now active. Next, personalize your homepage with your own icon and background.",
       "continue": "Continue to customization"
+    },
+    "planChange": {
+      "heading": "Confirm your new plan",
+      "subheading": "You're moving from {{from}} to {{to}}. Your current plan stays active until this payment goes through.",
+      "successTitle": "Your plan has been updated",
+      "successDescription": "Your new plan is active and your next billing cycle starts today.",
+      "backToDashboard": "Back to dashboard"
     }
   },
   "instapay": {
@@ -96,6 +103,8 @@
       "submit": "Submit for review",
       "submitting": "Submitting…",
       "back": "Back",
+      "planChangeSubmittedTitle": "Receipt received",
+      "planChangeSubmittedDescription": "We'll review your payment and switch your plan over once it's approved. Your current plan keeps working until then.",
       "submitFailed": "Couldn't upload your receipt. Please try again.",
       "invalidTitle": "Invalid image",
       "errors": {

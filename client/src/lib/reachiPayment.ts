@@ -35,10 +35,25 @@ interface DraftCheckoutParams {
   returnPath: string;
 }
 
-/** Existing, authenticated broker paying for their currently-selected plan. */
-export async function createBrokerCheckoutSession(returnPath: string) {
+interface PlanChangeParams {
+  package: PlanId;
+  packageCategory?: PackageCategory;
+  domain?: OnboardingDomainChoice;
+}
+
+/**
+ * Existing, authenticated broker paying for a plan. With no `planChange` that
+ * means the plan already on their row (finishing onboarding, or paying again
+ * after a lapse); with one it's an upgrade / downgrade, which only takes effect
+ * when the webhook confirms the payment.
+ */
+export async function createBrokerCheckoutSession(
+  returnPath: string,
+  planChange?: PlanChangeParams,
+) {
   const { data } = await api.post<CheckoutResponse>("/payments/checkout", {
     returnPath,
+    ...(planChange ?? {}),
   });
   return data;
 }

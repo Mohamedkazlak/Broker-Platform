@@ -1,7 +1,11 @@
 import crypto from "crypto";
 import { brokerModel } from "../models/brokerModel.js";
 import { instapayModel } from "../models/instapayModel.js";
-import { activateSubscription } from "./brokerController.js";
+import {
+  applyPlanChange,
+  resolvePlanChange,
+} from "../services/subscription.js";
+import { buildOrderSummary } from "../utils/orderSummary.js";
 import {
   assertRegistrationFormData,
   buildRegistrationOrderSummary,
@@ -11,7 +15,6 @@ import {
 } from "./authController.js";
 import { supabaseAdmin } from "../config/supabase.js";
 import { PLANS_BY_ID } from "../config/plans.js";
-import { priceForDomain, DOMAIN_CURRENCY } from "../config/domains.js";
 import {
   encryptRegistrationPayload,
   decryptRegistrationPayload,
@@ -24,24 +27,6 @@ import {
   INSTAPAY_RECEIPT_BUCKET,
   INSTAPAY_RECEIPT_MAX_BYTES,
 } from "../config/instapay.js";
-
-function buildOrderSummary(broker) {
-  const plan = PLANS_BY_ID[broker.package] ?? null;
-  const planPrice = plan?.price ?? 0;
-  const isCustom = broker.domain_type === "custom" && !!broker.custom_domain;
-  const domainPrice = isCustom ? priceForDomain(broker.custom_domain) : 0;
-
-  return {
-    package: broker.package,
-    planName: plan?.name ?? broker.package,
-    planPrice,
-    currency: plan?.currency ?? DOMAIN_CURRENCY,
-    domainType: broker.domain_type,
-    customDomain: isCustom ? broker.custom_domain : null,
-    domainPrice,
-    total: planPrice + domainPrice,
-  };
-}
 
 function decodeReceiptBase64(receipt) {
   if (!receipt || typeof receipt !== "object") {
@@ -148,7 +133,33 @@ function toSubmissionDto(
     reviewedAt: row.reviewed_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    // What this payment buys. For an existing broker changing plans these are
+    // the *requested* values, which only reach the broker row on approval.
+    requestedPackage: row.package ?? null,
+    requestedDomainType: row.domain_type ?? null,
+    requestedSubdomain: row.reserved_subdomain ?? null,
+    requestedCustomDomain: row.reserved_custom_domain ?? null,
     ...(includeReceiptUrl ? { receiptUrl } : {}),
+  };
+}
+
+/**
+ * The plan + domain an approval should switch the broker to, read back off the
+ * submission. Falls back to the broker's own values so submissions created
+ * before plan changes existed (where these columns just mirrored the broker)
+ * still approve as a plain activation.
+ */
+function planChangeFromSubmission(submission, broker) {
+  const domainType = submission.domain_type ?? broker.domain_type;
+  const customDomain =
+    submission.reserved_custom_domain ?? broker.custom_domain ?? null;
+  const wantsCustom = domainType === "custom" && !!customDomain;
+
+  return {
+    package: submission.package ?? broker.package,
+    domain_type: wantsCustom ? "custom" : "subdomain",
+    subdomain: submission.reserved_subdomain ?? broker.subdomain,
+    custom_domain: wantsCustom ? customDomain : null,
   };
 }
 
@@ -196,8 +207,10 @@ export const getAccount = async (_req, res) => {
  *
  * Draft signup (no account yet):
  *   Body: { receipt, formData, package, domain }
- * Existing broker upgrade (Authorization Bearer):
+ * Existing broker, finishing onboarding or renewing (Authorization Bearer):
  *   Body: { receipt }
+ * Existing broker, upgrading / downgrading (Authorization Bearer):
+ *   Body: { receipt, package, packageCategory, domain }
  */
 export const submitReceipt = async (req, res, next) => {
   try {
@@ -228,18 +241,29 @@ async function submitReceiptForBroker(req, res, brokerId) {
     return res.status(404).json({ status: "error", error: "Broker not found" });
   }
 
-  if (broker.package === "free") {
-    return res.status(400).json({
-      status: "error",
-      error: "Instapay is only available for paid plans",
-    });
-  }
+  // An upgrade / downgrade sends the plan (and optionally the domain) it is
+  // paying for; without one this is the normal "finish paying for the plan
+  // already on my row" case.
+  const change = await resolvePlanChange(broker, {
+    package: req.body?.package,
+    packageCategory: req.body?.packageCategory,
+    domain: req.body?.domain,
+  });
 
-  if (broker.subscription_status === "active") {
-    return res.status(400).json({
-      status: "error",
-      error: "Subscription is already active",
-    });
+  if (!change) {
+    if (broker.package === "free") {
+      return res.status(400).json({
+        status: "error",
+        error: "Instapay is only available for paid plans",
+      });
+    }
+
+    if (broker.subscription_status === "active") {
+      return res.status(400).json({
+        status: "error",
+        error: "Subscription is already active",
+      });
+    }
   }
 
   const existingPending = await instapayModel.findPendingForBroker(brokerId);
@@ -252,7 +276,7 @@ async function submitReceiptForBroker(req, res, brokerId) {
   }
 
   const { buffer, mimeType, ext } = decodeReceiptBase64(req.body?.receipt);
-  const summary = buildOrderSummary(broker);
+  const summary = change ? change.summary : buildOrderSummary(broker);
   const { token, hash } = createClaimToken();
   const receiptPath = await uploadReceipt(brokerId, buffer, mimeType, ext);
 
@@ -269,23 +293,38 @@ async function submitReceiptForBroker(req, res, brokerId) {
       platformName: broker.platform_name,
       contactName:
         `${broker.first_name ?? ""} ${broker.last_name ?? ""}`.trim() || null,
-      package: broker.package,
-      reservedSubdomain: broker.subdomain,
-      reservedCustomDomain: broker.custom_domain,
-      domainType: broker.domain_type,
+      package: change?.package ?? broker.package,
+      reservedSubdomain: change?.subdomain ?? broker.subdomain,
+      reservedCustomDomain: change
+        ? change.custom_domain
+        : broker.custom_domain,
+      domainType: change?.domain_type ?? broker.domain_type,
     });
   } catch (err) {
     await removeReceipt(receiptPath);
     if (err?.code === "23505") {
+      // Someone else's pending payment claimed the domain between validation
+      // and insert — the only unique conflict that isn't about this broker.
+      const collidedOnDomain = /subdomain|custom_domain/.test(
+        `${err.message ?? ""}${err.details ?? ""}`,
+      );
       return res.status(409).json({
         status: "error",
-        error: "A payment is already awaiting review",
+        error: collidedOnDomain
+          ? "That domain is no longer available"
+          : "A payment is already awaiting review",
+        reason: collidedOnDomain ? "taken" : undefined,
       });
     }
     throw err;
   }
 
-  if (broker.subscription_status !== "pending") {
+  // A broker with a live subscription keeps it (and their current plan) while
+  // the receipt is reviewed — only an unpaid subscription waits as 'pending'.
+  if (
+    broker.subscription_status !== "active" &&
+    broker.subscription_status !== "pending"
+  ) {
     await brokerModel.update(brokerId, { subscription_status: "pending" });
   }
 
@@ -294,6 +333,9 @@ async function submitReceiptForBroker(req, res, brokerId) {
     data: toSubmissionDto(submission),
     subdomain: broker.subdomain,
     claimToken: token,
+    // Tells the client to send them back to their dashboard instead of the
+    // onboarding "waiting for approval" screen.
+    planChange: !!change,
   });
 }
 
@@ -490,6 +532,39 @@ export const getStatus = async (req, res, next) => {
 };
 
 /**
+ * GET /api/instapay/my-submission
+ * Authenticated — the broker's own most recent submission, so the dashboard can
+ * show "payment awaiting review" (or why it was rejected) without a claim token.
+ */
+export const getMySubmission = async (req, res, next) => {
+  try {
+    const brokerId = await resolveBrokerIdFromAuth(req);
+    if (!brokerId) {
+      return res
+        .status(401)
+        .json({ status: "error", error: "Authentication required" });
+    }
+
+    const submission = await instapayModel.findLatestForBroker(brokerId);
+    if (!submission) {
+      return res.json({ status: "success", data: null });
+    }
+
+    const broker = await brokerModel.findById(brokerId);
+
+    res.json({
+      status: "success",
+      data: {
+        ...toSubmissionDto(submission),
+        currentPackage: broker?.package ?? null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/admin/instapay
  */
 export const adminListSubmissions = async (req, res, next) => {
@@ -633,10 +708,14 @@ export const adminReviewSubmission = async (req, res, next) => {
         reviewed_at: now,
       });
     } else {
-      await activateSubscription(broker.id, {
-        package: broker.package,
-        billingAmount: Number(submission.amount),
-      });
+      // Applies the plan / domain this receipt paid for — for a plain
+      // activation those values are the broker's own, so it just activates.
+      const updatedBroker = await applyPlanChange(
+        broker.id,
+        planChangeFromSubmission(submission, broker),
+        { billingAmount: Number(submission.amount) },
+      );
+      subdomain = updatedBroker.subdomain;
 
       await instapayModel.update(submission.id, {
         status: "approved",

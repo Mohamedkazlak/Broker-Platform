@@ -26,6 +26,13 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { Property } from "@/components/properties/PropertyCard";
 import { propertyService } from "@/services/propertyService";
@@ -39,12 +46,49 @@ import {
   listClosedDeals,
 } from "@/utils/formatRevenue";
 
+type ChartPeriod =
+  | "currentMonth"
+  | "lastMonth"
+  | "last3Months"
+  | "last6Months"
+  | "lastYear";
+
+const CHART_PERIODS: ChartPeriod[] = [
+  "currentMonth",
+  "lastMonth",
+  "last3Months",
+  "last6Months",
+  "lastYear",
+];
+
+function seriesForPeriod(properties: Property[], period: ChartPeriod) {
+  const now = new Date();
+  switch (period) {
+    case "currentMonth":
+      return computeMonthlyRevenueSeries(properties, 1, now);
+    case "lastMonth":
+      return computeMonthlyRevenueSeries(
+        properties,
+        1,
+        new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      );
+    case "last3Months":
+      return computeMonthlyRevenueSeries(properties, 3, now);
+    case "last6Months":
+      return computeMonthlyRevenueSeries(properties, 6, now);
+    case "lastYear":
+    default:
+      return computeMonthlyRevenueSeries(properties, 12, now);
+  }
+}
+
 export default function DashboardRevenue() {
   const { profile, isLoading } = useAuth();
   const { t, i18n } = useTranslation("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("lastYear");
 
   useEffect(() => {
     if (!profile?.broker_id) return;
@@ -76,8 +120,8 @@ export default function DashboardRevenue() {
     [properties],
   );
   const series = useMemo(
-    () => computeMonthlyRevenueSeries(properties, 12),
-    [properties],
+    () => seriesForPeriod(properties, chartPeriod),
+    [properties, chartPeriod],
   );
   const deals = useMemo(() => listClosedDeals(properties), [properties]);
 
@@ -249,10 +293,36 @@ export default function DashboardRevenue() {
 
           <Card className="shadow-card">
             <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">
-                {t("revenue.chartHeading")}
-              </CardTitle>
-              <CardDescription>{t("revenue.chartDescription")}</CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="space-y-1.5">
+                  <CardTitle className="font-display text-lg">
+                    {t(`revenue.chartPeriod.${chartPeriod}`)}
+                  </CardTitle>
+                  <CardDescription>
+                    {t("revenue.chartDescription")}
+                  </CardDescription>
+                </div>
+                <Select
+                  value={chartPeriod}
+                  onValueChange={(value) =>
+                    setChartPeriod(value as ChartPeriod)
+                  }
+                >
+                  <SelectTrigger
+                    className="w-full sm:w-[180px]"
+                    aria-label={t("revenue.chartPeriodLabel")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CHART_PERIODS.map((period) => (
+                      <SelectItem key={period} value={period}>
+                        {t(`revenue.chartPeriod.${period}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </CardHeader>
             <CardContent>
               {loadingData ? (

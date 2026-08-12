@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Building2,
@@ -11,6 +11,7 @@ import {
   Menu,
   BadgeCheck,
   KeyRound,
+  X,
 } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ import {
   translatedLocationArea,
   translatedStatus,
 } from "@/utils/propertyLabels";
+import { cn } from "@/lib/utils";
 
 function statusBadgeClass(status: string) {
   if (status === "active") return "border-green-500 text-green-600";
@@ -50,15 +52,65 @@ function statusBadgeClass(status: string) {
   return "border-yellow-500 text-yellow-600";
 }
 
+function FilterSelect({
+  value,
+  onValueChange,
+  placeholder,
+  children,
+  className,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Select value={value || undefined} onValueChange={onValueChange}>
+      <SelectTrigger className={cn("w-full sm:w-[180px]", className)}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>{children}</SelectContent>
+    </Select>
+  );
+}
+
+function FilterChip({
+  label,
+  onClear,
+  clearLabel,
+}: {
+  label: string;
+  onClear: () => void;
+  clearLabel: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1 text-sm text-secondary-foreground">
+      {label}
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={clearLabel}
+        className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </span>
+  );
+}
+
 export default function DashboardProperties() {
   const { profile, isLoading } = useAuth();
   const { t, i18n } = useTranslation("dashboard");
   const { t: tProperty } = useTranslation("property");
   const { t: tGov } = useTranslation("governorates");
+  const { t: tCommon } = useTranslation("common");
   const { toast } = useToast();
   const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState("all");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterCity, setFilterCity] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const localeNum = i18n.language === "ar" ? "ar-EG" : "en-US";
@@ -87,6 +139,48 @@ export default function DashboardProperties() {
     fetchProperties();
   }, [profile?.broker_id]);
 
+  const cityOptions = useMemo(() => {
+    const cities = new Set<string>();
+    for (const property of properties) {
+      if (property.city?.trim()) cities.add(property.city.trim());
+    }
+    return Array.from(cities).sort((a, b) => {
+      const labelA = translatedGovernorate(tGov, a) || a;
+      const labelB = translatedGovernorate(tGov, b) || b;
+      return labelA.localeCompare(labelB, i18n.language);
+    });
+  }, [properties, tGov, i18n.language]);
+
+  const handleTypeChange = (value: string) => {
+    setFilterType(value);
+    setFilterStatus("");
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setFilterType("");
+    setFilterStatus("");
+    setFilterCity("");
+  };
+
+  const statusFilterLabel =
+    filterStatus === "rented"
+      ? t("properties.filters.rented")
+      : filterStatus === "not_rented"
+        ? t("properties.filters.notRented")
+        : filterStatus === "sold"
+          ? t("properties.filters.sold")
+          : filterStatus === "not_sold"
+            ? t("properties.filters.notSold")
+            : "";
+
+  const activeTypeFilter =
+    filterType === "rent" || filterType === "sale" ? filterType : "";
+
+  const hasActiveFilters = Boolean(
+    searchQuery.trim() || activeTypeFilter || filterStatus || filterCity,
+  );
+
   const formatPrice = (
     price: number,
     currency: string,
@@ -106,9 +200,24 @@ export default function DashboardProperties() {
   const filteredProperties = properties.filter((p) => {
     const matchesSearch =
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === "all" || p.property_type === filterType;
-    return matchesSearch && matchesType;
+      p.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.city ?? "").toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType =
+      !filterType || filterType === "all" || p.property_type === filterType;
+    const matchesCity = !filterCity || p.city === filterCity;
+
+    let matchesStatus = true;
+    if (filterStatus === "rented") {
+      matchesStatus = p.property_type === "rent" && p.status === "rented";
+    } else if (filterStatus === "not_rented") {
+      matchesStatus = p.property_type === "rent" && p.status !== "rented";
+    } else if (filterStatus === "sold") {
+      matchesStatus = p.property_type === "sale" && p.status === "sold";
+    } else if (filterStatus === "not_sold") {
+      matchesStatus = p.property_type === "sale" && p.status !== "sold";
+    }
+
+    return matchesSearch && matchesType && matchesCity && matchesStatus;
   });
 
   const markPropertyStatus = async (
@@ -198,36 +307,129 @@ export default function DashboardProperties() {
 
         <div className="p-4 lg:p-8 space-y-6">
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder={t("properties.filters.searchPlaceholder")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="ps-9"
-              />
-            </div>
-
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue
-                  placeholder={t("properties.filters.typePlaceholder")}
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+              <div className="relative flex-1 min-w-[200px] max-w-md">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder={t("properties.filters.searchPlaceholder")}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="ps-9"
                 />
-              </SelectTrigger>
-              <SelectContent>
+              </div>
+
+              <FilterSelect
+                value={filterType}
+                onValueChange={handleTypeChange}
+                placeholder={t("properties.filters.typePlaceholder")}
+              >
                 <SelectItem value="all">
                   {t("properties.filters.allProperties")}
-                </SelectItem>
-                <SelectItem value="rent">
-                  {t("properties.filters.forRent")}
                 </SelectItem>
                 <SelectItem value="sale">
                   {t("properties.filters.forSale")}
                 </SelectItem>
-              </SelectContent>
-            </Select>
+                <SelectItem value="rent">
+                  {t("properties.filters.forRent")}
+                </SelectItem>
+              </FilterSelect>
+
+              {filterType === "rent" && (
+                <FilterSelect
+                  value={filterStatus}
+                  onValueChange={setFilterStatus}
+                  placeholder={t("properties.filters.statusPlaceholder")}
+                >
+                  <SelectItem value="rented">
+                    {t("properties.filters.rented")}
+                  </SelectItem>
+                  <SelectItem value="not_rented">
+                    {t("properties.filters.notRented")}
+                  </SelectItem>
+                </FilterSelect>
+              )}
+
+              {filterType === "sale" && (
+                <FilterSelect
+                  value={filterStatus}
+                  onValueChange={setFilterStatus}
+                  placeholder={t("properties.filters.statusPlaceholder")}
+                >
+                  <SelectItem value="sold">
+                    {t("properties.filters.sold")}
+                  </SelectItem>
+                  <SelectItem value="not_sold">
+                    {t("properties.filters.notSold")}
+                  </SelectItem>
+                </FilterSelect>
+              )}
+
+              <FilterSelect
+                value={filterCity}
+                onValueChange={setFilterCity}
+                placeholder={t("properties.filters.cityPlaceholder")}
+              >
+                {cityOptions.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {translatedGovernorate(tGov, city) || city}
+                  </SelectItem>
+                ))}
+              </FilterSelect>
+            </div>
+
+            {hasActiveFilters && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-muted-foreground">
+                  {t("properties.filters.activeFilters")}
+                </span>
+                {searchQuery.trim() && (
+                  <FilterChip
+                    label={`${t("properties.filters.searchChipPrefix")} ${searchQuery.trim()}`}
+                    onClear={() => setSearchQuery("")}
+                    clearLabel={t("properties.filters.clear")}
+                  />
+                )}
+                {activeTypeFilter && (
+                  <FilterChip
+                    label={
+                      activeTypeFilter === "rent"
+                        ? t("properties.filters.forRent")
+                        : t("properties.filters.forSale")
+                    }
+                    onClear={() => {
+                      setFilterType("all");
+                      setFilterStatus("");
+                    }}
+                    clearLabel={t("properties.filters.clear")}
+                  />
+                )}
+                {filterStatus && statusFilterLabel && (
+                  <FilterChip
+                    label={statusFilterLabel}
+                    onClear={() => setFilterStatus("")}
+                    clearLabel={t("properties.filters.clear")}
+                  />
+                )}
+                {filterCity && (
+                  <FilterChip
+                    label={
+                      translatedGovernorate(tGov, filterCity) || filterCity
+                    }
+                    onClear={() => setFilterCity("")}
+                    clearLabel={t("properties.filters.clear")}
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="text-sm text-accent hover:underline"
+                >
+                  {tCommon("actions.clearAll")}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Properties Table */}

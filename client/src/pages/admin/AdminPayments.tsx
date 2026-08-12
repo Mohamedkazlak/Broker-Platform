@@ -8,6 +8,7 @@ import { adminService, type InstapaySubmission } from "@/services/adminService";
 
 export default function AdminPayments() {
   const { t, i18n } = useTranslation("admin");
+  const { t: tPricing } = useTranslation("pricing");
   const { toast } = useToast();
 
   const [rows, setRows] = useState<InstapaySubmission[]>([]);
@@ -46,6 +47,26 @@ export default function AdminPayments() {
       dateStyle: "medium",
       timeStyle: "short",
     });
+
+  const planName = (id: string | null | undefined) =>
+    id ? tPricing(`plans.${id}.name`, { defaultValue: id }) : "—";
+
+  /**
+   * What approving this row actually does: activate the plan the broker is
+   * already on, or move them onto a different one.
+   */
+  const planLabel = (row: InstapaySubmission) => {
+    const current = row.broker?.plan ?? null;
+    const requested = row.requestedPackage ?? current;
+    if (!requested) return "—";
+    if (!current || current === requested) return planName(requested);
+    return `${planName(current)} → ${planName(requested)}`;
+  };
+
+  const domainLabel = (row: InstapaySubmission) =>
+    row.requestedDomainType === "custom" && row.requestedCustomDomain
+      ? row.requestedCustomDomain
+      : (row.requestedSubdomain ?? row.broker?.subdomain ?? null);
 
   const handleApprove = async (row: InstapaySubmission) => {
     setActionId(row.id);
@@ -125,6 +146,9 @@ export default function AdminPayments() {
                     {t("payments.table.broker")}
                   </th>
                   <th className="px-4 py-3 text-start font-medium">
+                    {t("payments.table.plan")}
+                  </th>
+                  <th className="px-4 py-3 text-start font-medium">
                     {t("payments.table.amount")}
                   </th>
                   <th className="px-4 py-3 text-start font-medium">
@@ -151,6 +175,19 @@ export default function AdminPayments() {
                       <div className="text-muted-foreground text-xs">
                         {row.broker?.email}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-foreground whitespace-nowrap">
+                        {planLabel(row)}
+                      </div>
+                      {domainLabel(row) && (
+                        <div
+                          className="text-muted-foreground text-xs"
+                          dir="ltr"
+                        >
+                          {domainLabel(row)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap tabular-nums">
                       {formatAmount(row.amount, row.currency)}
@@ -218,7 +255,7 @@ export default function AdminPayments() {
                 {t("payments.receiptPreview")}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {preview.broker?.platformName} ·{" "}
+                {preview.broker?.platformName} · {planLabel(preview)} ·{" "}
                 <span className="tabular-nums">
                   {formatAmount(preview.amount, preview.currency)}
                 </span>

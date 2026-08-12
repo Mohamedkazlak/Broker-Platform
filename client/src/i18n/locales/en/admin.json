@@ -138,6 +138,7 @@
     "actionErrorDescription": "Could not update this submission. Please try again.",
     "table": {
       "broker": "Broker",
+      "plan": "Plan",
       "amount": "Amount",
       "submitted": "Submitted",
       "receipt": "Receipt",
