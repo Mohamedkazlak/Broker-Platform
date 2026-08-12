@@ -1,11 +1,12 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import "./fonts";
 import "./index.css";
 
 import i18n, {
   readLanguageFromUrl,
   resolveInitialLanguage,
-  isRtl,
+  applyDocumentLanguageAttributes,
 } from "./i18n";
 
 // Ensure URL is always prefixed with the active language before React Router mounts,
@@ -19,8 +20,11 @@ if (!detectedLang) {
   window.history.replaceState(null, "", nextUrl);
 }
 
-document.documentElement.lang = activeLang;
-document.documentElement.dir = isRtl(activeLang) ? "rtl" : "ltr";
+// Sets lang/dir (and, alongside them, which font-family applies — see
+// applyDocumentLanguageAttributes) for the initial render. The same helper
+// is registered against i18next's languageChanged event so this stays in
+// sync if the language is ever changed without a full page reload.
+applyDocumentLanguageAttributes(activeLang);
 
 const BRAND_NAMES: Record<string, string> = {
   en: "Broker Platform",

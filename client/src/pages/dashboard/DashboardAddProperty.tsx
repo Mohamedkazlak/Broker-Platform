@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { propertyService } from "@/services/propertyService";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PropertyImage } from "@/components/properties/PropertyImage";
 import { AMENITY_KEYS, normalizeAmenityPersistedList } from "@/utils/amenities";
@@ -412,25 +413,28 @@ export default function DashboardAddProperty() {
       {/* Main Content */}
       <main className="flex-1 min-w-0">
         <header className="sticky top-0 z-30 bg-background border-b border-border px-4 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 text-foreground"
-              aria-label="menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/dashboard/properties">
-                <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
-                {t("addProperty.back")}
-              </Link>
-            </Button>
-            <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
-              {isEdit
-                ? t("addProperty.headingEdit")
-                : t("addProperty.headingAdd")}
-            </h1>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 text-foreground"
+                aria-label="menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/dashboard/properties">
+                  <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+                  {t("addProperty.back")}
+                </Link>
+              </Button>
+              <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground truncate">
+                {isEdit
+                  ? t("addProperty.headingEdit")
+                  : t("addProperty.headingAdd")}
+              </h1>
+            </div>
+            <LanguageSwitcher variant="outline" />
           </div>
         </header>
 

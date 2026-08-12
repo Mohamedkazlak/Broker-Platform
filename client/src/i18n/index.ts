@@ -105,6 +105,20 @@ export function isRtl(lang: string): boolean {
   return (RTL_LANGUAGES as readonly string[]).includes(lang);
 }
 
+/**
+ * Single source of truth for the document-level attributes that depend on
+ * the active language: `dir`, `lang`, and which typeface family applies
+ * (Inter for Latin copy, IBM Plex Sans Arabic for Arabic — see the
+ * `font-sans`/`font-ar` stacks in tailwind.config.ts and the
+ * `html[lang="ar"]` override in index.css). Called once on boot and again
+ * on every i18next `languageChanged` event so the fonts/direction stay in
+ * sync even if the language is changed without a full page reload.
+ */
+export function applyDocumentLanguageAttributes(lang: string): void {
+  document.documentElement.lang = lang;
+  document.documentElement.dir = isRtl(lang) ? "rtl" : "ltr";
+}
+
 const initialLng = resolveInitialLanguage();
 
 void i18n
@@ -139,5 +153,11 @@ void i18n
     },
     returnEmptyString: false,
   });
+
+// Keep dir/lang/font in sync with i18next's own notion of the active
+// language, not just the URL-driven boot sequence in main.tsx.
+i18n.on("languageChanged", (lng) => {
+  applyDocumentLanguageAttributes(lng);
+});
 
 export default i18n;

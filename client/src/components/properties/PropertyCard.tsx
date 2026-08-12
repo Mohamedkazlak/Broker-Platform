@@ -148,7 +148,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
         {/* Price */}
         <div className="absolute bottom-4 start-4">
-          <p className="text-2xl font-display font-bold text-white">
+          <p className="text-2xl font-display font-bold text-white tabular-nums">
             {formatPrice(
               property.price,
               property.currency,
@@ -195,7 +195,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
           {property.area_sqft !== null && (
             <div className="flex items-center gap-1.5">
               <Square className="w-4 h-4" />
-              <span className="text-sm">
+              <span className="text-sm tabular-nums">
                 {property.area_sqft.toLocaleString(localeNum)}{" "}
                 {t("listing.areaUnit")}
               </span>

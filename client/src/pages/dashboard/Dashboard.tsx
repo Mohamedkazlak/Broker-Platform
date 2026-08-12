@@ -32,6 +32,8 @@ import { PropertyImage } from "@/components/properties/PropertyImage";
 import { propertyService } from "@/services/propertyService";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { ViewBrokerWebsiteButton } from "@/components/dashboard/ViewBrokerWebsiteButton";
+import { CopyBrokerLinkButton } from "@/components/dashboard/CopyBrokerLinkButton";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { SocialLinksNudge } from "@/components/dashboard/SocialLinksNudge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -215,7 +217,9 @@ export default function Dashboard() {
                 {t("overview.heading")}
               </h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+              <CopyBrokerLinkButton />
+              <LanguageSwitcher variant="outline" />
               <ViewBrokerWebsiteButton />
               <Button variant="default" asChild>
                 <Link to="/dashboard/properties/new">
@@ -245,7 +249,7 @@ export default function Dashboard() {
                     <p className="text-sm text-muted-foreground">
                       {stat.label}
                     </p>
-                    <p className="text-2xl lg:text-3xl font-display font-bold text-foreground mt-1">
+                    <p className="text-2xl lg:text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                       {stat.value}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -343,7 +347,7 @@ export default function Dashboard() {
                         </Badge>
                       </td>
                       <td className="px-4 lg:px-6 py-4">
-                        <span className="font-medium text-foreground">
+                        <span className="font-medium text-foreground tabular-nums">
                           {formatPrice(
                             property.price,
                             property.currency,

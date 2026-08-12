@@ -4,6 +4,7 @@
     "dashboard": "لوحة التحكم",
     "brokers": "الوسطاء",
     "payments": "المدفوعات",
+    "messages": "الرسائل",
     "properties": "العقارات",
     "domains": "النطاقات"
   },
@@ -34,7 +35,8 @@
     "pendingBrokers": "الوسطاء قيد الانتظار",
     "pastDueBrokers": "الوسطاء متأخرو السداد",
     "newThisMonth": "الجدد هذا الشهر",
-    "pendingInstapayReviews": "مراجعات إنستاباي المعلقة"
+    "pendingInstapayReviews": "مراجعات إنستاباي المعلقة",
+    "unreadMessages": "الرسائل غير المقروءة"
   },
   "status": {
     "active": "نشط",
@@ -140,6 +142,52 @@
       "submitted": "تاريخ الإرسال",
       "receipt": "الإيصال",
       "actions": "إجراءات"
+    }
+  },
+  "messages": {
+    "heading": "رسائل التواصل",
+    "subheading": "راجع استفسارات نموذج تواصل معنا وأدرها.",
+    "searchPlaceholder": "ابحث بالاسم أو البريد الإلكتروني أو الموضوع...",
+    "loadError": "تعذّر تحميل الرسائل.",
+    "empty": "لا توجد رسائل.",
+    "close": "إغلاق",
+    "reply": "رد",
+    "delete": "حذف",
+    "cancel": "إلغاء",
+    "markRead": "تعيين كمقروءة",
+    "markUnread": "تعيين كغير مقروءة",
+    "deleteTitle": "حذف الرسالة؟",
+    "deleteDescription": "سيتم حذف رسالة {{name}} نهائياً.",
+    "confirmDelete": "حذف",
+    "deletedToast": "تم حذف الرسالة",
+    "actionErrorTitle": "فشلت العملية",
+    "actionErrorDescription": "تعذّر تحديث هذه الرسالة. يرجى المحاولة مرة أخرى.",
+    "status": {
+      "unread": "غير مقروءة",
+      "read": "مقروءة"
+    },
+    "statusFilter": {
+      "all": "كل الرسائل",
+      "unread": "غير مقروءة",
+      "read": "مقروءة"
+    },
+    "table": {
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "subject": "الموضوع",
+      "received": "تاريخ الاستلام",
+      "status": "الحالة"
+    },
+    "detail": {
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "message": "الرسالة"
+    },
+    "pagination": {
+      "summary": "صفحة {{page}} من {{totalPages}} · {{total}} إجمالاً",
+      "prev": "السابق",
+      "next": "التالي"
     }
   }
 }

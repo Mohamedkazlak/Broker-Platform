@@ -35,6 +35,7 @@ import { PropertyImage } from "@/components/properties/PropertyImage";
 import { Property } from "@/components/properties/PropertyCard";
 import { propertyService } from "@/services/propertyService";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { useToast } from "@/hooks/use-toast";
 import {
   translatedGovernorate,
@@ -181,14 +182,17 @@ export default function DashboardProperties() {
                 {t("properties.heading")}
               </h1>
             </div>
-            <Button variant="default" asChild>
-              <Link to="/dashboard/properties/new">
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {t("overview.addProperty")}
-                </span>
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <LanguageSwitcher variant="outline" />
+              <Button variant="default" asChild>
+                <Link to="/dashboard/properties/new">
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {t("overview.addProperty")}
+                  </span>
+                </Link>
+              </Button>
+            </div>
           </div>
         </header>
 

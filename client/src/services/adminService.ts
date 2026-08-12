@@ -7,6 +7,7 @@ export interface AdminDashboardStats {
   pastDueBrokers: number;
   newBrokersThisMonth: number;
   pendingInstapayReviews: number;
+  unreadContactMessages: number;
 }
 
 export type BrokerStatus =
@@ -94,6 +95,24 @@ export interface ListInstapayParams {
   limit?: number;
 }
 
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  subject: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface ListContactMessagesParams {
+  search?: string;
+  status?: "all" | "unread" | "read";
+  page?: number;
+  limit?: number;
+}
+
 export const adminService = {
   async getDashboardStats(): Promise<AdminDashboardStats> {
     const { data } = await api.get("/admin/dashboard-stats");
@@ -135,5 +154,24 @@ export const adminService = {
   ): Promise<InstapaySubmission> {
     const { data } = await api.patch(`/admin/instapay/${id}`, body);
     return data.data;
+  },
+
+  async listContactMessages(
+    params: ListContactMessagesParams = {},
+  ): Promise<{ messages: ContactMessage[]; pagination: Pagination }> {
+    const { data } = await api.get("/admin/contact-messages", { params });
+    return { messages: data.data, pagination: data.pagination };
+  },
+
+  async setContactMessageRead(
+    id: string,
+    read: boolean,
+  ): Promise<ContactMessage> {
+    const { data } = await api.patch(`/admin/contact-messages/${id}`, { read });
+    return data.data;
+  },
+
+  async deleteContactMessage(id: string): Promise<void> {
+    await api.delete(`/admin/contact-messages/${id}`);
   },
 };

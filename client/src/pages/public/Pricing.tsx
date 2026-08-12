@@ -37,7 +37,7 @@ const planPrices: Record<PlanId, string> = {
 const RECOMMENDED_PLAN: PlanId = "pro";
 
 /** Plans that use a filled accent button instead of the outline style. */
-const SOLID_BUTTON_PLANS: PlanId[] = ["pro", "max"];
+const SOLID_BUTTON_PLANS: PlanId[] = ["pro"];
 
 const PANEL_ID = "pricing-plans-panel";
 
@@ -144,7 +144,7 @@ export default function Pricing() {
                       {t(`plans.${planId}.name`)}
                     </CardTitle>
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                      <span className="font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                      <span className="font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground tabular-nums">
                         {planPrices[planId]}
                       </span>
                       <span className="text-sm text-muted-foreground">

@@ -1,7 +1,7 @@
 {
   "copyLink": {
     "label": "Your public website",
-    "button": "Copy Link",
+    "button": "Copy Website Link",
     "copied": "Copied!",
     "toastTitle": "Link copied",
     "toastDescription": "Your website link is ready to share on WhatsApp or anywhere else.",
@@ -90,7 +90,7 @@
       "basic": "Basic Information",
       "unit": "Unit Details",
       "location": "Location",
-      "amenities": "Amenities & Features",
+      "amenities": "Amenities and Features",
       "media": "Media"
     },
     "fields": {

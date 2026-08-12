@@ -6,6 +6,7 @@ import {
   Building2,
   Globe,
   ShieldCheck,
+  Mail,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -27,6 +28,7 @@ export function AdminSidebar({ sidebarOpen, onClose }: AdminSidebarProps) {
     },
     { to: "/admin/brokers", label: t("sidebar.brokers"), icon: Users },
     { to: "/admin/payments", label: t("sidebar.payments"), icon: CreditCard },
+    { to: "/admin/messages", label: t("sidebar.messages"), icon: Mail },
     {
       to: "/admin/properties",
       label: t("sidebar.properties"),

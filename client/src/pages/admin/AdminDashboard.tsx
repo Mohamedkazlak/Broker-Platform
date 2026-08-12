@@ -7,6 +7,7 @@ import {
   UserPlus,
   Wallet,
   AlertTriangle,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -81,6 +82,12 @@ export default function AdminDashboard() {
       icon: Wallet,
       to: "/admin/payments",
     },
+    {
+      label: t("dashboard.unreadMessages"),
+      value: dash(stats?.unreadContactMessages),
+      icon: Mail,
+      to: "/admin/messages",
+    },
   ];
 
   return (
@@ -106,7 +113,7 @@ export default function AdminDashboard() {
             <div className="flex items-start justify-between">
               <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="text-2xl lg:text-3xl font-display font-bold text-foreground mt-1">
+                <p className="text-2xl lg:text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                   {stat.value}
                 </p>
               </div>

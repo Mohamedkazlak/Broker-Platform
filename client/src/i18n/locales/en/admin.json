@@ -4,6 +4,7 @@
     "dashboard": "Dashboard",
     "brokers": "Brokers",
     "payments": "Payments",
+    "messages": "Messages",
     "properties": "Properties",
     "domains": "Domains"
   },
@@ -34,7 +35,8 @@
     "pendingBrokers": "Pending Brokers",
     "pastDueBrokers": "Past Due Brokers",
     "newThisMonth": "New This Month",
-    "pendingInstapayReviews": "Pending Instapay Reviews"
+    "pendingInstapayReviews": "Pending Instapay Reviews",
+    "unreadMessages": "Unread Messages"
   },
   "status": {
     "active": "Active",
@@ -140,6 +142,52 @@
       "submitted": "Submitted",
       "receipt": "Receipt",
       "actions": "Actions"
+    }
+  },
+  "messages": {
+    "heading": "Contact Messages",
+    "subheading": "Review and manage inquiries from the Contact Us form.",
+    "searchPlaceholder": "Search by name, email, or subject...",
+    "loadError": "Could not load messages.",
+    "empty": "No messages found.",
+    "close": "Close",
+    "reply": "Reply",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread",
+    "deleteTitle": "Delete message?",
+    "deleteDescription": "This will permanently delete the message from {{name}}.",
+    "confirmDelete": "Delete",
+    "deletedToast": "Message deleted",
+    "actionErrorTitle": "Action failed",
+    "actionErrorDescription": "Could not update this message. Please try again.",
+    "status": {
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "statusFilter": {
+      "all": "All messages",
+      "unread": "Unread",
+      "read": "Read"
+    },
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "subject": "Subject",
+      "received": "Received",
+      "status": "Status"
+    },
+    "detail": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "message": "Message"
+    },
+    "pagination": {
+      "summary": "Page {{page}} of {{totalPages}} · {{total}} total",
+      "prev": "Previous",
+      "next": "Next"
     }
   }
 }

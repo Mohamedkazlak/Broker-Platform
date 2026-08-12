@@ -12,6 +12,11 @@ import {
   adminListSubmissions,
   adminReviewSubmission,
 } from "../controllers/instapayController.js";
+import {
+  adminListMessages,
+  adminSetMessageRead,
+  adminDeleteMessage,
+} from "../controllers/contactController.js";
 
 const router = Router();
 
@@ -25,5 +30,8 @@ router.get("/brokers/:brokerId", getBrokerDetail);
 router.patch("/brokers/:brokerId/status", updateBrokerStatus);
 router.get("/instapay", adminListSubmissions);
 router.patch("/instapay/:id", adminReviewSubmission);
+router.get("/contact-messages", adminListMessages);
+router.patch("/contact-messages/:id", adminSetMessageRead);
+router.delete("/contact-messages/:id", adminDeleteMessage);
 
 export default router;

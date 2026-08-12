@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Property } from "@/components/properties/PropertyCard";
 import { propertyService } from "@/services/propertyService";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import {
   computeMonthlyRevenue,
   computeMonthlyRevenueSeries,
@@ -124,22 +125,25 @@ export default function DashboardRevenue() {
 
       <main className="flex-1 min-w-0">
         <header className="sticky top-0 z-30 bg-background border-b border-border px-4 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 text-foreground"
-              aria-label="menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
-                {t("revenue.heading")}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {t("revenue.subheading")}
-              </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 text-foreground"
+                aria-label="menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
+                  {t("revenue.heading")}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {t("revenue.subheading")}
+                </p>
+              </div>
             </div>
+            <LanguageSwitcher variant="outline" />
           </div>
         </header>
 
@@ -157,7 +161,7 @@ export default function DashboardRevenue() {
                       <p className="text-sm text-muted-foreground">
                         {t("revenue.thisMonthTotal")}
                       </p>
-                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : formatAmount(thisMonth.total)}
                       </p>
                     </div>
@@ -174,7 +178,7 @@ export default function DashboardRevenue() {
                       <p className="text-sm text-muted-foreground">
                         {t("revenue.thisMonthSales")}
                       </p>
-                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : formatAmount(thisMonth.selling)}
                       </p>
                     </div>
@@ -191,7 +195,7 @@ export default function DashboardRevenue() {
                       <p className="text-sm text-muted-foreground">
                         {t("revenue.thisMonthRent")}
                       </p>
-                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : formatAmount(thisMonth.renting)}
                       </p>
                     </div>
@@ -215,7 +219,7 @@ export default function DashboardRevenue() {
                   <p className="text-sm text-muted-foreground">
                     {t("revenue.lifetimeTotal")}
                   </p>
-                  <p className="text-2xl font-display font-bold text-foreground mt-1">
+                  <p className="text-2xl font-display font-bold text-foreground mt-1 tabular-nums">
                     {loadingData ? "—" : formatAmount(lifetime.total)}
                   </p>
                 </CardContent>
@@ -225,7 +229,7 @@ export default function DashboardRevenue() {
                   <p className="text-sm text-muted-foreground">
                     {t("revenue.lifetimeSales")}
                   </p>
-                  <p className="text-2xl font-display font-bold text-foreground mt-1">
+                  <p className="text-2xl font-display font-bold text-foreground mt-1 tabular-nums">
                     {loadingData ? "—" : formatAmount(lifetime.selling)}
                   </p>
                 </CardContent>
@@ -235,7 +239,7 @@ export default function DashboardRevenue() {
                   <p className="text-sm text-muted-foreground">
                     {t("revenue.lifetimeRent")}
                   </p>
-                  <p className="text-2xl font-display font-bold text-foreground mt-1">
+                  <p className="text-2xl font-display font-bold text-foreground mt-1 tabular-nums">
                     {loadingData ? "—" : formatAmount(lifetime.renting)}
                   </p>
                 </CardContent>
@@ -386,7 +390,7 @@ export default function DashboardRevenue() {
                                 : t("revenue.statusRented")}
                             </Badge>
                           </td>
-                          <td className="py-3 pe-4 font-medium text-foreground whitespace-nowrap">
+                          <td className="py-3 pe-4 font-medium text-foreground whitespace-nowrap tabular-nums">
                             {formatAmount(Number(deal.price) || 0)}
                             {deal.status === "rented" ? (
                               <span className="text-muted-foreground font-normal">

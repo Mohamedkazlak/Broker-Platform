@@ -15,6 +15,7 @@ import { buildSubdomainRedirect } from "@/lib/sessionRelay";
 import type { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Loader2 } from "lucide-react";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { PlanCategoryTabs } from "@/components/pricing/PlanCategoryTabs";
 import {
   DEFAULT_PACKAGE_CATEGORY,
@@ -118,6 +119,9 @@ export default function Subscription() {
   return (
     <div className="min-h-screen bg-muted/40 py-16 md:py-20 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1400px]">
+        <div className="flex justify-end mb-4">
+          <LanguageSwitcher variant="outline" />
+        </div>
         <div className="text-center mb-12">
           <h1 className="font-display text-4xl font-bold mb-4">
             {t("subscription.heading")}
@@ -149,7 +153,7 @@ export default function Subscription() {
           }`}
         >
           {plans.map((plan) => {
-            const solidButton = plan.id === "pro" || plan.id === "max";
+            const solidButton = plan.id === "pro";
             return (
               <Card
                 key={`${category}-${plan.id}`}
@@ -174,7 +178,7 @@ export default function Subscription() {
                     {plan.name}
                   </CardTitle>
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <span className="font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+                    <span className="font-display text-3xl md:text-4xl font-bold tracking-tight text-foreground tabular-nums">
                       {plan.price}
                     </span>
                     <span className="text-sm text-muted-foreground">

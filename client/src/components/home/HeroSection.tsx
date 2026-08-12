@@ -112,7 +112,7 @@ export function HeroSection() {
               <div key={stat.label} className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <stat.icon className="w-5 h-5 text-accent" />
-                  <span className="text-3xl font-display font-bold text-primary-foreground">
+                  <span className="text-3xl font-display font-bold text-primary-foreground tabular-nums">
                     {stat.value}
                   </span>
                 </div>

@@ -31,6 +31,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import {
   computeRevenue,
   formatRevenue,
@@ -165,17 +166,20 @@ export default function DashboardInsights() {
 
       <main className="flex-1 min-w-0">
         <header className="sticky top-0 z-30 bg-background border-b border-border px-4 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 text-foreground"
-              aria-label="menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
-              {t("insights.heading")}
-            </h1>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 text-foreground"
+                aria-label="menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <h1 className="font-display text-xl lg:text-2xl font-bold text-foreground">
+                {t("insights.heading")}
+              </h1>
+            </div>
+            <LanguageSwitcher variant="outline" />
           </div>
         </header>
 
@@ -248,7 +252,7 @@ export default function DashboardInsights() {
                       <p className="text-sm text-muted-foreground">
                         {t("insights.activeListings")}
                       </p>
-                      <p className="text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : propertyStats.active}
                       </p>
                     </div>
@@ -265,7 +269,7 @@ export default function DashboardInsights() {
                       <p className="text-sm text-muted-foreground">
                         {t("insights.soldProperties")}
                       </p>
-                      <p className="text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : propertyStats.sold}
                       </p>
                     </div>
@@ -282,7 +286,7 @@ export default function DashboardInsights() {
                       <p className="text-sm text-muted-foreground">
                         {t("insights.rentedProperties")}
                       </p>
-                      <p className="text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : propertyStats.rented}
                       </p>
                     </div>
@@ -350,7 +354,7 @@ export default function DashboardInsights() {
                       <p className="text-sm text-muted-foreground">
                         {t("insights.totalRevenue")}
                       </p>
-                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : formatAmount(revenueStats.total)}
                       </p>
                     </div>
@@ -367,7 +371,7 @@ export default function DashboardInsights() {
                       <p className="text-sm text-muted-foreground">
                         {t("insights.sellingRevenue")}
                       </p>
-                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : formatAmount(revenueStats.selling)}
                       </p>
                     </div>
@@ -384,7 +388,7 @@ export default function DashboardInsights() {
                       <p className="text-sm text-muted-foreground">
                         {t("insights.rentingRevenue")}
                       </p>
-                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1">
+                      <p className="text-2xl sm:text-3xl font-display font-bold text-foreground mt-1 tabular-nums">
                         {loadingData ? "—" : formatAmount(revenueStats.renting)}
                       </p>
                     </div>

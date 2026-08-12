@@ -11,8 +11,6 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBroker } from "@/contexts/BrokerContext";
 import { Button } from "@/components/ui/button";
-import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
-import { CopyBrokerLinkButton } from "@/components/dashboard/CopyBrokerLinkButton";
 
 interface DashboardSidebarProps {
   sidebarOpen: boolean;
@@ -107,25 +105,8 @@ export function DashboardSidebar({
             })}
           </nav>
 
-          <div className="px-4 pb-4 space-y-2 border-t border-sidebar-border pt-4">
-            <CopyBrokerLinkButton />
-            <LanguageSwitcher
-              variant="outline"
-              className="w-full justify-center"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              onClick={handleSignOut}
-            >
-              <LogOut className="w-4 h-4" />
-              {tCommon("nav.signOut")}
-            </Button>
-          </div>
-
           {/* User */}
-          <div className="px-4 py-4 border-t border-sidebar-border">
+          <div className="px-4 py-4 border-t border-sidebar-border space-y-2">
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="w-10 h-10 rounded-full bg-sidebar-accent flex items-center justify-center">
                 <span className="text-sidebar-accent-foreground font-medium">
@@ -147,6 +128,15 @@ export function DashboardSidebar({
                 </p>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-4 h-4" />
+              {tCommon("nav.signOut")}
+            </Button>
           </div>
         </div>
       </aside>

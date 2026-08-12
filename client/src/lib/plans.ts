@@ -97,12 +97,9 @@ export const planColors: Record<PlanId, PlanColors> = {
   },
   max: {
     border:
-      "border-yellow-200 hover:border-yellow-300 border-t-4 border-t-yellow-400 shadow-sm",
+      "border-border hover:border-yellow-300 border-t-4 border-t-yellow-400",
     icon: "bg-yellow-100 text-yellow-700",
-    badge: "bg-yellow-100 text-yellow-800",
-    button:
-      "bg-yellow-400 text-yellow-950 hover:bg-yellow-500 border-yellow-400 hover:border-yellow-500",
-    surface: "bg-yellow-50/60",
+    button: "hover:bg-yellow-400 hover:text-yellow-950 hover:border-yellow-400",
   },
   ultra: {
     border:

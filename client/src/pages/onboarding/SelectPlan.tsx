@@ -270,7 +270,7 @@ export default function SelectPlan() {
               const colors = planColors[plan.id];
               const Icon = planIcons[plan.id] ?? Globe;
               const highlighted = plan.recommended && category === "personal";
-              const solidButton = plan.id === "pro" || plan.id === "max";
+              const solidButton = plan.id === "pro";
               return (
                 <Card
                   key={`${category}-${plan.id}`}

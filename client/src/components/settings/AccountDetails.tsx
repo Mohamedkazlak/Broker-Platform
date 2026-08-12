@@ -148,7 +148,7 @@ export function AccountDetails() {
           <span className="font-medium text-end">
             {planName}
             {!isFree && plan && (
-              <span className="text-muted-foreground font-normal ms-2">
+              <span className="text-muted-foreground font-normal ms-2 tabular-nums">
                 {t("settings.account.planPrice", {
                   price: plan.price.toLocaleString(localeNum),
                 })}
@@ -182,7 +182,7 @@ export function AccountDetails() {
           <span className="text-sm text-muted-foreground">
             {t("settings.account.billingLabel")}
           </span>
-          <span className="font-medium text-end">
+          <span className="font-medium text-end tabular-nums">
             {isFree
               ? t("settings.account.freeNoBilling")
               : isPastDue

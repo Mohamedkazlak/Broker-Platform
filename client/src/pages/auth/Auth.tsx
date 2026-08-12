@@ -6,12 +6,14 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBroker } from "@/contexts/BrokerContext";
 import { useToast } from "@/hooks/use-toast";
 import { buildSubdomainRedirect } from "@/lib/sessionRelay";
 import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { isValidGovernorate } from "@/constants/governorates";
 import { isValidPhoneNumber } from "@/utils/phoneNumber";
 import {
@@ -58,6 +60,7 @@ export default function Auth() {
     whatsapp: "",
     governorate: "",
   });
+  const [phoneHasWhatsapp, setPhoneHasWhatsapp] = useState(false);
 
   // Explain the bounce when api.ts discarded a session the server rejected.
   useEffect(() => {
@@ -150,6 +153,7 @@ export default function Auth() {
   useEffect(() => {
     setIsSignUp(location.pathname === "/register");
     setErrors({});
+    setPhoneHasWhatsapp(false);
   }, [location.pathname]);
 
   const subdomain = window.location.hostname.endsWith(".localhost")
@@ -174,7 +178,14 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        const result = signupSchema.safeParse(formData);
+        const whatsappNumber = phoneHasWhatsapp
+          ? formData.phone
+          : formData.whatsapp;
+
+        const result = signupSchema.safeParse({
+          ...formData,
+          whatsapp: whatsappNumber,
+        });
         if (!result.success) {
           const fieldErrors: Record<string, string> = {};
           result.error.errors.forEach((err) => {
@@ -214,7 +225,7 @@ export default function Auth() {
             lastName: formData.lastName,
             platformName: formData.platformName,
             phone: formData.phone,
-            whatsapp: formData.whatsapp,
+            whatsapp: whatsappNumber,
             governorate: formData.governorate,
           },
         });
@@ -303,13 +314,16 @@ export default function Auth() {
       {/* Right Panel - Form */}
       <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-12 overflow-y-auto">
         <div className="w-full max-w-md mx-auto">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
-          >
-            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
-            {t("backToHome")}
-          </Link>
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+              {t("backToHome")}
+            </Link>
+            <LanguageSwitcher variant="outline" />
+          </div>
 
           <div className="mb-8">
             <h1 className="font-display text-2xl font-bold text-foreground">
@@ -438,7 +452,11 @@ export default function Auth() {
                     id="phone"
                     value={formData.phone}
                     onChange={(value) => {
-                      setFormData((prev) => ({ ...prev, phone: value }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        phone: value,
+                        whatsapp: phoneHasWhatsapp ? value : prev.whatsapp,
+                      }));
                       setErrors((prev) => ({ ...prev, phone: "" }));
                     }}
                     error={Boolean(errors.phone)}
@@ -448,25 +466,54 @@ export default function Auth() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="whatsapp">
-                    {t("signUp.whatsapp")} {requiredMark}
-                  </Label>
-                  <PhoneNumberInput
-                    id="whatsapp"
-                    value={formData.whatsapp}
-                    onChange={(value) => {
-                      setFormData((prev) => ({ ...prev, whatsapp: value }));
-                      setErrors((prev) => ({ ...prev, whatsapp: "" }));
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="phoneHasWhatsapp"
+                    checked={phoneHasWhatsapp}
+                    onCheckedChange={(checked) => {
+                      const hasWhatsapp = checked === true;
+                      setPhoneHasWhatsapp(hasWhatsapp);
+                      setFormData((prev) => ({
+                        ...prev,
+                        whatsapp: hasWhatsapp ? prev.phone : "",
+                      }));
+                      setErrors((prev) => ({
+                        ...prev,
+                        phoneHasWhatsapp: "",
+                        whatsapp: "",
+                      }));
                     }}
-                    error={Boolean(errors.whatsapp)}
+                    className="h-5 w-5 rounded-full"
                   />
-                  {errors.whatsapp && (
-                    <p className="text-sm text-destructive">
-                      {errors.whatsapp}
-                    </p>
-                  )}
+                  <Label
+                    htmlFor="phoneHasWhatsapp"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    {t("signUp.phoneHasWhatsapp")}
+                  </Label>
                 </div>
+
+                {!phoneHasWhatsapp && (
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp">
+                      {t("signUp.whatsapp")} {requiredMark}
+                    </Label>
+                    <PhoneNumberInput
+                      id="whatsapp"
+                      value={formData.whatsapp}
+                      onChange={(value) => {
+                        setFormData((prev) => ({ ...prev, whatsapp: value }));
+                        setErrors((prev) => ({ ...prev, whatsapp: "" }));
+                      }}
+                      error={Boolean(errors.whatsapp)}
+                    />
+                    {errors.whatsapp && (
+                      <p className="text-sm text-destructive">
+                        {errors.whatsapp}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="governorate">

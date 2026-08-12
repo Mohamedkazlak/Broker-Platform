@@ -19,16 +19,37 @@ export default {
     },
     extend: {
       fontFamily: {
+        // Main typeface for English/Latin copy — applied by default (see
+        // the `html { @apply font-sans }` base rule in index.css).
+        sans: [
+          "Inter",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+        // Main typeface for Arabic copy — applied when the active language
+        // is Arabic (see `html[lang="ar"]` override in index.css).
+        ar: ['"IBM Plex Sans Arabic"', "Tahoma", "Arial", "sans-serif"],
+        // Headings/body previously used separate decorative fonts
+        // (Playfair Display / DM Sans / Cairo); both now resolve to the
+        // same locale-aware stacks above for a single, consistent voice.
         display: [
-          '"Playfair Display"',
-          '"Cairo"',
+          "Inter",
           '"IBM Plex Sans Arabic"',
-          "serif",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
         ],
         body: [
-          '"DM Sans"',
-          '"Cairo"',
+          "Inter",
           '"IBM Plex Sans Arabic"',
+          "ui-sans-serif",
+          "system-ui",
           "sans-serif",
         ],
       },

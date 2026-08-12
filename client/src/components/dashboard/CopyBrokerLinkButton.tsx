@@ -47,11 +47,13 @@ export function CopyBrokerLinkButton({ className }: CopyBrokerLinkButtonProps) {
     <Button
       variant="outline"
       size="sm"
-      className={cn("w-full gap-2", className)}
+      className={cn("gap-2", className)}
       onClick={handleCopy}
     >
       {copied ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
-      {copied ? t("copyLink.copied") : t("copyLink.button")}
+      <span className="hidden sm:inline">
+        {copied ? t("copyLink.copied") : t("copyLink.button")}
+      </span>
     </Button>
   );
 }

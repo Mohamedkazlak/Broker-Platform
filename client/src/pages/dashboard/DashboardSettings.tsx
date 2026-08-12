@@ -54,6 +54,7 @@ import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
 import { isValidGovernorate } from "@/constants/governorates";
 import { isValidPhoneNumber } from "@/utils/phoneNumber";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 
 function socialFormFromBroker(
   broker: {
@@ -434,23 +435,26 @@ const DashboardSettings = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/dashboard")}
-            aria-label={tCommon("actions.cancel")}
-          >
-            <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
-          </Button>
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground">
-              {t("settings.heading")}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.subheading")}
-            </p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+              aria-label={tCommon("actions.cancel")}
+            >
+              <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
+            </Button>
+            <div>
+              <h1 className="font-display text-2xl font-bold text-foreground">
+                {t("settings.heading")}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {t("settings.subheading")}
+              </p>
+            </div>
           </div>
+          <LanguageSwitcher variant="outline" />
         </div>
 
         <AccountDetails />

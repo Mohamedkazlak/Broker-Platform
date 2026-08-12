@@ -152,7 +152,7 @@ export default function AdminPayments() {
                         {row.broker?.email}
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap tabular-nums">
                       {formatAmount(row.amount, row.currency)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
@@ -219,7 +219,9 @@ export default function AdminPayments() {
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {preview.broker?.platformName} ·{" "}
-                {formatAmount(preview.amount, preview.currency)}
+                <span className="tabular-nums">
+                  {formatAmount(preview.amount, preview.currency)}
+                </span>
               </p>
             </div>
             {preview.receiptUrl && (

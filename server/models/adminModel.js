@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../config/supabase.js";
 import { instapayModel } from "./instapayModel.js";
+import { contactModel } from "./contactModel.js";
 
 /**
  * Admin-side database operations.
@@ -87,6 +88,7 @@ export const adminModel = {
       pastDueBrokers,
       newBrokersThisMonth,
       pendingInstapayReviews,
+      unreadContactMessages,
     ] = await Promise.all([
       countBrokers(),
       countBrokers((q) => applyStatusFilter(q, "active")),
@@ -94,6 +96,7 @@ export const adminModel = {
       countBrokers((q) => applyStatusFilter(q, "past_due")),
       countBrokers((q) => q.gte("created_at", monthStart)),
       instapayModel.countByStatus("pending_review"),
+      contactModel.countUnreadAll(),
     ]);
 
     return {
@@ -103,6 +106,7 @@ export const adminModel = {
       pastDueBrokers,
       newBrokersThisMonth,
       pendingInstapayReviews,
+      unreadContactMessages,
     };
   },
 

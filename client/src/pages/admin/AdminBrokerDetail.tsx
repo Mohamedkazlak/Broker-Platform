@@ -205,11 +205,13 @@ export default function AdminBrokerDetail() {
           <InfoRow
             label={t("detail.fields.billingAmount")}
             value={
-              broker.billingAmount != null
-                ? Number(broker.billingAmount).toLocaleString(
+              broker.billingAmount != null ? (
+                <span className="tabular-nums">
+                  {Number(broker.billingAmount).toLocaleString(
                     i18n.language === "ar" ? "ar-EG" : "en-US",
-                  )
-                : null
+                  )}
+                </span>
+              ) : null
             }
           />
           <InfoRow
