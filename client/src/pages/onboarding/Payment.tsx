@@ -58,7 +58,7 @@ const POLL_MS = 4000;
 
 export default function Payment() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { profile } = useAuth();
   const { toast } = useToast();
   const { t, i18n } = useTranslation("onboarding");
@@ -98,10 +98,14 @@ export default function Payment() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   // Strip ?status=...&order_id=...&session_id=...&sig= as soon as we've read
-  // them so a refresh mid-poll doesn't re-trigger this branch.
+  // them so a refresh mid-poll doesn't re-trigger this branch. Deliberately
+  // setSearchParams (query-string only) rather than navigate(pathname) — the
+  // router's basename is `/${lang}` and window.location.pathname already
+  // includes it, so navigating to that full pathname would prepend the
+  // basename a second time (/ar/payment -> /ar/ar/payment, a dead route).
   useEffect(() => {
     if (isReturningFromGateway) {
-      navigate(window.location.pathname, { replace: true });
+      setSearchParams(new URLSearchParams(), { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
