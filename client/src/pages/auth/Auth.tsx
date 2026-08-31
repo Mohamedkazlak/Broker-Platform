@@ -35,7 +35,7 @@ function resumePathForDraft(draft: OnboardingDraft): string {
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signIn } = useAuth();
+  const { user, signIn, signOut } = useAuth();
   const { broker } = useBroker();
   const { toast } = useToast();
   const { t } = useTranslation("auth");
@@ -217,6 +217,13 @@ export default function Auth() {
           // Non-fatal — complete-registration still enforces uniqueness.
         }
 
+        // A leftover session from a previous broker on this origin (common
+        // after redirecting to their subdomain then coming back to /register)
+        // would steal select-plan into the upgrade path instead of this draft.
+        if (user) {
+          await signOut();
+        }
+
         saveOnboardingDraft({
           formData: {
             email,
@@ -334,6 +341,19 @@ export default function Auth() {
             </p>
           </div>
 
+          {isSignUp && user && (
+            <div className="mb-8 rounded-lg border border-border bg-muted/40 p-4">
+              <p className="text-sm font-medium text-foreground">
+                {t("existingSession.title")}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {t("existingSession.description", {
+                  email: user.email,
+                })}
+              </p>
+            </div>
+          )}
+
           {isSignUp && resumableDraft && (
             <div className="mb-8 rounded-lg border border-border bg-muted/40 p-4">
               <p className="text-sm font-medium text-foreground">
@@ -364,7 +384,11 @@ export default function Auth() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            autoComplete={isSignUp ? "off" : "on"}
+          >
             {isSignUp && (
               <>
                 <div className="grid grid-cols-2 gap-4">
@@ -375,6 +399,7 @@ export default function Auth() {
                     <Input
                       id="firstName"
                       name="firstName"
+                      autoComplete="given-name"
                       value={formData.firstName}
                       onChange={handleChange}
                       className={errors.firstName ? "border-destructive" : ""}
@@ -393,6 +418,7 @@ export default function Auth() {
                     <Input
                       id="lastName"
                       name="lastName"
+                      autoComplete="family-name"
                       value={formData.lastName}
                       onChange={handleChange}
                       className={errors.lastName ? "border-destructive" : ""}
@@ -413,6 +439,7 @@ export default function Auth() {
                   <Input
                     id="platformName"
                     name="platformName"
+                    autoComplete="organization"
                     value={formData.platformName}
                     onChange={handleChange}
                     placeholder={t("signUp.platformNamePlaceholder")}
@@ -434,6 +461,7 @@ export default function Auth() {
                     id="email"
                     name="email"
                     type="email"
+                    autoComplete="email"
                     value={formData.email}
                     onChange={handleChange}
                     className={errors.email ? "border-destructive" : ""}
@@ -544,6 +572,7 @@ export default function Auth() {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
                   className={errors.email ? "border-destructive" : ""}
@@ -564,6 +593,7 @@ export default function Auth() {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete={isSignUp ? "new-password" : "current-password"}
                 value={formData.password}
                 onChange={handleChange}
                 className={errors.password ? "border-destructive" : ""}
@@ -583,6 +613,7 @@ export default function Auth() {
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
+                  autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className={errors.confirmPassword ? "border-destructive" : ""}

@@ -18,7 +18,9 @@ export const INSTAPAY_ALLOWED_MIME = [
 const CLAIM_TOKEN_KEY = "instapay_claim_token";
 
 export type InstapaySubmissionStatus =
-  "pending_review" | "approved" | "rejected";
+  | "pending_review"
+  | "approved"
+  | "rejected";
 
 export interface InstapayReceiptPayload {
   data: string;

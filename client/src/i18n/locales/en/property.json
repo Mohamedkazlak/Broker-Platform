@@ -10,6 +10,8 @@
     "ariaShare": "Share listing",
     "ariaWhatsApp": "Contact on WhatsApp about this property",
     "imageUnavailable": "Image unavailable",
+    "videoUnavailable": "Video unavailable",
+    "videoPlayer": "Video player",
     "whatsapp": "WhatsApp",
     "whatsappInquiry": "Hi, I'm interested in this property: {{url}}",
     "beds": "Beds",

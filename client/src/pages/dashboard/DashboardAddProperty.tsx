@@ -34,12 +34,14 @@ import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PropertyImage } from "@/components/properties/PropertyImage";
+import { PropertyVideo } from "@/components/properties/PropertyVideo";
 import { AMENITY_KEYS, normalizeAmenityPersistedList } from "@/utils/amenities";
 import {
   coverFromGallery,
   normalizePropertyGallery,
   normalizePropertyImageLink,
 } from "@/utils/propertyImageLinks";
+import { parsePropertyVideoLink } from "@/utils/propertyVideoLinks";
 import { cn } from "@/lib/utils";
 
 type MediaSourceTab = "link" | "device";
@@ -78,6 +80,7 @@ export default function DashboardAddProperty() {
   const [imageLinkDraft, setImageLinkDraft] = useState("");
   const [videoLinkDraft, setVideoLinkDraft] = useState("");
   const [imageLinkError, setImageLinkError] = useState<string | null>(null);
+  const [videoLinkError, setVideoLinkError] = useState<string | null>(null);
 
   const generatePropertyCode = () => {
     return "PR-" + Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -319,8 +322,18 @@ export default function DashboardAddProperty() {
   };
 
   const addVideoLink = () => {
-    const url = videoLinkDraft.trim();
-    if (!url) return;
+    const result = parsePropertyVideoLink(videoLinkDraft);
+    if (result.ok === false) {
+      if (result.reason === "folder") {
+        setVideoLinkError(t("addProperty.fields.driveFolderUnsupported"));
+      } else if (result.reason === "empty") {
+        setVideoLinkError(t("addProperty.fields.videoLinkRequired"));
+      } else {
+        setVideoLinkError(t("addProperty.fields.videoLinkInvalid"));
+      }
+      return;
+    }
+
     if (mediaCount >= 20) {
       toast({
         title: t("addProperty.toasts.tooManyTitle"),
@@ -329,16 +342,30 @@ export default function DashboardAddProperty() {
       });
       return;
     }
+
+    if (
+      mediaItems.some(
+        (item) =>
+          item.mediaType === "video" &&
+          item.source === "url" &&
+          item.url === result.url,
+      )
+    ) {
+      setVideoLinkError(t("addProperty.fields.videoLinkDuplicate"));
+      return;
+    }
+
     setMediaItems((prev) => [
       ...prev,
       {
         id: createMediaId(),
         mediaType: "video",
         source: "url",
-        url,
+        url: result.url,
       },
     ]);
     setVideoLinkDraft("");
+    setVideoLinkError(null);
   };
 
   const moveMedia = (index: number, direction: -1 | 1) => {
@@ -1151,7 +1178,10 @@ export default function DashboardAddProperty() {
                           "addProperty.fields.videoUrlPlaceholder",
                         )}
                         value={videoLinkDraft}
-                        onChange={(e) => setVideoLinkDraft(e.target.value)}
+                        onChange={(e) => {
+                          setVideoLinkDraft(e.target.value);
+                          if (videoLinkError) setVideoLinkError(null);
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
@@ -1169,6 +1199,15 @@ export default function DashboardAddProperty() {
                         {t("addProperty.fields.attachVideoUrl")}
                       </Button>
                     </div>
+                    {videoLinkError ? (
+                      <p className="text-sm text-destructive">
+                        {videoLinkError}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {t("addProperty.fields.videoUrlHint")}
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1249,10 +1288,11 @@ export default function DashboardAddProperty() {
                               />
                             )
                           ) : (
-                            <video
+                            <PropertyVideo
                               src={previewSrc}
                               className="w-full h-full object-cover"
-                              controls={false}
+                              unavailableClassName="w-full h-full"
+                              compact
                             />
                           )}
 

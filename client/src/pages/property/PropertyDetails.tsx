@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Property } from "@/components/properties/PropertyCard";
 import { PropertyWhatsAppButton } from "@/components/properties/PropertyWhatsAppButton";
 import { PropertyImage } from "@/components/properties/PropertyImage";
+import { PropertyVideo } from "@/components/properties/PropertyVideo";
 import { useBroker } from "@/contexts/BrokerContext";
 import { usePropertyDisplayText } from "@/hooks/usePropertyDisplayText";
 import { amenityStoredToKey, translatedAmenityLabel } from "@/utils/amenities";
@@ -189,11 +190,11 @@ export default function PropertyDetails() {
       aria-label={t("details.goToMedia", { index: index + 1 })}
     >
       {media.type === "video" ? (
-        <video
+        <PropertyVideo
           src={media.url}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          muted
-          playsInline
+          unavailableClassName="h-full w-full"
+          compact
         />
       ) : (
         <PropertyImage
@@ -366,16 +367,19 @@ export default function PropertyDetails() {
             </button>
 
             {mediaList[currentMediaIndex].type === "video" ? (
-              <video
-                key={mediaList[currentMediaIndex].url}
-                src={mediaList[currentMediaIndex].url}
-                className="max-h-full max-w-full object-contain"
-                controls
-                autoPlay
-                muted
-                loop
-                playsInline
-              />
+              <div className="aspect-video w-full max-w-5xl">
+                <PropertyVideo
+                  key={mediaList[currentMediaIndex].url}
+                  src={mediaList[currentMediaIndex].url}
+                  className="h-full w-full"
+                  unavailableClassName="h-full w-full"
+                  controls
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              </div>
             ) : (
               <PropertyImage
                 key={mediaList[currentMediaIndex].url}
@@ -642,12 +646,12 @@ export default function PropertyDetails() {
                         }`}
                       >
                         {media.type === "video" ? (
-                          <video
+                          <PropertyVideo
                             key={media.url}
                             src={media.url}
                             className="w-full h-full object-cover pointer-events-none"
-                            muted
-                            playsInline
+                            unavailableClassName="w-full h-full"
+                            compact
                           />
                         ) : (
                           <PropertyImage

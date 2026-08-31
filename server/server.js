@@ -57,6 +57,17 @@ app.use(
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         "img-src": ["'self'", "data:", "blob:", "https:"],
+        // YouTube / Vimeo / Drive embeds for property videos. default-src
+        // 'self' would otherwise block those iframes in production.
+        "frame-src": [
+          "'self'",
+          "https://www.youtube.com",
+          "https://www.youtube-nocookie.com",
+          "https://player.vimeo.com",
+          "https://drive.google.com",
+        ],
+        // Direct video files (Supabase Storage, blob previews, external https)
+        "media-src": ["'self'", "blob:", "data:", "https:"],
         // default-src 'self' would block Supabase Auth/DB/Storage and Google Fonts CSS fetches
         "connect-src": [
           "'self'",

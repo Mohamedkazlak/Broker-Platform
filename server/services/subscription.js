@@ -145,7 +145,8 @@ async function resolvePlanChangeDomain(broker, plan, domain) {
       });
     }
 
-    const reserved = await instapayModel.findPendingByCustomDomain(customDomain);
+    const reserved =
+      await instapayModel.findPendingByCustomDomain(customDomain);
     if (reserved && reserved.broker_id !== broker.id) {
       throw Object.assign(new Error("Custom domain already taken"), {
         status: 409,
@@ -228,7 +229,11 @@ export async function resolvePlanChange(broker, request) {
  * Domain availability is re-checked because approval can happen long after the
  * receipt was uploaded.
  */
-export async function applyPlanChange(brokerId, change, { billingAmount } = {}) {
+export async function applyPlanChange(
+  brokerId,
+  change,
+  { billingAmount } = {},
+) {
   const broker = await brokerModel.findById(brokerId);
   if (!broker) {
     throw Object.assign(new Error("Broker not found"), { status: 404 });

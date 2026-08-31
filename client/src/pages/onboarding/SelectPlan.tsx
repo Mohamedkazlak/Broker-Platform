@@ -39,7 +39,7 @@ const PANEL_ID = "select-plan-panel";
 export default function SelectPlan() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { profile, completeRegistration } = useAuth();
+  const { profile, completeRegistration, signOut } = useAuth();
   const { toast } = useToast();
   const { t, i18n } = useTranslation("pricing");
 
@@ -52,8 +52,12 @@ export default function SelectPlan() {
   );
 
   const draft = getOnboardingDraft();
-  const isDraftFlow = !!draft && !profile?.broker_id;
-  const brokerId = profile?.broker_id;
+  const draftEmail = draft?.formData?.email?.trim().toLowerCase() ?? "";
+  const profileEmail = profile?.email?.trim().toLowerCase() ?? "";
+  const draftBelongsToSomeoneElse =
+    !!draft && !!profileEmail && draftEmail !== profileEmail;
+  const isDraftFlow = !!draft && (!profile?.broker_id || draftBelongsToSomeoneElse);
+  const brokerId = draftBelongsToSomeoneElse ? undefined : profile?.broker_id;
 
   // Set when the broker arrived from the dashboard's plan grid, which has
   // already had them pick — jump straight into that plan rather than making
@@ -73,6 +77,13 @@ export default function SelectPlan() {
       navigate("/register", { replace: true });
     }
   }, [isDraftFlow, profile?.broker_id, navigate]);
+
+  // Leftover session from a previous broker on this origin must not hijack a
+  // new signup draft into the upgrade path (Starter marked "Current Plan").
+  useEffect(() => {
+    if (!draftBelongsToSomeoneElse) return;
+    void signOut();
+  }, [draftBelongsToSomeoneElse, signOut]);
 
   useEffect(() => {
     let active = true;
@@ -101,7 +112,10 @@ export default function SelectPlan() {
   // Existing broker: knowing the plan they're on lets the grid mark it as
   // current instead of offering a "change" the server would reject.
   useEffect(() => {
-    if (!brokerId) return;
+    if (!brokerId) {
+      setCurrentPackage(null);
+      return;
+    }
     let active = true;
     (async () => {
       try {
@@ -341,7 +355,7 @@ export default function SelectPlan() {
           >
             {visiblePlans.map((plan) => {
               const colors = planColors[plan.id];
-              const isCurrent = plan.id === currentPackage;
+              const isCurrent = !isDraftFlow && plan.id === currentPackage;
               const Icon = planIcons[plan.id] ?? Globe;
               const highlighted = plan.recommended && category === "personal";
               const solidButton = plan.id === "pro";
