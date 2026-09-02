@@ -3,6 +3,7 @@ import { brokerModel } from "../models/brokerModel.js";
 import { instapayModel } from "../models/instapayModel.js";
 import {
   applyPlanChange,
+  applyPlanChangeSubdomain,
   resolvePlanChange,
 } from "../services/subscription.js";
 import { buildOrderSummary } from "../utils/orderSummary.js";
@@ -328,10 +329,15 @@ async function submitReceiptForBroker(req, res, brokerId) {
     await brokerModel.update(brokerId, { subscription_status: "pending" });
   }
 
+  // The plan waits for the admin, the address doesn't.
+  const { subdomain, applied: subdomainApplied } =
+    await applyPlanChangeSubdomain(broker, change);
+
   res.status(201).json({
     status: "success",
     data: toSubmissionDto(submission),
-    subdomain: broker.subdomain,
+    subdomain,
+    subdomainApplied,
     claimToken: token,
     // Tells the client to send them back to their dashboard instead of the
     // onboarding "waiting for approval" screen.
@@ -557,6 +563,9 @@ export const getMySubmission = async (req, res, next) => {
       data: {
         ...toSubmissionDto(submission),
         currentPackage: broker?.package ?? null,
+        // Lets the dashboard tell an already-applied subdomain (it matches)
+        // apart from one still waiting on approval (it doesn't).
+        currentSubdomain: broker?.subdomain ?? null,
       },
     });
   } catch (error) {

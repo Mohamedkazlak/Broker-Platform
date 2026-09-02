@@ -121,13 +121,18 @@ export default function InstapayReceipt() {
         sessionStorage.setItem("broker_subdomain", data.subdomain);
       }
 
-      // Plan change: nothing about the account moves until an admin approves,
-      // so hand them back to the dashboard they already have.
+      // Plan change: the plan waits for an admin, so hand them back to the
+      // dashboard they already have — on the new subdomain when the server
+      // moved them there already.
       if (data?.planChange) {
         clearPlanChangeDraft();
         toast({
           title: t("instapay.receipt.planChangeSubmittedTitle"),
-          description: t("instapay.receipt.planChangeSubmittedDescription"),
+          description: t(
+            data?.subdomainApplied
+              ? "instapay.receipt.planChangeSubmittedWithUrlDescription"
+              : "instapay.receipt.planChangeSubmittedDescription",
+          ),
         });
         const subdomain =
           data?.subdomain ?? sessionStorage.getItem("broker_subdomain");

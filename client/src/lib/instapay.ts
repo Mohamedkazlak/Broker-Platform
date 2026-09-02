@@ -91,6 +91,12 @@ export interface MyInstapaySubmission {
   /** Plan this payment buys — differs from `currentPackage` on a plan change. */
   requestedPackage: string | null;
   currentPackage: string | null;
+  /**
+   * Subdomain this payment buys. Matching `currentSubdomain` means it is
+   * already live; differing means it only goes live on approval.
+   */
+  requestedSubdomain: string | null;
+  currentSubdomain: string | null;
 }
 
 export async function fetchMyInstapaySubmission(): Promise<MyInstapaySubmission | null> {

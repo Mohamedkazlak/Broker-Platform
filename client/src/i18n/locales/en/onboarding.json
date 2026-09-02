@@ -105,6 +105,7 @@
       "back": "Back",
       "planChangeSubmittedTitle": "Receipt received",
       "planChangeSubmittedDescription": "We'll review your payment and switch your plan over once it's approved. Your current plan keeps working until then.",
+      "planChangeSubmittedWithUrlDescription": "Your site is already live at its new address. We'll review your payment and switch your plan over once it's approved, and your current plan keeps working until then.",
       "submitFailed": "Couldn't upload your receipt. Please try again.",
       "invalidTitle": "Invalid image",
       "errors": {

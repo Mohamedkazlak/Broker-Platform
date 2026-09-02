@@ -61,6 +61,14 @@ export function PlanChangeStatus({ className }: { className?: string }) {
   const isPlanChange =
     !!submission.requestedPackage &&
     submission.requestedPackage !== submission.currentPackage;
+  // A requested subdomain that is already live needs no mention — the broker is
+  // browsing it. One that still differs is waiting on the same approval as the
+  // plan, so say so.
+  const pendingSubdomain =
+    submission.requestedSubdomain &&
+    submission.requestedSubdomain !== submission.currentSubdomain
+      ? submission.requestedSubdomain
+      : null;
 
   if (submission.status === "rejected") {
     return (
@@ -132,6 +140,11 @@ export function PlanChangeStatus({ className }: { className?: string }) {
             currency: submission.currency,
           })}
         </p>
+        {pendingSubdomain && (
+          <p className="text-sm text-muted-foreground">
+            {t("planChange.pendingSubdomain", { subdomain: pendingSubdomain })}
+          </p>
+        )}
       </div>
     </div>
   );

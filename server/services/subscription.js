@@ -225,6 +225,54 @@ export async function resolvePlanChange(broker, request) {
 }
 
 /**
+ * Move the broker onto the subdomain a plan change asked for, before the
+ * payment behind it has been reviewed.
+ *
+ * The plan itself still waits for approval — only the URL moves now, so a
+ * broker who renamed their platform isn't stuck on the old address for as long
+ * as their receipt sits in the review queue. A custom domain is never moved
+ * early: it's a paid capability of the plan being bought, and the broker isn't
+ * entitled to it until that plan is active. `domain_type` and `custom_domain`
+ * are likewise left alone, so a downgrade can't strip a custom domain that is
+ * still paid for — `applyPlanChange` settles those on approval.
+ *
+ * Free brokers are excluded, matching the settings rule that gates subdomain
+ * edits behind a paid plan (see brokerController.updateBroker).
+ *
+ * @returns the subdomain the broker is on afterwards. Losing the race for the
+ *   name leaves them where they were, and the submission's reservation applies
+ *   it on approval instead — a slow rename beats a failed payment.
+ */
+export async function applyPlanChangeSubdomain(broker, change) {
+  const unchanged = { subdomain: broker.subdomain, applied: false };
+
+  if (
+    !change ||
+    change.domain_type !== "subdomain" ||
+    !change.subdomain ||
+    change.subdomain === broker.subdomain ||
+    broker.package === "free"
+  ) {
+    return unchanged;
+  }
+
+  const existing = await brokerModel.findIdBySubdomain(change.subdomain);
+  if (existing && existing.id !== broker.id) {
+    return unchanged;
+  }
+
+  try {
+    const updated = await brokerModel.update(broker.id, {
+      subdomain: change.subdomain,
+    });
+    return { subdomain: updated.subdomain, applied: true };
+  } catch (error) {
+    console.error("Failed to apply requested subdomain early:", error);
+    return unchanged;
+  }
+}
+
+/**
  * Apply a previously validated plan change now that it has been paid for.
  * Domain availability is re-checked because approval can happen long after the
  * receipt was uploaded.
