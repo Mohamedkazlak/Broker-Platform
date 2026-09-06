@@ -1,0 +1,36 @@
+# ============================================
+# Client Environment Variables (VITE_ prefix)
+# ============================================
+VITE_SUPABASE_PROJECT_ID="rxuwqbfmwoasxpgqygja"
+VITE_SUPABASE_URL="https://rxuwqbfmwoasxpgqygja.supabase.co"
+VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4dXdxYmZtd29hc3hwZ3F5Z2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDc4MDgsImV4cCI6MjA4Nzk4MzgwOH0.WD_s2QuvWIOSvG1LYlLe2CxuUElbknRXHxF7F1QdxYc"
+VITE_API_URL=/api
+
+# ============================================
+# Server Environment Variables
+# ============================================
+SUPABASE_URL="https://rxuwqbfmwoasxpgqygja.supabase.co"
+SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4dXdxYmZtd29hc3hwZ3F5Z2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0MDc4MDgsImV4cCI6MjA4Nzk4MzgwOH0.WD_s2QuvWIOSvG1LYlLe2CxuUElbknRXHxF7F1QdxYc"
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4dXdxYmZtd29hc3hwZ3F5Z2phIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQwNzgwOCwiZXhwIjoyMDg3OTgzODA4fQ._ZWMRmKXhOvZM0vYQnZcPxiADhcoByn5GxTF4JqSNAM"
+PORT=5000
+NODE_ENV=production
+# Use 8080 to match client/vite.config.ts (Vite dev server port)
+CLIENT_URL=http://localhost:8080
+
+# ============================================
+# Payments — payment.reachi.ai (Reachi Pay)
+# ============================================
+# PLATFORM_API_KEY and PLATFORM_WEBHOOK_SECRET are NOT self-service — ask
+# whoever runs payment.reachi.ai to provision this platform (they run
+# `flask create-platform <slug> "<name>" --webhook-url <this-app>/api/payments/webhook
+# --allowed-return-domain <this-app's-domain>` on their side) and send you
+# these two values. Server-only, never expose with a NEXT_PUBLIC_ prefix.
+REACHI_PLATFORM_API_KEY="Ui9n8zc7yYmmy08qzVq7rfgejHc-CJ_ExqcyiEcfOs0"
+REACHI_PLATFORM_WEBHOOK_SECRET="1C4MaEkeIm-Ig8f5cwdC49BjReDU8Wpmhz-kacvHTtU"
+# Only override if you're pointed at a different gateway environment.
+REACHI_PAYMENT_BASE_URL="https://payment.reachi.ai"
+# This app's own public origin, used to build the return_url/logo_url sent
+# to the gateway. Must match the --allowed-return-domain above, or session
+# creation gets rejected with 400.
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
