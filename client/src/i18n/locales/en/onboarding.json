@@ -55,12 +55,6 @@
       "subheading": "This only takes a moment — please don't close this page.",
       "pollError": "Still checking… this is taking longer than usual."
     },
-    "stuck": {
-      "heading": "Still confirming your payment",
-      "subheading": "This is taking longer than expected. Your payment may already have gone through — check your dashboard for the latest status.",
-      "checkDashboard": "Check my dashboard",
-      "retry": "Try again"
-    },
     "failed": {
       "title": "Payment failed",
       "description": "Your payment couldn't be processed. No changes were charged.",

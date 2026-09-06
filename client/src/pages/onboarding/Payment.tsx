@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
-  Clock,
   CreditCard,
   Globe,
   Loader2,
@@ -56,10 +55,6 @@ interface OrderSummary {
 type PaymentMethod = "card" | "instapay" | null;
 
 const POLL_MS = 4000;
-// Bounded, not infinite — if the payment_sessions tracking row never flips
-// (its own update can lag or fail even after the webhook already applied the
-// real change to the broker) the UI must not spin forever. 30 * 4s = 2 min.
-const MAX_POLL_ATTEMPTS = 30;
 
 export default function Payment() {
   const navigate = useNavigate();
@@ -100,7 +95,6 @@ export default function Payment() {
   const [confirming, setConfirming] = useState(isReturningFromGateway);
   const [failed, setFailed] = useState(false);
   const [pollError, setPollError] = useState(false);
-  const [stuck, setStuck] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   // Strip ?status=...&order_id=...&session_id=...&sig= as soon as we've read
@@ -142,21 +136,6 @@ export default function Payment() {
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let attempts = 0;
-
-    const resolveSuccess = (subdomain: string | null) => {
-      if (subdomain) {
-        sessionStorage.setItem("broker_subdomain", subdomain);
-      }
-      clearOnboardingDraft();
-      clearPlanChangeDraft();
-      clearReachiClaimToken();
-      // Branding setup is an onboarding step — a plan change goes straight
-      // back to the dashboard instead.
-      if (!isPlanChange) markPostPaymentPending();
-      setConfirming(false);
-      setPaymentSuccess(true);
-    };
 
     const poll = async () => {
       try {
@@ -171,7 +150,17 @@ export default function Payment() {
               refresh_token: payload.session.refresh_token,
             });
           }
-          resolveSuccess(payload.subdomain);
+          if (payload.subdomain) {
+            sessionStorage.setItem("broker_subdomain", payload.subdomain);
+          }
+          clearOnboardingDraft();
+          clearPlanChangeDraft();
+          clearReachiClaimToken();
+          // Branding setup is an onboarding step — a plan change goes straight
+          // back to the dashboard instead.
+          if (!isPlanChange) markPostPaymentPending();
+          setConfirming(false);
+          setPaymentSuccess(true);
           return;
         }
 
@@ -183,50 +172,11 @@ export default function Payment() {
           return;
         }
 
-        // Our own tracking row (payment_sessions) is still "pending". For an
-        // existing broker, that row isn't actually what the user cares about
-        // — the broker record is. If the webhook already applied the change
-        // there, treat it as success even though payment_sessions' own
-        // status update lagged or failed after the fact, rather than making
-        // the user watch a spinner over what is, for them, a done payment.
-        if (brokerId) {
-          try {
-            const { data: brokerRes } = await api.get(`/brokers/${brokerId}`);
-            const b = brokerRes?.data;
-            const matchesTarget =
-              isPlanChange && planChange
-                ? b?.package === planChange.package
-                : b?.subscription_status === "active";
-            if (matchesTarget) {
-              resolveSuccess(b?.subdomain ?? null);
-              return;
-            }
-          } catch (brokerCheckErr) {
-            console.error("Broker fallback check failed:", brokerCheckErr);
-            // Fall through and keep polling — this was just the extra check.
-          }
-        }
-
-        attempts += 1;
-        if (attempts >= MAX_POLL_ATTEMPTS) {
-          // Neither signal confirmed it in a reasonable time — stop spinning
-          // forever and let the user go check for themselves instead.
-          setConfirming(false);
-          setStuck(true);
-          return;
-        }
-
         timer = setTimeout(poll, POLL_MS);
       } catch (err) {
         console.error("Payment status poll failed:", err);
         if (cancelled) return;
         setPollError(true);
-        attempts += 1;
-        if (attempts >= MAX_POLL_ATTEMPTS) {
-          setConfirming(false);
-          setStuck(true);
-          return;
-        }
         timer = setTimeout(poll, POLL_MS);
       }
     };
@@ -237,13 +187,13 @@ export default function Payment() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [isReturningFromGateway, returnStatus, paymentSuccess, isPlanChange, planChange, brokerId]);
+  }, [isReturningFromGateway, returnStatus, paymentSuccess, isPlanChange]);
 
   useEffect(() => {
     // While we're confirming a just-completed gateway redirect, hold off —
     // once that resolves (success renders its own card; failure falls
     // through here) we need the order summary regardless.
-    if (paymentSuccess || isPostPaymentPending() || confirming || stuck) return;
+    if (paymentSuccess || isPostPaymentPending() || confirming) return;
 
     let active = true;
 
@@ -441,49 +391,6 @@ export default function Payment() {
                 <p className="text-sm text-destructive">
                   {t("payment.confirming.pollError")}
                 </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (stuck) {
-    return (
-      <div className="min-h-screen bg-background py-20 px-4">
-        <div className="container mx-auto max-w-lg">
-          <Card className="shadow-lg">
-            <CardContent className="pt-10 pb-8 text-center space-y-6">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <Clock className="h-8 w-8 text-primary" />
-              </div>
-              <div className="space-y-2">
-                <h1 className="font-display text-3xl font-bold">
-                  {t("payment.stuck.heading")}
-                </h1>
-                <p className="text-muted-foreground">
-                  {t("payment.stuck.subheading")}
-                </p>
-              </div>
-              {brokerId ? (
-                <Button
-                  variant="hero"
-                  size="lg"
-                  className="w-full"
-                  onClick={() => goToDashboard()}
-                >
-                  {t("payment.stuck.checkDashboard")}
-                </Button>
-              ) : (
-                <Button
-                  variant="hero"
-                  size="lg"
-                  className="w-full"
-                  onClick={() => window.location.reload()}
-                >
-                  {t("payment.stuck.retry")}
-                </Button>
               )}
             </CardContent>
           </Card>
