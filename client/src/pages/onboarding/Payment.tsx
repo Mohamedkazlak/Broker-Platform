@@ -289,6 +289,7 @@ export default function Payment() {
     brokerId,
     paymentSuccess,
     confirming,
+    stuck,
     navigate,
     t,
     toast,
