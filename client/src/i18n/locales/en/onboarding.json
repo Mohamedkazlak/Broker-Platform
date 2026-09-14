@@ -17,6 +17,7 @@
     "custom": {
       "title": "Buy your own domain",
       "description": "Use a domain like yourname.com. Available extensions: .com, .me and .online.",
+      "reassurance": "We handle the purchase and setup for you.",
       "label": "Domain name",
       "namePlaceholder": "yourname",
       "checking": "Checking availability…",
@@ -24,7 +25,7 @@
       "taken": "This domain is already taken",
       "invalid": "Enter a valid domain name",
       "unsupportedTld": "Only .com, .me and .online are available right now",
-      "price": "{{price}} EGP/year"
+      "tldPrice": ".{{tld}} — {{price}} EGP/year"
     },
     "continue": "Continue to payment",
     "toasts": {

@@ -24,7 +24,7 @@ import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomainAvailability } from "@/hooks/useSubdomainAvailability";
 import { useCustomDomainAvailability } from "@/hooks/useCustomDomainAvailability";
-import { getLocalDevPort, isPendingSubdomain } from "@/utils/subdomain";
+import { isPendingSubdomain } from "@/utils/subdomain";
 import {
   getOnboardingDraft,
   hasOnboardingDraft,
@@ -40,6 +40,18 @@ type DomainMode = "subdomain" | "custom";
  * dropdown from offering something the server would reject.
  */
 const TLD_OPTIONS = ["com", "me", "online"] as const;
+
+/**
+ * Flat per-extension prices, shown as soon as an extension is picked so the
+ * broker isn't left guessing while the availability check runs. Mirrors
+ * DOMAIN_TLD_PRICES in server/config/domains.js, which is authoritative —
+ * must be kept in sync with that file by hand.
+ */
+const TLD_PRICES: Record<(typeof TLD_OPTIONS)[number], number> = {
+  com: 350,
+  me: 400,
+  online: 250,
+};
 
 export default function DomainSetup() {
   const navigate = useNavigate();
@@ -203,10 +215,9 @@ export default function DomainSetup() {
     return name ? `${name}.${customTld}` : "";
   }, [customName, customTld]);
 
-  const customDomainLocalSuffix = `.localhost:${getLocalDevPort()}`;
-
-  const { status: customStatus, price: customPrice } =
-    useCustomDomainAvailability(mode === "custom" ? customDomain : "");
+  const { status: customStatus } = useCustomDomainAvailability(
+    mode === "custom" ? customDomain : "",
+  );
 
   const canContinue =
     mode === "subdomain"
@@ -369,6 +380,9 @@ export default function DomainSetup() {
                     <CardDescription>
                       {t("domainSetup.custom.description")}
                     </CardDescription>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {t("domainSetup.custom.reassurance")}
+                    </p>
                   </div>
                 </div>
               </CardHeader>
@@ -378,15 +392,12 @@ export default function DomainSetup() {
                     <Label htmlFor="customName">
                       {t("domainSetup.custom.label")}
                     </Label>
-                    <div
-                      className="flex flex-wrap items-center gap-2"
-                      dir="ltr"
-                    >
+                    <div className="flex items-center gap-2" dir="ltr">
                       <Input
                         id="customName"
                         value={customName}
                         dir="ltr"
-                        className="text-start"
+                        className="min-w-0 flex-1 text-start"
                         placeholder={t("domainSetup.custom.namePlaceholder")}
                         onChange={(e) =>
                           setCustomName(
@@ -398,7 +409,7 @@ export default function DomainSetup() {
                       />
                       <span className="text-muted-foreground">.</span>
                       <Select value={customTld} onValueChange={setCustomTld}>
-                        <SelectTrigger className="w-28">
+                        <SelectTrigger className="w-28 shrink-0">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -409,22 +420,20 @@ export default function DomainSetup() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <span
-                        className="text-sm text-muted-foreground font-medium whitespace-nowrap"
-                        dir="ltr"
-                      >
-                        {customDomainLocalSuffix}
-                      </span>
                     </div>
-                    <CustomStatusLine
-                      status={customStatus}
-                      price={customPrice}
-                      priceLabel={(price) =>
-                        t("domainSetup.custom.price", {
-                          price: price.toLocaleString(),
-                        })
-                      }
-                    />
+                    <p
+                      className="text-sm font-medium text-foreground"
+                      dir="ltr"
+                    >
+                      {t("domainSetup.custom.tldPrice", {
+                        tld: customTld,
+                        price:
+                          TLD_PRICES[
+                            customTld as (typeof TLD_OPTIONS)[number]
+                          ].toLocaleString(),
+                      })}
+                    </p>
+                    <CustomStatusLine status={customStatus} />
                   </div>
                 </CardContent>
               )}
@@ -486,15 +495,7 @@ function SubdomainStatusLine({ status }: { status: string }) {
   return null;
 }
 
-function CustomStatusLine({
-  status,
-  price,
-  priceLabel,
-}: {
-  status: string;
-  price: number | null;
-  priceLabel: (price: number) => string;
-}) {
+function CustomStatusLine({ status }: { status: string }) {
   const { t } = useTranslation("onboarding");
   if (status === "checking") {
     return (
@@ -509,11 +510,6 @@ function CustomStatusLine({
       <p className="flex items-center gap-2 text-sm text-green-600">
         <Check className="w-3.5 h-3.5" />
         {t("domainSetup.custom.available")}
-        {price != null && (
-          <span className="font-medium text-foreground">
-            · {priceLabel(price)}
-          </span>
-        )}
       </p>
     );
   }

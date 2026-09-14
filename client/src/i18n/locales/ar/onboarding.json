@@ -17,6 +17,7 @@
     "custom": {
       "title": "اشترِ نطاقك الخاص",
       "description": "استخدم نطاقًا مثل yourname.com. الامتدادات المتاحة: .com و .me و .online.",
+      "reassurance": "نتولى عملية الشراء والإعداد نيابةً عنك.",
       "label": "اسم النطاق",
       "namePlaceholder": "yourname",
       "checking": "جارٍ التحقق من التوفر…",
@@ -24,7 +25,7 @@
       "taken": "هذا النطاق محجوز بالفعل",
       "invalid": "أدخل اسم نطاق صالحًا",
       "unsupportedTld": "الامتدادات المتاحة حاليًا هي .com و .me و .online فقط",
-      "price": "{{price}} جنيه/سنة"
+      "tldPrice": ".{{tld}} — {{price}} جنيه/سنة"
     },
     "continue": "المتابعة إلى الدفع",
     "toasts": {
