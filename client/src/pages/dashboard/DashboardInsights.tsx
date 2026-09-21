@@ -54,8 +54,8 @@ const EMPTY_REVENUE: RevenueStats = {
 };
 
 const FALLBACK_PLAN_LIMITS: Record<PlanId, number> = {
-  free: 3,
-  plus: 10,
+  free: 1,
+  plus: 3,
   pro: 50,
   max: 100,
   ultra: UNLIMITED_PACKAGE_LIMIT,

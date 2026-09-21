@@ -7,7 +7,13 @@ export type CustomDomainStatus =
   | "available"
   | "taken"
   | "invalid"
-  | "unsupportedTld";
+  | "unsupportedTld"
+  | "checkFailed";
+
+export type DomainPriceQuote = {
+  priceUSD: number;
+  priceEGP: number;
+};
 
 /**
  * Client-side mirror of the server's domain shape gate so obviously-invalid
@@ -18,19 +24,36 @@ const DOMAIN_PATTERN =
 
 const DEBOUNCE_MS = 450;
 
+function parseQuote(data: {
+  priceUSD?: unknown;
+  priceEGP?: unknown;
+} | null): DomainPriceQuote | null {
+  if (
+    typeof data?.priceUSD === "number" &&
+    Number.isFinite(data.priceUSD) &&
+    typeof data?.priceEGP === "number" &&
+    Number.isFinite(data.priceEGP)
+  ) {
+    return { priceUSD: data.priceUSD, priceEGP: data.priceEGP };
+  }
+  return null;
+}
+
 /**
  * Live "is this custom domain available (and how much)?" check.
  *
  * Mirrors useSubdomainAvailability: local format gate, ~450ms debounce, and
  * AbortController cancellation so a slow earlier response can't overwrite a
- * faster later one. Backed by the mocked GET /api/domains/check-custom.
+ * faster later one. Backed by GET /api/domains/check-custom.
  */
 export function useCustomDomainAvailability(rawDomain: string): {
   status: CustomDomainStatus;
   price: number | null;
+  quote: DomainPriceQuote | null;
 } {
   const [status, setStatus] = useState<CustomDomainStatus>("idle");
   const [price, setPrice] = useState<number | null>(null);
+  const [quote, setQuote] = useState<DomainPriceQuote | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -38,6 +61,7 @@ export function useCustomDomainAvailability(rawDomain: string): {
 
     abortRef.current?.abort();
     setPrice(null);
+    setQuote(null);
 
     if (!normalized) {
       setStatus("idle");
@@ -63,13 +87,20 @@ export function useCustomDomainAvailability(rawDomain: string): {
 
         if (controller.signal.aborted) return;
 
-        if (typeof data?.price === "number") setPrice(data.price);
+        const nextQuote = parseQuote(data);
+        setQuote(nextQuote);
+        if (nextQuote) {
+          setPrice(nextQuote.priceEGP);
+        } else if (typeof data?.price === "number") {
+          setPrice(data.price);
+        }
 
         if (data?.available) {
           setStatus("available");
         } else if (
           data?.reason === "invalid" ||
-          data?.reason === "unsupportedTld"
+          data?.reason === "unsupportedTld" ||
+          data?.reason === "checkFailed"
         ) {
           setStatus(data.reason);
         } else {
@@ -87,5 +118,5 @@ export function useCustomDomainAvailability(rawDomain: string): {
     };
   }, [rawDomain]);
 
-  return { status, price };
+  return { status, price, quote };
 }

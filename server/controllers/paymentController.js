@@ -2,10 +2,12 @@ import crypto from "crypto";
 import { brokerModel } from "../models/brokerModel.js";
 import { paymentModel } from "../models/paymentModel.js";
 import { applyPlanChange, resolvePlanChange } from "../services/subscription.js";
-import { buildOrderSummary } from "../utils/orderSummary.js";
+import {
+  buildOrderSummary,
+  buildRegistrationOrderSummary,
+} from "../utils/orderSummary.js";
 import {
   assertRegistrationFormData,
-  buildRegistrationOrderSummary,
   provisionBrokerAccount,
   resolveDomainFields,
   signInWithPassword,
@@ -115,7 +117,11 @@ async function checkoutForBroker(req, res, brokerId) {
   }
 
   const returnUrl = buildReturnUrl(req.body?.returnPath);
-  const summary = change ? change.summary : buildOrderSummary(broker);
+  const domainAlreadyOwned =
+    broker.domain_type === "custom" && !!broker.custom_domain;
+  const summary = change
+    ? change.summary
+    : await buildOrderSummary(broker, { domainAlreadyOwned });
 
   const orderId = `bp_${crypto.randomUUID()}`;
   const { token, hash } = createClaimToken();
@@ -181,7 +187,7 @@ async function checkoutForDraft(req, res) {
 
   const returnUrl = buildReturnUrl(returnPath);
   const domainFields = await resolveDomainFields(formData, pkg, domain);
-  const summary = buildRegistrationOrderSummary(pkg, domainFields);
+  const summary = await buildRegistrationOrderSummary(pkg, domainFields);
 
   const orderId = `bp_${crypto.randomUUID()}`;
   const { token, hash } = createClaimToken();

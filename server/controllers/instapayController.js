@@ -6,10 +6,12 @@ import {
   applyPlanChangeSubdomain,
   resolvePlanChange,
 } from "../services/subscription.js";
-import { buildOrderSummary } from "../utils/orderSummary.js";
+import {
+  buildOrderSummary,
+  buildRegistrationOrderSummary,
+} from "../utils/orderSummary.js";
 import {
   assertRegistrationFormData,
-  buildRegistrationOrderSummary,
   provisionBrokerAccount,
   resolveDomainFields,
   signInWithPassword,
@@ -277,7 +279,11 @@ async function submitReceiptForBroker(req, res, brokerId) {
   }
 
   const { buffer, mimeType, ext } = decodeReceiptBase64(req.body?.receipt);
-  const summary = change ? change.summary : buildOrderSummary(broker);
+  const domainAlreadyOwned =
+    broker.domain_type === "custom" && !!broker.custom_domain;
+  const summary = change
+    ? change.summary
+    : await buildOrderSummary(broker, { domainAlreadyOwned });
   const { token, hash } = createClaimToken();
   const receiptPath = await uploadReceipt(brokerId, buffer, mimeType, ext);
 
@@ -409,7 +415,7 @@ async function submitReceiptForDraft(req, res) {
     }
   }
 
-  const summary = buildRegistrationOrderSummary(pkg, domainFields);
+  const summary = await buildRegistrationOrderSummary(pkg, domainFields);
   const { buffer, mimeType, ext } = decodeReceiptBase64(receipt);
   const { token, hash } = createClaimToken();
   const folderId = crypto.randomUUID();

@@ -6,10 +6,7 @@ import {
   isPendingSubdomain,
 } from "../utils/subdomainGenerator.js";
 import { PLANS_BY_ID, resolvePackageCategory } from "../config/plans.js";
-import {
-  isAllowedCustomDomainTld,
-  ALLOWED_CUSTOM_DOMAIN_TLDS,
-} from "../config/domains.js";
+import { isValidCustomDomainFormat } from "../config/domains.js";
 import {
   computeDaysUntilNextPayment,
   syncBrokerBillingState,
@@ -206,11 +203,11 @@ export const update = async (req, res, next) => {
         });
       }
 
-      if (!isAllowedCustomDomainTld(customDomain)) {
+      if (!isValidCustomDomainFormat(customDomain)) {
         return res.status(400).json({
           status: "error",
-          error: `Custom domains must end in ${ALLOWED_CUSTOM_DOMAIN_TLDS.map((tld) => `.${tld}`).join(", ")}`,
-          reason: "unsupportedTld",
+          error: "Enter a valid custom domain",
+          reason: "invalid",
         });
       }
 
@@ -418,7 +415,12 @@ export const getOrderSummary = async (req, res, next) => {
       });
     }
 
-    res.json({ status: "success", summary: buildOrderSummary(broker) });
+    const domainAlreadyOwned =
+      broker.domain_type === "custom" && !!broker.custom_domain;
+    res.json({
+      status: "success",
+      summary: await buildOrderSummary(broker, { domainAlreadyOwned }),
+    });
   } catch (error) {
     if (error.status) {
       return res
@@ -477,7 +479,9 @@ export const simulatePayment = async (req, res, next) => {
     const data = await activateSubscription(req.params.id, {
       package: broker.package,
     });
-    const { total } = buildOrderSummary(broker);
+    const domainAlreadyOwned =
+      broker.domain_type === "custom" && !!broker.custom_domain;
+    const { total } = await buildOrderSummary(broker, { domainAlreadyOwned });
 
     return res.json({
       status: "success",

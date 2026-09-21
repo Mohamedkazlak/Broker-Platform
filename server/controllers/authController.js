@@ -7,12 +7,8 @@ import { isValidGovernorate } from "../constants/governorates.js";
 import { validateSubdomainFormat } from "../utils/subdomainValidator.js";
 import { generateDefaultSubdomain } from "../utils/subdomainGenerator.js";
 import { PLANS_BY_ID, resolvePackageCategory } from "../config/plans.js";
-import {
-  priceForDomain,
-  isAllowedCustomDomainTld,
-  ALLOWED_CUSTOM_DOMAIN_TLDS,
-  DOMAIN_CURRENCY,
-} from "../config/domains.js";
+import { isValidCustomDomainFormat } from "../config/domains.js";
+import { buildRegistrationOrderSummary } from "../utils/orderSummary.js";
 import { addBillingDays } from "../services/billingMonitor.js";
 
 /** Shared anon client for password sign-in (no per-request allocation). */
@@ -56,26 +52,7 @@ export const checkEmail = async (req, res, next) => {
   }
 };
 
-/**
- * Build order totals from plan + optional custom domain (server-side only).
- */
-export function buildRegistrationOrderSummary(pkg, domain) {
-  const plan = PLANS_BY_ID[pkg] ?? null;
-  const planPrice = plan?.price ?? 0;
-  const isCustom = domain?.domain_type === "custom" && !!domain?.custom_domain;
-  const domainPrice = isCustom ? priceForDomain(domain.custom_domain) : 0;
-
-  return {
-    package: pkg,
-    planName: plan?.name ?? pkg,
-    planPrice,
-    currency: plan?.currency ?? DOMAIN_CURRENCY,
-    domainType: domain?.domain_type ?? "subdomain",
-    customDomain: isCustom ? domain.custom_domain : null,
-    domainPrice,
-    total: planPrice + domainPrice,
-  };
-}
+export { buildRegistrationOrderSummary };
 
 /**
  * Resolve subdomain / custom domain fields for a new broker row.
@@ -138,13 +115,11 @@ export async function resolveDomainFields(formData, pkg, domain) {
         status: 400,
       });
     }
-    if (!isAllowedCustomDomainTld(customDomain)) {
-      throw Object.assign(
-        new Error(
-          `Custom domains must end in ${ALLOWED_CUSTOM_DOMAIN_TLDS.map((tld) => `.${tld}`).join(", ")}`,
-        ),
-        { status: 400, reason: "unsupportedTld" },
-      );
+    if (!isValidCustomDomainFormat(customDomain)) {
+      throw Object.assign(new Error("Enter a valid custom domain"), {
+        status: 400,
+        reason: "invalid",
+      });
     }
     const taken = await brokerModel.findByCustomDomain(customDomain);
     if (taken) {
@@ -245,7 +220,7 @@ export async function provisionBrokerAccount({
 
   const domainFields =
     preResolvedDomain ?? (await resolveDomainFields(formData, pkg, domain));
-  const orderSummary = buildRegistrationOrderSummary(pkg, domainFields);
+  const orderSummary = await buildRegistrationOrderSummary(pkg, domainFields);
   const amount =
     typeof billingAmount === "number" ? billingAmount : orderSummary.total;
 

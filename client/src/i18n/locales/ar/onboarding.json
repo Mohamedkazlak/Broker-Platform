@@ -16,16 +16,23 @@
     },
     "custom": {
       "title": "اشترِ نطاقك الخاص",
-      "description": "استخدم نطاقًا مثل yourname.com. الامتدادات المتاحة: .com و .me و .online.",
+      "description": "اختر اسمًا ثم اختر امتدادًا. الأسعار أدناه مباشرة من name.com.",
       "reassurance": "نتولى عملية الشراء والإعداد نيابةً عنك.",
       "label": "اسم النطاق",
       "namePlaceholder": "yourname",
+      "tldSearchPlaceholder": "ابحث عن الامتدادات",
+      "browseTlds": "كل الامتدادات والأسعار",
+      "catalogLoading": "جارٍ تحميل أسعار الامتدادات من name.com…",
+      "catalogEmpty": "تعذّر تحميل قائمة الامتدادات. يرجى المحاولة مرة أخرى.",
+      "noSearchResults": "لا يوجد امتداد مطابق",
       "checking": "جارٍ التحقق من التوفر…",
       "available": "متاح",
       "taken": "هذا النطاق محجوز بالفعل",
       "invalid": "أدخل اسم نطاق صالحًا",
-      "unsupportedTld": "الامتدادات المتاحة حاليًا هي .com و .me و .online فقط",
-      "tldPrice": ".{{tld}} — {{price}} جنيه/سنة"
+      "unsupportedTld": "name.com لا تبيع هذا الامتداد حاليًا",
+      "checkFailed": "تعذّر التحقق من هذا النطاق الآن. حاول مرة أخرى.",
+      "tldPrice": ".{{tld}} — {{price}} {{currency}}/سنة",
+      "currencyToggleAria": "عرض سعر النطاق بالدولار"
     },
     "continue": "المتابعة إلى الدفع",
     "toasts": {

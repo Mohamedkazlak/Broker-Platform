@@ -7,7 +7,8 @@
  * property listings; `UNLIMITED_PACKAGE_LIMIT` is a large sentinel that keeps
  * the NOT NULL integer `brokers.package_limit` column valid for "unlimited"
  * plans. `customDomain` indicates whether the plan can map a custom domain
- * (the rest stay on a *.subdomain host).
+ * (the rest stay on a *.subdomain host). Max and Ultra accept any TLD that
+ * name.com sells; prices come from the name.com API rather than a fixed list.
  *
  * Plans are grouped into two customer-facing categories. `categories` is a
  * list rather than a single value because the free plan is offered as the
@@ -34,13 +35,13 @@ export const PLANS = [
     currency: "EGP",
     billingInterval: "month",
     categories: ["personal", "enterprise"],
-    packageLimit: 3,
+    packageLimit: 1,
     customDomain: false,
     headline: "listings",
     recommended: false,
     features: [
       "Standard subdomain",
-      "Up to 3 property listings",
+      "Up to 1 property listing",
       "Standard responsive website",
       "Community support",
     ],
@@ -52,13 +53,13 @@ export const PLANS = [
     currency: "EGP",
     billingInterval: "month",
     categories: ["personal"],
-    packageLimit: 10,
+    packageLimit: 3,
     customDomain: false,
     headline: "listings",
     recommended: false,
     features: [
       "Custom subdomain",
-      "Up to 10 property listings",
+      "Up to 3 property listings",
       "Background & icon customization",
       "Social media links",
     ],
@@ -84,7 +85,7 @@ export const PLANS = [
   {
     id: "max",
     name: "Max Package",
-    price: 3000,
+    price: 2000,
     currency: "EGP",
     billingInterval: "month",
     categories: ["personal"],
@@ -93,7 +94,7 @@ export const PLANS = [
     headline: "domain",
     recommended: false,
     features: [
-      "Your own domain (.com, .me or .online)",
+      "Your own domain (any TLD, priced via name.com)",
       "Or keep a custom subdomain",
       "Up to 100 property listings",
       "Background & icon customization",
@@ -112,7 +113,7 @@ export const PLANS = [
     headline: "domain",
     recommended: false,
     features: [
-      "Your own domain (.com, .me or .online)",
+      "Your own domain (any TLD, priced via name.com)",
       "Or keep a custom subdomain",
       "Unlimited property listings",
       "Background & icon customization",

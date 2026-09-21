@@ -12,18 +12,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomainAvailability } from "@/hooks/useSubdomainAvailability";
-import { useCustomDomainAvailability } from "@/hooks/useCustomDomainAvailability";
+import {
+  useCustomDomainAvailability,
+  type DomainPriceQuote,
+} from "@/hooks/useCustomDomainAvailability";
+import {
+  useTldCatalog,
+  useTldSearch,
+  type TldListQuote,
+} from "@/hooks/useTldCatalog";
 import { isPendingSubdomain } from "@/utils/subdomain";
 import {
   getOnboardingDraft,
@@ -34,24 +36,17 @@ import { getPlanChangeDraft, updatePlanChangeDraft } from "@/lib/planChange";
 
 type DomainMode = "subdomain" | "custom";
 
-/**
- * Extensions a broker may buy. Mirrors ALLOWED_CUSTOM_DOMAIN_TLDS in
- * server/config/domains.js, which is authoritative — this list only keeps the
- * dropdown from offering something the server would reject.
- */
-const TLD_OPTIONS = ["com", "me", "online"] as const;
+type DisplayCurrency = "EGP" | "USD";
 
-/**
- * Flat per-extension prices, shown as soon as an extension is picked so the
- * broker isn't left guessing while the availability check runs. Mirrors
- * DOMAIN_TLD_PRICES in server/config/domains.js, which is authoritative —
- * must be kept in sync with that file by hand.
- */
-const TLD_PRICES: Record<(typeof TLD_OPTIONS)[number], number> = {
-  com: 350,
-  me: 400,
-  online: 250,
-};
+function formatQuotedPrice(amount: number, currency: DisplayCurrency) {
+  if (currency === "USD") {
+    return amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  return amount.toLocaleString();
+}
 
 export default function DomainSetup() {
   const navigate = useNavigate();
@@ -69,6 +64,13 @@ export default function DomainSetup() {
   const [subdomainValue, setSubdomainValue] = useState("");
   const [customName, setCustomName] = useState("");
   const [customTld, setCustomTld] = useState<string>("com");
+  const [displayCurrency, setDisplayCurrency] =
+    useState<DisplayCurrency>("EGP");
+  const [selectedQuote, setSelectedQuote] = useState<DomainPriceQuote | null>(
+    null,
+  );
+  const { tlds: tldCatalog, isLoading: tldCatalogLoading } =
+    useTldCatalog(canUseCustomDomain);
 
   const brokerId = profile?.broker_id;
   const isDraftFlow = !brokerId && hasOnboardingDraft();
@@ -215,9 +217,15 @@ export default function DomainSetup() {
     return name ? `${name}.${customTld}` : "";
   }, [customName, customTld]);
 
-  const { status: customStatus } = useCustomDomainAvailability(
-    mode === "custom" ? customDomain : "",
-  );
+  const { status: customStatus, quote: liveQuote } =
+    useCustomDomainAvailability(mode === "custom" ? customDomain : "");
+
+  const catalogQuote = useMemo((): DomainPriceQuote | null => {
+    const row = tldCatalog.find((entry) => entry.tld === customTld);
+    return row ? { priceUSD: row.priceUSD, priceEGP: row.priceEGP } : null;
+  }, [customTld, tldCatalog]);
+
+  const quotedPrice = liveQuote ?? catalogQuote ?? selectedQuote;
 
   const canContinue =
     mode === "subdomain"
@@ -388,7 +396,11 @@ export default function DomainSetup() {
               </CardHeader>
               {mode === "custom" && (
                 <CardContent>
-                  <div className="space-y-2">
+                  <div
+                    className="space-y-3"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
                     <Label htmlFor="customName">
                       {t("domainSetup.custom.label")}
                     </Label>
@@ -407,33 +419,28 @@ export default function DomainSetup() {
                           )
                         }
                       />
-                      <span className="text-muted-foreground">.</span>
-                      <Select value={customTld} onValueChange={setCustomTld}>
-                        <SelectTrigger className="w-28 shrink-0">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TLD_OPTIONS.map((tld) => (
-                            <SelectItem key={tld} value={tld}>
-                              .{tld}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
-                    <p
-                      className="text-sm font-medium text-foreground"
-                      dir="ltr"
-                    >
-                      {t("domainSetup.custom.tldPrice", {
-                        tld: customTld,
-                        price:
-                          TLD_PRICES[
-                            customTld as (typeof TLD_OPTIONS)[number]
-                          ].toLocaleString(),
-                      })}
-                    </p>
+                    <DomainPriceLine
+                      tld={customTld}
+                      quote={quotedPrice}
+                      quoteLoading={tldCatalogLoading && !quotedPrice}
+                      currency={displayCurrency}
+                      onCurrencyChange={setDisplayCurrency}
+                    />
                     <CustomStatusLine status={customStatus} />
+                    <TldCatalogList
+                      tlds={tldCatalog}
+                      isLoading={tldCatalogLoading}
+                      selectedTld={customTld}
+                      currency={displayCurrency}
+                      onSelect={(row) => {
+                        setCustomTld(row.tld);
+                        setSelectedQuote({
+                          priceUSD: row.priceUSD,
+                          priceEGP: row.priceEGP,
+                        });
+                      }}
+                    />
                   </div>
                 </CardContent>
               )}
@@ -454,6 +461,83 @@ export default function DomainSetup() {
             t("domainSetup.continue")
           )}
         </Button>
+      </div>
+    </div>
+  );
+}
+
+function DomainPriceLine({
+  tld,
+  quote,
+  quoteLoading,
+  currency,
+  onCurrencyChange,
+}: {
+  tld: string;
+  quote: DomainPriceQuote | null;
+  quoteLoading: boolean;
+  currency: DisplayCurrency;
+  onCurrencyChange: (currency: DisplayCurrency) => void;
+}) {
+  const { t } = useTranslation("onboarding");
+  const amount =
+    quote == null ? null : currency === "USD" ? quote.priceUSD : quote.priceEGP;
+
+  return (
+    <div className="flex items-center justify-between gap-3" dir="ltr">
+      <p className="text-sm font-medium text-foreground min-w-0">
+        {amount == null ? (
+          quoteLoading ? (
+            <span className="inline-flex items-center gap-1.5">
+              .{tld} —{" "}
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+              {` ${currency}/year`}
+            </span>
+          ) : tld ? (
+            t("domainSetup.custom.tldPrice", {
+              tld,
+              price: "—",
+              currency,
+            })
+          ) : null
+        ) : (
+          t("domainSetup.custom.tldPrice", {
+            tld,
+            price: formatQuotedPrice(amount, currency),
+            currency,
+          })
+        )}
+      </p>
+      <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+        <button
+          type="button"
+          className={
+            currency === "EGP"
+              ? "font-medium text-foreground"
+              : "hover:text-foreground"
+          }
+          onClick={() => onCurrencyChange("EGP")}
+        >
+          EGP
+        </button>
+        <Switch
+          checked={currency === "USD"}
+          onCheckedChange={(checked) =>
+            onCurrencyChange(checked ? "USD" : "EGP")
+          }
+          aria-label={t("domainSetup.custom.currencyToggleAria")}
+        />
+        <button
+          type="button"
+          className={
+            currency === "USD"
+              ? "font-medium text-foreground"
+              : "hover:text-foreground"
+          }
+          onClick={() => onCurrencyChange("USD")}
+        >
+          USD
+        </button>
       </div>
     </div>
   );
@@ -516,7 +600,8 @@ function CustomStatusLine({ status }: { status: string }) {
   if (
     status === "taken" ||
     status === "invalid" ||
-    status === "unsupportedTld"
+    status === "unsupportedTld" ||
+    status === "checkFailed"
   ) {
     return (
       <p className="text-sm text-destructive">
@@ -525,4 +610,85 @@ function CustomStatusLine({ status }: { status: string }) {
     );
   }
   return null;
+}
+
+function TldCatalogList({
+  tlds,
+  isLoading,
+  selectedTld,
+  currency,
+  onSelect,
+}: {
+  tlds: TldListQuote[];
+  isLoading: boolean;
+  selectedTld: string;
+  currency: DisplayCurrency;
+  onSelect: (row: TldListQuote) => void;
+}) {
+  const { t } = useTranslation("onboarding");
+  const [query, setQuery] = useState("");
+  const needle = query.trim().toLowerCase().replace(/^\.+/, "");
+  const { tlds: searchHits, isSearching } = useTldSearch(query, true);
+
+  const rows = needle ? searchHits : tlds;
+  const showLoading = isLoading || (Boolean(needle) && isSearching);
+
+  return (
+    <div className="space-y-2 pt-1">
+      <p className="text-sm font-medium text-foreground">
+        {t("domainSetup.custom.browseTlds")}
+      </p>
+      <Input
+        value={query}
+        dir="ltr"
+        className="text-start"
+        placeholder={t("domainSetup.custom.tldSearchPlaceholder")}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {showLoading ? (
+        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          {t("domainSetup.custom.catalogLoading")}
+        </p>
+      ) : tlds.length === 0 && !needle ? (
+        <p className="text-sm text-muted-foreground">
+          {t("domainSetup.custom.catalogEmpty")}
+        </p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {t("domainSetup.custom.noSearchResults")}
+        </p>
+      ) : (
+        <ul className="max-h-72 overflow-y-auto rounded-md border divide-y">
+          {rows.map((row) => {
+            const amount = currency === "USD" ? row.priceUSD : row.priceEGP;
+            const selected = row.tld === selectedTld;
+            return (
+              <li key={row.tld}>
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-sm text-start ${
+                    selected
+                      ? "bg-primary/10 text-foreground"
+                      : "hover:bg-muted/60"
+                  }`}
+                  onClick={() => onSelect(row)}
+                >
+                  <span className="font-medium" dir="ltr">
+                    .{row.tld}
+                  </span>
+                  <span
+                    className="tabular-nums text-muted-foreground"
+                    dir="ltr"
+                  >
+                    {formatQuotedPrice(amount, currency)} {currency}/year
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
 }

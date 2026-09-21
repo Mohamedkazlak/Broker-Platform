@@ -26,7 +26,7 @@
       "description": "Great for getting started and exploring the platform",
       "features": [
         "Standard subdomain",
-        "Up to 3 property listings",
+        "Up to 1 property listing",
         "Standard responsive website",
         "Community support"
       ]
@@ -37,7 +37,7 @@
       "description": "Perfect for individual brokers starting out",
       "features": [
         "Custom subdomain",
-        "Up to 10 property listings",
+        "Up to 3 property listings",
         "Background and icon customization",
         "Social media links"
       ]
@@ -55,10 +55,10 @@
     },
     "max": {
       "name": "Max Package",
-      "price": "3,000",
-      "description": "Get your own domain",
+      "price": "2,000",
+      "description": "Get your own domain — any TLD",
       "features": [
-        "Your own domain (.com, .me or .online)",
+        "Your own domain (any TLD, priced via name.com)",
         "Or keep a custom subdomain",
         "Up to 100 property listings",
         "Background and icon customization",
@@ -70,7 +70,7 @@
       "price": "5,000",
       "description": "Your own domain, plus a dedicated app and manager",
       "features": [
-        "Your own domain (.com, .me or .online)",
+        "Your own domain (any TLD, priced via name.com)",
         "Or keep a custom subdomain",
         "Unlimited property listings",
         "Background and icon customization",
@@ -99,9 +99,10 @@
     "currencyShort": "EGP/mo",
     "selectPlan": "Select Plan",
     "currentPlan": "Current Plan",
-    "listingLimit": "Up to {{count}} listings",
+    "listingLimit_one": "Up to {{count}} listing",
+    "listingLimit_other": "Up to {{count}} listings",
     "unlimitedListings": "Unlimited listings",
-    "ownDomainHeadline": "Get your own domain",
+    "ownDomainHeadline": "Get your own domain — any TLD",
     "toasts": {
       "noBrokerTitle": "Error",
       "noBrokerDescription": "No associated platform found. Please register again.",

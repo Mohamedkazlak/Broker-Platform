@@ -16,16 +16,23 @@
     },
     "custom": {
       "title": "Buy your own domain",
-      "description": "Use a domain like yourname.com. Available extensions: .com, .me and .online.",
+      "description": "Choose a name, then pick an extension. Prices below are live from name.com.",
       "reassurance": "We handle the purchase and setup for you.",
       "label": "Domain name",
       "namePlaceholder": "yourname",
+      "tldSearchPlaceholder": "Search extensions",
+      "browseTlds": "All extensions and prices",
+      "catalogLoading": "Loading extension prices from name.com…",
+      "catalogEmpty": "Couldn't load the extension list. Please try again.",
+      "noSearchResults": "No matching extension",
       "checking": "Checking availability…",
       "available": "Available",
       "taken": "This domain is already taken",
       "invalid": "Enter a valid domain name",
-      "unsupportedTld": "Only .com, .me and .online are available right now",
-      "tldPrice": ".{{tld}} — {{price}} EGP/year"
+      "unsupportedTld": "name.com doesn't currently sell this extension",
+      "checkFailed": "Couldn't check this domain right now. Try again.",
+      "tldPrice": ".{{tld}} — {{price}} {{currency}}/year",
+      "currencyToggleAria": "Show domain price in USD"
     },
     "continue": "Continue to payment",
     "toasts": {

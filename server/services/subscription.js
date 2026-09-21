@@ -1,7 +1,7 @@
 import { brokerModel } from "../models/brokerModel.js";
 import { instapayModel } from "../models/instapayModel.js";
 import { PLANS_BY_ID, resolvePackageCategory } from "../config/plans.js";
-import { isAllowedCustomDomainTld } from "../config/domains.js";
+import { isValidCustomDomainFormat } from "../config/domains.js";
 import { validateSubdomainFormat } from "../utils/subdomainValidator.js";
 import { buildOrderSummary } from "../utils/orderSummary.js";
 import { resolveNextBillingDate } from "./billingMonitor.js";
@@ -29,10 +29,15 @@ export async function activateSubscription(brokerId, planDetails) {
     throw new Error("Broker not found");
   }
 
-  const { total } = buildOrderSummary({
-    ...broker,
-    package: planDetails.package,
-  });
+  const domainAlreadyOwned =
+    broker.domain_type === "custom" && !!broker.custom_domain;
+  const { total } = await buildOrderSummary(
+    {
+      ...broker,
+      package: planDetails.package,
+    },
+    { domainAlreadyOwned },
+  );
   const billingAmount = planDetails.billingAmount ?? total;
 
   return brokerModel.update(brokerId, {
@@ -130,9 +135,9 @@ async function resolvePlanChangeDomain(broker, plan, domain) {
   if (!customDomain) {
     throw badRequest("Custom domain is required");
   }
-  if (!isAllowedCustomDomainTld(customDomain)) {
-    throw badRequest("Unsupported custom domain extension", {
-      reason: "unsupportedTld",
+  if (!isValidCustomDomainFormat(customDomain)) {
+    throw badRequest("Enter a valid custom domain", {
+      reason: "invalid",
     });
   }
 
@@ -208,11 +213,17 @@ export async function resolvePlanChange(broker, request) {
     throw badRequest("This is already your current plan");
   }
 
-  const summary = buildOrderSummary({
-    package: pkg,
-    domain_type: domainFields.domain_type,
-    custom_domain: domainFields.custom_domain,
-  });
+  const domainAlreadyOwned =
+    domainFields.domain_type === "custom" &&
+    domainFields.custom_domain === broker.custom_domain;
+  const summary = await buildOrderSummary(
+    {
+      package: pkg,
+      domain_type: domainFields.domain_type,
+      custom_domain: domainFields.custom_domain,
+    },
+    { domainAlreadyOwned },
+  );
 
   return {
     package: pkg,

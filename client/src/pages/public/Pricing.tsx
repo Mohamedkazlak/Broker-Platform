@@ -29,7 +29,7 @@ const planPrices: Record<PlanId, string> = {
   free: "0",
   plus: "300",
   pro: "1,000",
-  max: "3,000",
+  max: "2,000",
   ultra: "5,000",
 };
 
