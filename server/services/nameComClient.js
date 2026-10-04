@@ -6,9 +6,8 @@ import {
 } from "../config/nameCom.js";
 
 /**
- * Thin HTTP client for name.com's Reseller API. Used to ask "is this domain
- * actually free to register, and what would name.com charge us for it?" — we
- * never buy/register anything here, only read availability + price.
+ * Thin HTTP client for name.com's Reseller API — availability/price checks,
+ * domain registration, and DNS record creation.
  */
 
 const TLD_PRICING_PER_PAGE = 100;
@@ -125,4 +124,101 @@ export async function listTldRegistrationPrices() {
   }
 
   return collected;
+}
+
+/**
+ * POST /v4/domains — register (purchase) a domain.
+ *
+ * Safe to retry: GET /domains/{domain} first; if we already own it, skip the
+ * purchase and return `{ alreadyOwned: true, domain }`.
+ *
+ * `purchasePriceUsd` is a ceiling: if name.com's price rises above it before
+ * the request is processed, the registration fails instead of charging more
+ * than we agreed to.
+ *
+ * @param {string} domain e.g. "ahmed.com"
+ * @param {number} purchasePriceUsd
+ * @returns {Promise<object>} parsed body (includes domain, order, totalPaid),
+ *   or `{ alreadyOwned: true, domain }` when the account already holds it
+ */
+export async function registerDomain(domain, purchasePriceUsd) {
+  assertNameComConfigured();
+
+  const ownedRes = await fetch(
+    `${NAME_COM_BASE_URL}/domains/${encodeURIComponent(domain)}`,
+    { headers: nameComAuthHeaders() },
+  );
+  const ownedBody = await ownedRes.json().catch(() => null);
+
+  if (ownedRes.status === 200) {
+    return { alreadyOwned: true, domain: ownedBody };
+  }
+
+  if (ownedRes.status !== 404) {
+    throw Object.assign(
+      new Error(
+        ownedBody?.message ||
+          `name.com domain lookup failed (${ownedRes.status})`,
+      ),
+      { status: nameComStatus(ownedRes), details: ownedBody?.details },
+    );
+  }
+
+  const res = await fetch(`${NAME_COM_BASE_URL}/domains`, {
+    method: "POST",
+    headers: nameComAuthHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      domain: { domainName: domain },
+      purchasePrice: purchasePriceUsd,
+    }),
+  });
+
+  const body = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw Object.assign(
+      new Error(
+        body?.message || `name.com domain registration failed (${res.status})`,
+      ),
+      { status: nameComStatus(res), details: body?.details },
+    );
+  }
+
+  return body;
+}
+
+/**
+ * POST /v4/domains/{domain}/records — create a DNS record on a domain we own.
+ *
+ * @param {string} domain e.g. "ahmed.com"
+ * @param {{ host: string, type: string, answer: string, ttl?: number }} record
+ * @returns {Promise<object>} parsed body (the created record)
+ */
+export async function createDnsRecord(
+  domain,
+  { host, type, answer, ttl = 300 },
+) {
+  assertNameComConfigured();
+
+  const res = await fetch(
+    `${NAME_COM_BASE_URL}/domains/${encodeURIComponent(domain)}/records`,
+    {
+      method: "POST",
+      headers: nameComAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ host, type, answer, ttl }),
+    },
+  );
+
+  const body = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw Object.assign(
+      new Error(
+        body?.message || `name.com DNS record create failed (${res.status})`,
+      ),
+      { status: nameComStatus(res), details: body?.details },
+    );
+  }
+
+  return body;
 }

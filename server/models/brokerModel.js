@@ -133,4 +133,21 @@ export const brokerModel = {
     }
     return [...byId.values()];
   },
+
+  /**
+   * Brokers whose custom-domain provisioning is mid-flight and still under
+   * the retry budget — picked up by domainMonitor for Render verification.
+   */
+  async findForDomainMonitorSweep() {
+    const { data, error } = await supabaseAdmin
+      .from("brokers")
+      .select(
+        "id, custom_domain, domain_status, domain_attempts, domain_last_error",
+      )
+      .in("domain_status", ["dns_pending", "attaching"])
+      .lt("domain_attempts", 5);
+
+    if (error) throw error;
+    return data ?? [];
+  },
 };

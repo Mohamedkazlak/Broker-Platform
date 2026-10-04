@@ -31,6 +31,7 @@ import {
   contactLimiter,
 } from "./middleware/rateLimiter.js";
 import { startBillingMonitor } from "./services/billingMonitor.js";
+import { startDomainMonitor } from "./services/domainMonitor.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -198,4 +199,6 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🔧 Environment: ${process.env.NODE_ENV || "production"}`);
   startBillingMonitor();
   console.log(`⏱️  Billing monitor started (hourly sweep)`);
+  startDomainMonitor();
+  console.log(`⏱️  Domain monitor started (15-minute sweep)`);
 });

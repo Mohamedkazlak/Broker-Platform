@@ -89,3 +89,5 @@ env/
 # Supabase Local
 supabase/.temp/
 supabase/.dump/
+server/migrations/2026-04-05_broker_domain_provisioning.sql
+server/migrations/2026-10-05_broker_domain_provisioning.sql

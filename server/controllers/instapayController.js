@@ -30,6 +30,8 @@ import {
   INSTAPAY_RECEIPT_BUCKET,
   INSTAPAY_RECEIPT_MAX_BYTES,
 } from "../config/instapay.js";
+import { getLiveDomainPrice } from "../services/domainPricing.js";
+import { provisionCustomDomain } from "../services/domainProvisioning.js";
 
 function decodeReceiptBase64(receipt) {
   if (!receipt || typeof receipt !== "object") {
@@ -725,12 +727,12 @@ export const adminReviewSubmission = async (req, res, next) => {
     } else {
       // Applies the plan / domain this receipt paid for — for a plain
       // activation those values are the broker's own, so it just activates.
-      const updatedBroker = await applyPlanChange(
+      broker = await applyPlanChange(
         broker.id,
         planChangeFromSubmission(submission, broker),
         { billingAmount: Number(submission.amount) },
       );
-      subdomain = updatedBroker.subdomain;
+      subdomain = broker.subdomain;
 
       await instapayModel.update(submission.id, {
         status: "approved",
@@ -738,6 +740,39 @@ export const adminReviewSubmission = async (req, res, next) => {
         reviewed_by: req.admin.id,
         reviewed_at: now,
       });
+    }
+
+    // Buy + attach the custom domain in the background. We re-quote USD at
+    // name.com here (orders only persist the EGP total) so purchasePrice is a
+    // fresh ceiling — see getLiveDomainPrice. Skip when already provisioned.
+    if (
+      broker.domain_type === "custom" &&
+      broker.custom_domain &&
+      broker.domain_status !== "active"
+    ) {
+      const domain = broker.custom_domain;
+      const brokerId = broker.id;
+      getLiveDomainPrice(domain)
+        .then(({ priceUSD }) =>
+          provisionCustomDomain(brokerId, domain, priceUSD),
+        )
+        .catch(async (err) => {
+          console.error(
+            `[domain-provisioning] failed to start for broker=${brokerId} domain=${domain}:`,
+            err,
+          );
+          try {
+            await brokerModel.update(brokerId, {
+              domain_status: "needs_review",
+              domain_last_error: err?.message || String(err),
+            });
+          } catch (updateErr) {
+            console.error(
+              `[domain-provisioning] failed to persist needs_review for broker=${brokerId}:`,
+              updateErr,
+            );
+          }
+        });
     }
 
     const updated = await instapayModel.findById(submission.id);
