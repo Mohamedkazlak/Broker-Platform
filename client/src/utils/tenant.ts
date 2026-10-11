@@ -325,10 +325,37 @@ function resolveApexHostname(hostname: string): string {
   return host;
 }
 
+/** Production default when a custom domain links back to the main host. */
+const DEFAULT_MAIN_SITE_ORIGIN = "https://myflats.store";
+
+/**
+ * Parse VITE_MAIN_SITE_ORIGIN (an origin like https://myflats.store).
+ * Trailing slashes are stripped. Returns null when unset or invalid.
+ */
+function parseMainSiteOrigin(
+  raw: string | undefined,
+): { protocol: string; apex: string; portPart: string } | null {
+  if (!raw || typeof raw !== "string") return null;
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    if (!url.hostname) return null;
+    return {
+      protocol: url.protocol,
+      apex: url.hostname,
+      portPart: url.port ? `:${url.port}` : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Apex used when building a platform URL.
  * On a custom domain the current host is not the platform, so links back to
- * login and the main site use localhost (dev) or myflats.store.
+ * login and the main site use VITE_MAIN_SITE_ORIGIN when set, otherwise
+ * https://myflats.store. Platform hosts keep the current window origin.
  */
 function platformApexFromWindow(): { protocol: string; apex: string; portPart: string } {
   const { protocol, port, hostname } = window.location;
@@ -339,14 +366,11 @@ function platformApexFromWindow(): { protocol: string; apex: string; portPart: s
       portPart: port ? `:${port}` : "",
     };
   }
-  if (import.meta.env.DEV) {
-    return {
-      protocol,
-      apex: "localhost",
-      portPart: port ? `:${port}` : "",
-    };
-  }
-  return { protocol: "https:", apex: "myflats.store", portPart: "" };
+  const configured = parseMainSiteOrigin(
+    import.meta.env.VITE_MAIN_SITE_ORIGIN as string | undefined,
+  );
+  if (configured) return configured;
+  return parseMainSiteOrigin(DEFAULT_MAIN_SITE_ORIGIN)!;
 }
 
 export function buildTenantUrl(

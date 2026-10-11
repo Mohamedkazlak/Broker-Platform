@@ -9,6 +9,9 @@ services:
         value: production
       - key: VITE_API_URL
         value: /api
+      # Main host origin used by custom domains, default https://myflats.store
+      - key: VITE_MAIN_SITE_ORIGIN
+        sync: false
       - key: VITE_SUPABASE_PROJECT_ID
         sync: false
       - key: VITE_SUPABASE_URL
