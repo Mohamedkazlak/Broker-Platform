@@ -91,6 +91,10 @@
       "successTitle": "تم تحديث باقتك",
       "successDescription": "باقتك الجديدة مفعّلة الآن، وتبدأ دورة الفوترة التالية من اليوم.",
       "backToDashboard": "العودة إلى لوحة التحكم"
+    },
+    "renewal": {
+      "successTitle": "تم تجديد اشتراكك",
+      "successDescription": "باقتك مفعّلة من جديد."
     }
   },
   "instapay": {
@@ -120,6 +124,7 @@
       "planChangeSubmittedTitle": "تم استلام الإيصال",
       "planChangeSubmittedDescription": "سنراجع عملية الدفع وننقلك إلى الباقة الجديدة فور الموافقة عليها. تظل باقتك الحالية تعمل حتى ذلك الحين.",
       "planChangeSubmittedWithUrlDescription": "رابط موقعك الجديد يعمل بالفعل. سنراجع عملية الدفع وننقلك إلى الباقة الجديدة فور الموافقة عليها، وتظل باقتك الحالية تعمل حتى ذلك الحين.",
+      "renewalSubmittedDescription": "سنراجع عملية الدفع ونجدّد اشتراكك فور الموافقة عليها.",
       "submitFailed": "تعذّر رفع الإيصال. يرجى المحاولة مرة أخرى.",
       "invalidTitle": "صورة غير صالحة",
       "errors": {

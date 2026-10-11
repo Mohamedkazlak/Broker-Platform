@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import api from "@/lib/api";
 import { clearOnboardingDraft } from "@/lib/onboardingDraft";
-import { markPostPaymentPending } from "@/lib/postPayment";
+import {
+  clearSubscriptionRenewal,
+  isSubscriptionRenewal,
+  markPostPaymentPending,
+} from "@/lib/postPayment";
+import { buildSubdomainRedirect } from "@/lib/sessionRelay";
 import { buildTenantUrl } from "@/utils/tenant";
 import {
   clearInstapayClaimToken,
@@ -34,7 +39,7 @@ interface StatusPayload {
 
 export default function InstapayPending() {
   const navigate = useNavigate();
-  const { t } = useTranslation("onboarding");
+  const { t, i18n } = useTranslation("onboarding");
 
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [subdomain, setSubdomain] = useState<string | null>(() =>
@@ -86,6 +91,25 @@ export default function InstapayPending() {
 
           clearOnboardingDraft();
           clearInstapayClaimToken();
+
+          // A renewal already has a dashboard. First-time signups still
+          // continue into branding setup.
+          if (isSubscriptionRenewal()) {
+            clearSubscriptionRenewal();
+            const target =
+              payload.subdomain ?? sessionStorage.getItem("broker_subdomain");
+            if (target) {
+              window.location.href = await buildSubdomainRedirect(
+                target,
+                "/dashboard",
+                i18n.language,
+              );
+              return;
+            }
+            navigate("/dashboard", { replace: true });
+            return;
+          }
+
           markPostPaymentPending();
           navigate("/branding-setup", { replace: true });
           return;
@@ -110,7 +134,7 @@ export default function InstapayPending() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [navigate]);
+  }, [navigate, i18n.language]);
 
   const rejected = status?.submission?.status === "rejected";
   const platformUrl = subdomain ? buildTenantUrl(subdomain) : null;

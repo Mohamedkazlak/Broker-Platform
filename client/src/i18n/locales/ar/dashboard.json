@@ -32,6 +32,7 @@
     "pendingTitle": "دفعتك قيد المراجعة",
     "pendingPlanTitle": "انتقالك إلى باقة {{plan}} قيد المراجعة",
     "pendingDescription": "استلمنا إيصال إنستاباي بمبلغ {{amount}} {{currency}}. سننقلك إلى الباقة الجديدة بعد موافقة الإدارة، وتظل باقتك الحالية تعمل حتى ذلك الحين.",
+    "pendingRenewalDescription": "استلمنا إيصال إنستاباي بمبلغ {{amount}} {{currency}}. سيتم تجديد اشتراكك بعد موافقة الإدارة.",
     "pendingSubdomain": "وسيصبح رابطك الجديد {{subdomain}} فعّالاً معها.",
     "rejectedTitle": "لم تتم الموافقة على دفعتك",
     "rejectedFallback": "تعذّر التحقق من إيصال إنستاباي الذي أرسلته.",

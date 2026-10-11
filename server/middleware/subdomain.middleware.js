@@ -3,21 +3,29 @@
  *
  * Reads the request hostname (and the explicit X-Tenant-Subdomain header as a
  * fallback for proxied / cross-origin requests) and decides whether the request
- * targets the main marketing platform or a broker-scoped subdomain (tenant).
+ * targets the main marketing platform, a broker subdomain, or a broker custom
+ * domain.
  *
  * Attaches:
  *   req.hostnameRaw    string  — the raw hostname (no port)
- *   req.subdomain      string|null  — e.g. "ahmed", or null for the main site
- *   req.tenantType     "main" | "subdomain"
+ *   req.subdomain      string|null  — the broker's subdomain, or null on the main site
+ *   req.tenantType     "main" | "subdomain" | "custom"
  *
  * Examples:
  *   ahmed.localhost          → { subdomain: "ahmed", tenantType: "subdomain" }
  *   localhost                → { subdomain: null,    tenantType: "main"      }
  *   127.0.0.1                → { subdomain: null,    tenantType: "main"      }
- *   ahmed.myflats.store         → { subdomain: "ahmed", tenantType: "subdomain" }
- *   www.myflats.store           → { subdomain: null,    tenantType: "main"      }
- *   myflats.store               → { subdomain: null,    tenantType: "main"      }
+ *   ahmed.myflats.store      → { subdomain: "ahmed", tenantType: "subdomain" }
+ *   www.myflats.store        → { subdomain: null,    tenantType: "main"      }
+ *   myflats.store            → { subdomain: null,    tenantType: "main"      }
+ *   kazlak.live              → { subdomain: <that broker's subdomain>, tenantType: "custom" }
+ *                              when brokers.custom_domain matches and the broker
+ *                              is_active with domain_status 'active'; otherwise
+ *                              the same result as before this check.
  */
+
+import { isPlatformHost } from "../utils/customDomainHost.js";
+import { resolveActiveCustomDomain } from "../utils/customDomainResolve.js";
 
 // Hostnames that are NEVER tenants, even if they appear as a subdomain label.
 const RESERVED_LABELS = new Set([
@@ -84,15 +92,13 @@ function extractSubdomain(hostname) {
   return null;
 }
 
-export function subdomainMiddleware(req, _res, next) {
-  // req.hostname strips the port; fall back to the Host header if missing.
-  const rawHost =
-    req.hostname || (req.headers.host ? req.headers.host.split(":")[0] : "");
-
+function applyPlatformHost(req, rawHost) {
   let subdomain = extractSubdomain(rawHost);
 
   // Header fallback — useful when a reverse proxy / Vite dev proxy rewrites
   // the Host (it shouldn't, but we double-check for reliability).
+  // Not used once a custom domain has already resolved to a broker: that
+  // broker comes only from brokers.custom_domain.
   if (!subdomain) {
     const headerSub = req.headers["x-tenant-subdomain"];
     if (typeof headerSub === "string" && headerSub.trim()) {
@@ -103,7 +109,37 @@ export function subdomainMiddleware(req, _res, next) {
   req.hostnameRaw = rawHost;
   req.subdomain = subdomain || null;
   req.tenantType = subdomain ? "subdomain" : "main";
+}
 
+export async function subdomainMiddleware(req, _res, next) {
+  // req.hostname strips the port; fall back to the Host header if missing.
+  const rawHost =
+    req.hostname || (req.headers.host ? req.headers.host.split(":")[0] : "");
+
+  try {
+    if (!isPlatformHost(rawHost)) {
+      const broker = await resolveActiveCustomDomain(rawHost);
+      if (broker?.subdomain) {
+        req.hostnameRaw = rawHost;
+        req.subdomain = broker.subdomain;
+        req.tenantType = "custom";
+        return next();
+      }
+
+      // Not an active custom domain. Keep today's platform/subdomain result,
+      // but do not trust X-Tenant-Subdomain: that header could name a
+      // different broker than the one this domain belongs to.
+      const subdomain = extractSubdomain(rawHost);
+      req.hostnameRaw = rawHost;
+      req.subdomain = subdomain || null;
+      req.tenantType = subdomain ? "subdomain" : "main";
+      return next();
+    }
+  } catch (error) {
+    return next(error);
+  }
+
+  applyPlatformHost(req, rawHost);
   next();
 }
 

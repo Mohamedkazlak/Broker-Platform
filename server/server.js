@@ -29,7 +29,10 @@ import {
   apiLimiter,
   authLimiter,
   contactLimiter,
+  customDomainResolveLimiter,
 } from "./middleware/rateLimiter.js";
+import customDomainResolveRoutes from "./routes/customDomainResolveRoutes.js";
+import { resolveActiveCustomDomain } from "./utils/customDomainResolve.js";
 import { startBillingMonitor } from "./services/billingMonitor.js";
 import { startDomainMonitor } from "./services/domainMonitor.js";
 
@@ -104,9 +107,22 @@ app.use(
       if (!origin) return cb(null, true);
       if (explicitOrigins.includes(origin)) return cb(null, true);
       if (subdomainOriginPattern.test(origin)) return cb(null, true);
-      // Reject without throwing — a thrown Error becomes a 500 and breaks
-      // <script type="module" crossorigin> loads (browsers send Origin).
-      return cb(null, false);
+
+      // Custom domain (kazlak.live and www.kazlak.live): allow only when the
+      // same cached lookup used by the host middleware finds an active broker.
+      // The API does not set cookies; auth uses the Authorization header.
+      // credentials stays on so a browser on an allowed custom domain can
+      // still send credentials if one is added later.
+      let hostname = "";
+      try {
+        hostname = new URL(origin).hostname;
+      } catch {
+        return cb(null, false);
+      }
+
+      resolveActiveCustomDomain(hostname)
+        .then((broker) => cb(null, Boolean(broker?.subdomain)))
+        .catch(() => cb(null, false));
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "X-Tenant-Subdomain"],
@@ -152,6 +168,7 @@ app.use("/api/instapay", instapayRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/translate", translateRoutes);
+app.use("/api/tenant", customDomainResolveLimiter, customDomainResolveRoutes);
 
 // Server start time — client uses this to detect restarts and force re-login
 const serverStartedAt = Date.now();

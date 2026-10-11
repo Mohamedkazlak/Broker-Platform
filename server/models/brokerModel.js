@@ -7,6 +7,16 @@ import { isPendingSubdomain } from "../utils/subdomainGenerator.js";
  * before the user has a scoped session.
  */
 
+/**
+ * A custom domain may be served only for an active broker whose domain
+ * provisioning has finished. Anything else is treated as "not this broker".
+ */
+export function isServableCustomDomainBroker(row) {
+  if (!row?.subdomain || isPendingSubdomain(row.subdomain)) return false;
+  if (row.is_active !== true || row.domain_status !== "active") return false;
+  return true;
+}
+
 /** Columns safe to expose on public subdomain lookup (no password hash). */
 const BROKER_PUBLIC_FIELDS =
   "id, first_name, last_name, platform_name, subdomain, email, phone_number, whatsapp_number, governorate, package, package_category, package_limit, hero_background_url, platform_icon_url, social_facebook_url, social_instagram_url, social_whatsapp_url, social_tiktok_url, created_at, updated_at";
@@ -46,6 +56,27 @@ export const brokerModel = {
 
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * Broker allowed to serve its public site on this custom domain.
+   * Returns null unless is_active is true and domain_status is 'active'.
+   */
+  async findActiveByCustomDomain(customDomain) {
+    const normalized = String(customDomain ?? "")
+      .trim()
+      .toLowerCase();
+    if (!normalized) return null;
+
+    const { data, error } = await supabaseAdmin
+      .from("brokers")
+      .select("id, subdomain, is_active, domain_status")
+      .eq("custom_domain", normalized)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!isServableCustomDomainBroker(data)) return null;
+    return { id: data.id, subdomain: data.subdomain };
   },
 
   async findById(id) {

@@ -9,6 +9,8 @@ export interface Broker {
   last_name: string;
   platform_name: string;
   subdomain: string;
+  custom_domain?: string | null;
+  domain_status?: string | null;
   email: string;
   phone_number: string;
   whatsapp_number: string;

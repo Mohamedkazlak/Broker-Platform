@@ -91,6 +91,10 @@
       "successTitle": "Your plan has been updated",
       "successDescription": "Your new plan is active and your next billing cycle starts today.",
       "backToDashboard": "Back to dashboard"
+    },
+    "renewal": {
+      "successTitle": "Your subscription is renewed",
+      "successDescription": "Your plan is active again."
     }
   },
   "instapay": {
@@ -120,6 +124,7 @@
       "planChangeSubmittedTitle": "Receipt received",
       "planChangeSubmittedDescription": "We'll review your payment and switch your plan over once it's approved. Your current plan keeps working until then.",
       "planChangeSubmittedWithUrlDescription": "Your site is already live at its new address. We'll review your payment and switch your plan over once it's approved, and your current plan keeps working until then.",
+      "renewalSubmittedDescription": "We'll review your payment and renew your subscription once it's approved.",
       "submitFailed": "Couldn't upload your receipt. Please try again.",
       "invalidTitle": "Invalid image",
       "errors": {

@@ -3,7 +3,7 @@ import { Check, Link2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useBroker } from "@/contexts/BrokerContext";
-import { buildTenantUrl } from "@/utils/tenant";
+import { buildBrokerWebsiteUrl } from "@/utils/tenant";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,7 @@ export function CopyBrokerLinkButton({ className }: CopyBrokerLinkButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const publicUrl = broker?.subdomain
-    ? buildTenantUrl(broker.subdomain, `/${i18n.language}/home`)
+    ? buildBrokerWebsiteUrl(broker, `/${i18n.language}/home`)
     : null;
 
   const handleCopy = useCallback(async () => {

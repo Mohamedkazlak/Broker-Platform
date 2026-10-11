@@ -135,10 +135,15 @@ export function PlanChangeStatus({ className }: { className?: string }) {
             : t("planChange.pendingTitle")}
         </p>
         <p className="text-sm text-muted-foreground">
-          {t("planChange.pendingDescription", {
-            amount: submission.amount.toLocaleString(localeNum),
-            currency: submission.currency,
-          })}
+          {t(
+            isPlanChange
+              ? "planChange.pendingDescription"
+              : "planChange.pendingRenewalDescription",
+            {
+              amount: submission.amount.toLocaleString(localeNum),
+              currency: submission.currency,
+            },
+          )}
         </p>
         {pendingSubdomain && (
           <p className="text-sm text-muted-foreground">

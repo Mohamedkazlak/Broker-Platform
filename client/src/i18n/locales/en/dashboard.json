@@ -32,6 +32,7 @@
     "pendingTitle": "Your payment is awaiting review",
     "pendingPlanTitle": "Your switch to {{plan}} is awaiting review",
     "pendingDescription": "We received your Instapay receipt for {{amount}} {{currency}}. Your plan switches over once an admin approves it — your current plan keeps working until then.",
+    "pendingRenewalDescription": "We received your Instapay receipt for {{amount}} {{currency}}. Your subscription renews once an admin approves it.",
     "pendingSubdomain": "Your new address {{subdomain}} goes live with it.",
     "rejectedTitle": "Your payment wasn't approved",
     "rejectedFallback": "The Instapay receipt you sent couldn't be verified.",

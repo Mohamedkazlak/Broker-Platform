@@ -17,8 +17,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import {
+  clearSubscriptionRenewal,
   isPostPaymentPending,
+  isSubscriptionRenewal,
   markPostPaymentPending,
+  markSubscriptionRenewal,
 } from "@/lib/postPayment";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -74,17 +77,24 @@ export default function Payment() {
 
   // Upgrade / downgrade of a live subscription: this pays for the plan held in
   // the draft, and success sends them back to the dashboard rather than on
-  // through onboarding. `?renew=1` (the past-due retry link) means the opposite
-  // — pay for the plan they already have — so it drops any upgrade they started
-  // and walked away from.
+  // through onboarding. `?renew=1` (the past-due retry link) pays for the plan
+  // they already have, so it drops any upgrade they started and walked away
+  // from — and, like a plan change, lands on the dashboard they already have
+  // instead of branding setup.
   const [planChange] = useState(() => {
     if (searchParams.get("renew")) {
       clearPlanChangeDraft();
+      markSubscriptionRenewal();
       return null;
     }
     return getPlanChangeDraft();
   });
   const isPlanChange = !!brokerId && !!planChange;
+  const isRenewal = !!brokerId && isSubscriptionRenewal();
+  // Captured at the moment payment clears, because that also clears the
+  // renewal flag — the success screen still has to know where to send them.
+  const [completedAsRenewal, setCompletedAsRenewal] = useState(false);
+  const sendToDashboard = isPlanChange || completedAsRenewal;
 
   // Are we back from the payment.reachi.ai checkout page (return_url)? That
   // status is UX-only — the poll below (driven by the claim token) is what
@@ -151,9 +161,14 @@ export default function Payment() {
       clearOnboardingDraft();
       clearPlanChangeDraft();
       clearReachiClaimToken();
-      // Branding setup is an onboarding step — a plan change goes straight
-      // back to the dashboard instead.
-      if (!isPlanChange) markPostPaymentPending();
+      // Branding setup is a first-signup step. A plan change or a renewal of
+      // a plan they already had goes straight back to the dashboard.
+      const renewal = isSubscriptionRenewal();
+      if (renewal) {
+        clearSubscriptionRenewal();
+        setCompletedAsRenewal(true);
+      }
+      if (!isPlanChange && !renewal) markPostPaymentPending();
       setConfirming(false);
       setPaymentSuccess(true);
     };
@@ -237,7 +252,14 @@ export default function Payment() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [isReturningFromGateway, returnStatus, paymentSuccess, isPlanChange, planChange, brokerId]);
+  }, [
+    isReturningFromGateway,
+    returnStatus,
+    paymentSuccess,
+    isPlanChange,
+    planChange,
+    brokerId,
+  ]);
 
   useEffect(() => {
     // While we're confirming a just-completed gateway redirect, hold off —
@@ -505,12 +527,16 @@ export default function Payment() {
                 <h1 className="font-display text-3xl font-bold">
                   {isPlanChange
                     ? t("payment.planChange.successTitle")
-                    : t("payment.success.title")}
+                    : sendToDashboard
+                      ? t("payment.renewal.successTitle")
+                      : t("payment.success.title")}
                 </h1>
                 <p className="text-muted-foreground">
                   {isPlanChange
                     ? t("payment.planChange.successDescription")
-                    : t("payment.success.description")}
+                    : sendToDashboard
+                      ? t("payment.renewal.successDescription")
+                      : t("payment.success.description")}
                 </p>
               </div>
               <Button
@@ -518,10 +544,12 @@ export default function Payment() {
                 size="lg"
                 className="w-full"
                 onClick={() =>
-                  isPlanChange ? goToDashboard() : navigate("/branding-setup")
+                  sendToDashboard
+                    ? goToDashboard()
+                    : navigate("/branding-setup")
                 }
               >
-                {isPlanChange
+                {sendToDashboard
                   ? t("payment.planChange.backToDashboard")
                   : t("payment.success.continue")}
               </Button>
@@ -615,7 +643,11 @@ export default function Payment() {
               variant="outline"
               size="lg"
               className="w-full"
-              onClick={() => navigate("/payment/instapay")}
+              onClick={() =>
+                navigate(
+                  isRenewal ? "/payment/instapay?renew=1" : "/payment/instapay",
+                )
+              }
             >
               <Smartphone className="w-4 h-4 me-2" />
               {t("payment.methods.instapay")}

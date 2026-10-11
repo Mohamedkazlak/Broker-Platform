@@ -2,7 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useBroker } from "@/contexts/BrokerContext";
-import { buildTenantUrl } from "@/utils/tenant";
+import { buildBrokerWebsiteUrl } from "@/utils/tenant";
 import { cn } from "@/lib/utils";
 
 interface ViewBrokerWebsiteButtonProps {
@@ -16,7 +16,7 @@ export function ViewBrokerWebsiteButton({
   const { i18n, t } = useTranslation("dashboard");
 
   const publicUrl = broker?.subdomain
-    ? buildTenantUrl(broker.subdomain, `/${i18n.language}/home`)
+    ? buildBrokerWebsiteUrl(broker, `/${i18n.language}/home`)
     : null;
 
   if (!publicUrl) return null;

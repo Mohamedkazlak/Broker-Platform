@@ -7,12 +7,14 @@
  * rest of the app through a single consistent shape.
  */
 
-export type TenantType = "main" | "subdomain";
+export type TenantType = "main" | "subdomain" | "custom";
 
 export interface TenantInfo {
   type: TenantType;
   subdomain: string | null;
   hostname: string;
+  /** True while a non-platform host is still being resolved. */
+  pendingCustom?: boolean;
 }
 
 const RESERVED_LABELS = new Set([
@@ -74,10 +76,159 @@ function extractSubdomain(hostname: string): string | null {
   return null;
 }
 
+const APEX_SUFFIXES = ["myflats.store", "myflats.com", "onrender.com"] as const;
+
+/**
+ * Platform hosts keep the existing main-site / subdomain behavior.
+ * Keep in sync with server/utils/customDomainHost.js.
+ */
+export function isPlatformHost(host: string): boolean {
+  const hostname = stripHostPort(host);
+  if (!hostname) return true;
+  if (hostname === "localhost" || hostname === "::1" || IP_REGEX.test(hostname)) {
+    return true;
+  }
+  if (hostname.includes(":")) return true;
+  if (APEX_HOSTS.has(hostname)) return true;
+
+  const parts = hostname.split(".");
+  if (parts[parts.length - 1] === "localhost") return true;
+
+  for (let i = 1; i < parts.length; i++) {
+    const suffix = parts.slice(i).join(".");
+    if ((APEX_SUFFIXES as readonly string[]).includes(suffix)) return true;
+  }
+  return false;
+}
+
+function stripHostPort(host: string): string {
+  const value = host.trim().toLowerCase();
+  if (!value) return "";
+  if (value.startsWith("[")) {
+    const end = value.indexOf("]");
+    return end === -1 ? value : value.slice(1, end);
+  }
+  const colon = value.indexOf(":");
+  if (colon !== -1 && value.indexOf(":", colon + 1) === -1) {
+    return value.slice(0, colon);
+  }
+  return value;
+}
+
+const CUSTOM_DOMAIN_SESSION_KEY = "broker_custom_domain_host";
+
+interface CustomDomainCacheEntry {
+  host: string;
+  subdomain: string | null;
+}
+
+let customDomainMemory: CustomDomainCacheEntry | null = null;
+let customDomainInflight: Promise<CustomDomainCacheEntry> | null = null;
+
+function readCustomDomainCache(hostname: string): CustomDomainCacheEntry | null {
+  const host = hostname.toLowerCase();
+  if (customDomainMemory?.host === host) return customDomainMemory;
+
+  try {
+    const raw = window.sessionStorage.getItem(CUSTOM_DOMAIN_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CustomDomainCacheEntry;
+    if (
+      parsed?.host === host &&
+      (parsed.subdomain === null || typeof parsed.subdomain === "string")
+    ) {
+      customDomainMemory = parsed;
+      return parsed;
+    }
+  } catch {
+    /* sessionStorage unavailable or unreadable */
+  }
+  return null;
+}
+
+function writeCustomDomainCache(entry: CustomDomainCacheEntry) {
+  customDomainMemory = entry;
+  try {
+    window.sessionStorage.setItem(
+      CUSTOM_DOMAIN_SESSION_KEY,
+      JSON.stringify(entry),
+    );
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+/** True when this host was already resolved earlier in the session. */
+export function hasResolvedCustomDomain(hostname: string): boolean {
+  if (typeof window === "undefined") return false;
+  return readCustomDomainCache(hostname) !== null;
+}
+
+function resolveApiBase(): string {
+  const explicit = import.meta.env.VITE_API_URL as string | undefined;
+  if (import.meta.env.DEV) return "/api";
+  if (explicit) return explicit.replace(/\/$/, "");
+  if (typeof window !== "undefined") return `${window.location.origin}/api`;
+  return "/api";
+}
+
+/**
+ * Resolve a non-platform host once per session.
+ * Remembers `{ subdomain }` or a 404 (`subdomain: null`) in sessionStorage.
+ */
+export function ensureBrokerCustomDomain(): Promise<CustomDomainCacheEntry | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+
+  const host = window.location.hostname.toLowerCase();
+  if (isPlatformHost(host)) return Promise.resolve(null);
+
+  const cached = readCustomDomainCache(host);
+  if (cached) return Promise.resolve(cached);
+
+  if (!customDomainInflight) {
+    customDomainInflight = fetch(`${resolveApiBase()}/tenant/resolve?host=${encodeURIComponent(host)}`, {
+      headers: { Accept: "application/json" },
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const body = (await res.json()) as { subdomain?: unknown };
+          const subdomain =
+            typeof body?.subdomain === "string" && body.subdomain.trim()
+              ? body.subdomain.trim().toLowerCase()
+              : null;
+          const entry = { host, subdomain };
+          writeCustomDomainCache(entry);
+          return entry;
+        }
+        if (res.status === 404) {
+          const entry = { host, subdomain: null };
+          writeCustomDomainCache(entry);
+          return entry;
+        }
+        // Don't remember a 429/500 for the whole session; a reload can retry.
+        const entry = { host, subdomain: null };
+        customDomainMemory = entry;
+        return entry;
+      })
+      .catch(() => {
+        const entry = { host, subdomain: null as string | null };
+        customDomainMemory = entry;
+        return entry;
+      })
+      .finally(() => {
+        customDomainInflight = null;
+      });
+  }
+
+  return customDomainInflight;
+}
+
 /**
  * Resolve the tenant for the current browser window.
  * Returns `{ type: 'main', subdomain: null }` on the main site.
  * Returns `{ type: 'subdomain', subdomain: 'ahmed' }` on `ahmed.localhost`.
+ * Returns `{ type: 'custom', subdomain }` on an active custom domain such as
+ * `kazlak.live`, after `ensureBrokerCustomDomain()` has run.
  *
  * Falls back to a `?broker=ahmed` query param so the app can still be
  * exercised on plain `localhost` without editing the hosts file.
@@ -88,6 +239,23 @@ export function getTenant(): TenantInfo {
   }
 
   const hostname = window.location.hostname;
+  if (!isPlatformHost(hostname)) {
+    const cached = readCustomDomainCache(hostname);
+    if (!cached) {
+      return {
+        type: "custom",
+        subdomain: null,
+        hostname,
+        pendingCustom: true,
+      };
+    }
+    return {
+      type: "custom",
+      subdomain: cached.subdomain,
+      hostname,
+    };
+  }
+
   let subdomain = extractSubdomain(hostname);
 
   if (!subdomain) {
@@ -109,7 +277,12 @@ export function getCurrentSubdomain(): string | null {
 }
 
 export function isSubdomainTenant(): boolean {
-  return getTenant().type === "subdomain";
+  const tenant = getTenant();
+  if (tenant.pendingCustom) return false;
+  return (
+    tenant.type === "subdomain" ||
+    (tenant.type === "custom" && !!tenant.subdomain)
+  );
 }
 
 /**
@@ -153,20 +326,71 @@ function resolveApexHostname(hostname: string): string {
 }
 
 /**
- * Build a URL that points at a specific tenant on the same root domain
- * the user is currently on. Useful for "Go to your dashboard" links.
+ * Apex used when building a platform URL.
+ * On a custom domain the current host is not the platform, so links back to
+ * login and the main site use localhost (dev) or myflats.store.
  */
+function platformApexFromWindow(): { protocol: string; apex: string; portPart: string } {
+  const { protocol, port, hostname } = window.location;
+  if (isPlatformHost(hostname)) {
+    return {
+      protocol,
+      apex: resolveApexHostname(hostname),
+      portPart: port ? `:${port}` : "",
+    };
+  }
+  if (import.meta.env.DEV) {
+    return {
+      protocol,
+      apex: "localhost",
+      portPart: port ? `:${port}` : "",
+    };
+  }
+  return { protocol: "https:", apex: "myflats.store", portPart: "" };
+}
+
 export function buildTenantUrl(
   subdomain: string,
   pathname: string = "/",
 ): string {
   if (typeof window === "undefined") return pathname;
 
-  const { protocol, port, hostname } = window.location;
-  const apex = resolveApexHostname(hostname);
+  const tenant = getTenant();
+  // Already browsing this broker on their custom domain: stay there.
+  if (
+    tenant.type === "custom" &&
+    tenant.subdomain === subdomain &&
+    !tenant.pendingCustom
+  ) {
+    const { protocol, port, hostname } = window.location;
+    const portPart = port ? `:${port}` : "";
+    return `${protocol}//${hostname}${portPart}${pathname}`;
+  }
 
-  const portPart = port ? `:${port}` : "";
+  const { protocol, apex, portPart } = platformApexFromWindow();
   return `${protocol}//${subdomain}.${apex}${portPart}${pathname}`;
+}
+
+/**
+ * Public website URL. Uses the broker's custom domain when it is active,
+ * otherwise the platform subdomain.
+ */
+export function buildBrokerWebsiteUrl(
+  broker: {
+    subdomain: string;
+    custom_domain?: string | null;
+    domain_status?: string | null;
+  },
+  pathname: string = "/",
+): string {
+  const customDomain = String(broker.custom_domain ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, "");
+  if (customDomain && broker.domain_status === "active") {
+    return `https://${customDomain}${pathname}`;
+  }
+  return buildTenantUrl(broker.subdomain, pathname);
 }
 
 /**
@@ -178,9 +402,6 @@ export function buildTenantUrl(
 export function buildMainSiteUrl(pathname: string = "/"): string {
   if (typeof window === "undefined") return pathname;
 
-  const { protocol, port, hostname } = window.location;
-  const apex = resolveApexHostname(hostname);
-
-  const portPart = port ? `:${port}` : "";
+  const { protocol, apex, portPart } = platformApexFromWindow();
   return `${protocol}//${apex}${portPart}${pathname}`;
 }

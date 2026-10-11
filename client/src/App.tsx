@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,7 +11,12 @@ import ScrollToTop from "@/components/common/ScrollToTop";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import OnboardingRoute from "@/components/common/OnboardingRoute";
 import RequireAdmin from "@/components/admin/RequireAdmin";
-import { getSubdomainFromHost } from "@/lib/broker";
+import {
+  ensureBrokerCustomDomain,
+  getTenant,
+  hasResolvedCustomDomain,
+  isPlatformHost,
+} from "@/utils/tenant";
 import type { SupportedLanguage } from "@/i18n";
 import { MarketingAnimatedLayout } from "@/components/layout/MarketingAnimatedLayout";
 import BrokerNotFound from "@/pages/error/BrokerNotFound";
@@ -69,9 +74,6 @@ const AdminPlaceholder = lazy(() => import("./pages/admin/AdminPlaceholder"));
 
 const queryClient = new QueryClient();
 
-const subdomain = getSubdomainFromHost();
-const isSubdomain = !!subdomain;
-
 interface AppProps {
   lang: SupportedLanguage;
 }
@@ -104,7 +106,35 @@ const AdminRoot = () => (
   </AdminAuthProvider>
 );
 
-const App = ({ lang }: AppProps) => (
+const App = ({ lang }: AppProps) => {
+  const [customReady, setCustomReady] = useState(
+    () =>
+      typeof window === "undefined" ||
+      isPlatformHost(window.location.hostname) ||
+      hasResolvedCustomDomain(window.location.hostname),
+  );
+
+  useEffect(() => {
+    if (customReady) return;
+    let cancelled = false;
+    ensureBrokerCustomDomain().finally(() => {
+      if (!cancelled) setCustomReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [customReady]);
+
+  const tenant = getTenant();
+  const isBrokerSite =
+    tenant.type === "subdomain" ||
+    (tenant.type === "custom" && !!tenant.subdomain);
+  const customDomainMissing =
+    tenant.type === "custom" && !tenant.pendingCustom && !tenant.subdomain;
+
+  if (!customReady || tenant.pendingCustom) return routeFallback;
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrokerProvider>
@@ -114,8 +144,11 @@ const App = ({ lang }: AppProps) => (
           <BrowserRouter basename={`/${lang}`}>
             <ScrollToTop />
             <Suspense fallback={routeFallback}>
+              {customDomainMissing ? (
+                <BrokerNotFound />
+              ) : (
               <Routes>
-                {isSubdomain ? (
+                {isBrokerSite ? (
                   <Route element={<SubdomainGuard />}>
                     <Route path="/home" element={<Index />} />
                     <Route path="/properties" element={<Properties />} />
@@ -207,12 +240,14 @@ const App = ({ lang }: AppProps) => (
                   </>
                 )}
               </Routes>
+              )}
             </Suspense>
           </BrowserRouter>
         </AuthProvider>
       </BrokerProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

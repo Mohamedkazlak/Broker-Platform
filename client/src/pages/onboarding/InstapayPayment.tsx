@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
@@ -14,6 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getOnboardingDraft, hasOnboardingDraft } from "@/lib/onboardingDraft";
 import { getPlanChangeDraft, planChangeSummaryParams } from "@/lib/planChange";
+import {
+  isSubscriptionRenewal,
+  markSubscriptionRenewal,
+} from "@/lib/postPayment";
 import { INSTAPAY_ACCOUNT } from "@/lib/instapay";
 import api from "@/lib/api";
 
@@ -23,8 +27,18 @@ export default function InstapayPayment() {
   const { toast } = useToast();
   const { t } = useTranslation("onboarding");
 
+  const [searchParams] = useSearchParams();
   const brokerId = profile?.broker_id;
   const isDraftFlow = !brokerId && hasOnboardingDraft();
+  // `?renew=1` is threaded from the payment page so a refresh here still
+  // knows this is a past-due renewal, not a first signup.
+  const [isRenewal] = useState(() => {
+    if (searchParams.get("renew")) {
+      markSubscriptionRenewal();
+      return true;
+    }
+    return isSubscriptionRenewal();
+  });
 
   const [checking, setChecking] = useState(true);
   const [amountLabel, setAmountLabel] = useState<string | null>(null);
@@ -181,13 +195,19 @@ export default function InstapayPayment() {
             variant="hero"
             size="lg"
             className="w-full"
-            onClick={() => navigate("/payment/instapay/receipt")}
+            onClick={() =>
+              navigate(
+                isRenewal
+                  ? "/payment/instapay/receipt?renew=1"
+                  : "/payment/instapay/receipt",
+              )
+            }
           >
             <CheckCircle2 className="w-4 h-4 me-2" />
             {t("instapay.qr.successful")}
           </Button>
           <Button variant="outline" size="lg" className="w-full" asChild>
-            <Link to="/payment">
+            <Link to={isRenewal ? "/payment?renew=1" : "/payment"}>
               <XCircle className="w-4 h-4 me-2" />
               {t("instapay.qr.notSuccessful")}
             </Link>

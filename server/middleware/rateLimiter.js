@@ -36,6 +36,21 @@ export const authLimiter = rateLimit({
   },
 });
 
+// Public custom-domain lookup. Tight limit so a client cannot walk the table.
+export const customDomainResolveLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: "RATE_LIMITED",
+      message: "Too many requests, please try again later.",
+      status: 429,
+    },
+  },
+});
+
 // Contact form limiter
 export const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour

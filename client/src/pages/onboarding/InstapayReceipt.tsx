@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ImagePlus, Loader2, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,11 @@ import {
   getPlanChangeDraft,
   planChangeRequestBody,
 } from "@/lib/planChange";
+import {
+  clearSubscriptionRenewal,
+  isSubscriptionRenewal,
+  markSubscriptionRenewal,
+} from "@/lib/postPayment";
 import { buildSubdomainRedirect } from "@/lib/sessionRelay";
 import {
   fileToReceiptPayload,
@@ -27,12 +32,22 @@ export default function InstapayReceipt() {
   const { t, i18n } = useTranslation("onboarding");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [searchParams] = useSearchParams();
   const brokerId = profile?.broker_id;
   const isDraftFlow = !brokerId && hasOnboardingDraft();
   // Upgrade / downgrade: the receipt buys the plan held in this draft, and the
   // broker goes back to their dashboard to wait for the admin's review instead
-  // of sitting on the onboarding pending screen.
+  // of sitting on the onboarding pending screen. A renewal (`?renew=1`) is the
+  // same hand-off — they already have a dashboard.
   const [planChange] = useState(() => getPlanChangeDraft());
+  const [renewalIntent] = useState(() => {
+    if (searchParams.get("renew")) {
+      markSubscriptionRenewal();
+      return true;
+    }
+    return isSubscriptionRenewal();
+  });
+  const isRenewal = !!brokerId && renewalIntent;
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -112,26 +127,29 @@ export default function InstapayReceipt() {
       const { data } = await api.post("/instapay/submit-receipt", body);
 
       // The claim token only exists to let the onboarding pending screen poll
-      // without a session; a signed-in broker changing plans reads their status
-      // from the dashboard instead.
-      if (data?.claimToken && !data?.planChange) {
+      // without a session; a signed-in broker changing or renewing a plan
+      // reads their status from the dashboard instead.
+      if (data?.claimToken && !data?.planChange && !isRenewal) {
         saveInstapayClaimToken(data.claimToken);
       }
       if (data?.subdomain) {
         sessionStorage.setItem("broker_subdomain", data.subdomain);
       }
 
-      // Plan change: the plan waits for an admin, so hand them back to the
-      // dashboard they already have — on the new subdomain when the server
-      // moved them there already.
-      if (data?.planChange) {
-        clearPlanChangeDraft();
+      // Plan change or renewal: the payment waits for an admin, so hand them
+      // back to the dashboard they already have — on the new subdomain when
+      // the server moved them there already.
+      if (data?.planChange || isRenewal) {
+        if (data?.planChange) clearPlanChangeDraft();
+        if (isRenewal) clearSubscriptionRenewal();
         toast({
           title: t("instapay.receipt.planChangeSubmittedTitle"),
           description: t(
-            data?.subdomainApplied
-              ? "instapay.receipt.planChangeSubmittedWithUrlDescription"
-              : "instapay.receipt.planChangeSubmittedDescription",
+            data?.planChange
+              ? data?.subdomainApplied
+                ? "instapay.receipt.planChangeSubmittedWithUrlDescription"
+                : "instapay.receipt.planChangeSubmittedDescription"
+              : "instapay.receipt.renewalSubmittedDescription",
           ),
         });
         const subdomain =
@@ -253,7 +271,11 @@ export default function InstapayReceipt() {
             variant="ghost"
             className="w-full"
             disabled={submitting}
-            onClick={() => navigate("/payment/instapay")}
+            onClick={() =>
+              navigate(
+                isRenewal ? "/payment/instapay?renew=1" : "/payment/instapay",
+              )
+            }
           >
             {t("instapay.receipt.back")}
           </Button>
