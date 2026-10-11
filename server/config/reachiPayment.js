@@ -18,10 +18,42 @@ export const REACHI_API_KEY = process.env.REACHI_PLATFORM_API_KEY || "";
 export const REACHI_WEBHOOK_SECRET =
   process.env.REACHI_PLATFORM_WEBHOOK_SECRET || "";
 
-/** This app's own public origin — used to build return_url/logo_url. */
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+/**
+ * This app's own public origin (the main host, e.g. https://myflats.store) —
+ * used to build the payment return_url. This is the only origin the payment
+ * gateway needs registered; broker custom domains never are.
+ *
+ * Read from NEXT_PUBLIC_APP_URL. Outside production it falls back to
+ * localhost; in production it never does (it stays empty and fails loudly).
+ */
 export const APP_URL = (
-  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  process.env.NEXT_PUBLIC_APP_URL ||
+  (IS_PRODUCTION ? "" : "http://localhost:3000")
 ).replace(/\/+$/, "");
+
+const APP_URL_MISSING_MESSAGE =
+  "NEXT_PUBLIC_APP_URL is not set. In production it must be the main host's origin " +
+  "(for example https://myflats.store); payment return URLs cannot be built without it.";
+
+/** Logs once at startup when production has no APP_URL. */
+export function logAppUrlStatus() {
+  if (IS_PRODUCTION && !APP_URL) {
+    console.error(`❌ [config] ${APP_URL_MISSING_MESSAGE}`);
+  }
+}
+
+/** Throws a 503 (and logs) when production has no APP_URL. Returns APP_URL. */
+export function requireAppUrl() {
+  if (IS_PRODUCTION && !APP_URL) {
+    console.error(`❌ [payments] ${APP_URL_MISSING_MESSAGE}`);
+    throw Object.assign(new Error("Payment return URL is not configured"), {
+      status: 503,
+    });
+  }
+  return APP_URL;
+}
 
 export function assertReachiConfigured() {
   if (!REACHI_API_KEY || !REACHI_WEBHOOK_SECRET) {

@@ -9,6 +9,28 @@ import {
 export { isPlatformHost, normalizeCustomDomainHost };
 
 /**
+ * Active custom domain of the broker that owns a subdomain, or null.
+ *
+ * Shares the cache (TTL, miss caching, in-flight de-duplication) with
+ * resolveActiveCustomDomain, so a busy subdomain costs at most one database
+ * query per TTL window. Keys are prefixed with "subdomain:", which can never
+ * collide with a hostname because hostnames cannot contain ":".
+ *
+ * @param {string} subdomain
+ * @returns {Promise<{ id: string, subdomain: string, custom_domain: string, domain_status: string, is_active: boolean } | null>}
+ */
+export async function resolveActiveCustomDomainForSubdomain(subdomain) {
+  const key = String(subdomain ?? "")
+    .trim()
+    .toLowerCase();
+  if (!key) return null;
+
+  return getBrokerByCustomDomainCached(`subdomain:${key}`, () =>
+    brokerModel.findActiveCustomDomainBySubdomain(key),
+  );
+}
+
+/**
  * Active broker for a custom domain, or null.
  *
  * Platform hosts are never looked up. The result is cached (60s hit / 30s

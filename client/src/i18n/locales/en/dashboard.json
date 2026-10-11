@@ -323,6 +323,9 @@
     "platformDescription": "Configure your platform name and domain",
     "platformName": "Platform Name",
     "domain": "Domain Name",
+    "customDomain": {
+      "hint": "Your site is live on this domain. Visitors are sent to it automatically."
+    },
     "subdomain": {
       "suffix": ".myflats.store",
       "checking": "Checking availability…",

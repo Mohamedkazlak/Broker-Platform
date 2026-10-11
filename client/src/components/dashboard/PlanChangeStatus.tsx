@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Clock, Sparkles, X, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildMainSiteUrl } from "@/utils/tenant";
+import { buildMainHostRelayUrl } from "@/lib/sessionRelay";
 import {
   dismissInstapayRejection,
   fetchMyInstapaySubmission,
@@ -90,8 +90,8 @@ export function PlanChangeStatus({ className }: { className?: string }) {
           <Button
             size="sm"
             variant="destructive"
-            onClick={() => {
-              window.location.href = buildMainSiteUrl(
+            onClick={async () => {
+              window.location.href = await buildMainHostRelayUrl(
                 `/${i18n.language}/select-plan`,
               );
             }}

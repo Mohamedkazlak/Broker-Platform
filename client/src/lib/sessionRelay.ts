@@ -1,8 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
-import { buildTenantUrl } from "@/utils/tenant";
+import {
+  buildMainSiteUrl,
+  getBrokerPublicOrigin,
+  isOnBrokerCustomDomain,
+  type BrokerHostFields,
+} from "@/utils/tenant";
 
 /**
- * Cross-subdomain session relay.
+ * Cross-host session relay (platform host, broker subdomain, broker custom domain).
  *
  * localStorage is domain-scoped, so a session created on `localhost`
  * is invisible on `xyz.localhost`.  We solve this by appending the
@@ -10,7 +15,31 @@ import { buildTenantUrl } from "@/utils/tenant";
  * are never sent to the server) and picking them up on the other side.
  */
 
-/** Build a redirect URL that carries the current session tokens. */
+/**
+ * Where a broker's site lives right now: its active custom domain, or its
+ * subdomain. Only the broker's own host-routing columns are read; the
+ * subdomain is the lookup key and stays the fallback.
+ */
+async function resolveBrokerOrigin(subdomain: string): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from("brokers")
+      .select("*")
+      .eq("subdomain", subdomain)
+      .maybeSingle();
+    if (data) return getBrokerPublicOrigin(data as unknown as BrokerHostFields);
+  } catch {
+    /* fall back to the subdomain below */
+  }
+  return getBrokerPublicOrigin({ subdomain });
+}
+
+/**
+ * Build the URL of a broker's page (the dashboard by default). The broker is
+ * identified by its subdomain, but the URL uses its custom domain when that is
+ * active. When the target is the host already open, the URL stays on this host
+ * and carries no tokens: the session is already here.
+ */
 export async function buildSubdomainRedirect(
   subdomain: string,
   path: string = "/dashboard",
@@ -23,7 +52,10 @@ export async function buildSubdomainRedirect(
     "en";
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const localizedPath = `/${language}${normalizedPath}`;
-  const base = buildTenantUrl(subdomain, localizedPath);
+  const origin = await resolveBrokerOrigin(subdomain);
+  const base = `${origin}${localizedPath}`;
+
+  if (new URL(origin).host === window.location.host) return base;
 
   const {
     data: { session },
@@ -37,6 +69,29 @@ export async function buildSubdomainRedirect(
   }
 
   return base;
+}
+
+/**
+ * URL of a page on the main (platform) host, for flows that must run there
+ * (plan change and payment: the gateway only knows the main host). A visitor
+ * on a broker's custom domain has no session on the main host, so the current
+ * tokens travel in the hash, the same relay used to go the other way. From
+ * every other host this is the plain main-host URL, as before.
+ */
+export async function buildMainHostRelayUrl(pathname: string): Promise<string> {
+  const base = buildMainSiteUrl(pathname);
+  if (!isOnBrokerCustomDomain()) return base;
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) return base;
+
+  const params = new URLSearchParams({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+  });
+  return `${base}#${params.toString()}`;
 }
 
 /**

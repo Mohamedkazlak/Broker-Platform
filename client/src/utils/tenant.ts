@@ -371,26 +371,86 @@ export function buildTenantUrl(
   return `${protocol}//${subdomain}.${apex}${portPart}${pathname}`;
 }
 
+/** Fields of a broker row that decide where its public site lives. */
+export interface BrokerHostFields {
+  subdomain: string;
+  custom_domain?: string | null;
+  domain_status?: string | null;
+  is_active?: boolean | null;
+}
+
 /**
- * Public website URL. Uses the broker's custom domain when it is active,
- * otherwise the platform subdomain.
+ * A custom domain is live only when the broker is active and the domain
+ * finished provisioning (domain_status 'active').
+ * Keep in sync with server/utils/brokerPublicOrigin.js.
  */
-export function buildBrokerWebsiteUrl(
-  broker: {
-    subdomain: string;
-    custom_domain?: string | null;
-    domain_status?: string | null;
-  },
-  pathname: string = "/",
-): string {
-  const customDomain = String(broker.custom_domain ?? "")
+export function hasActiveCustomDomain(
+  broker: Partial<BrokerHostFields> | null | undefined,
+): boolean {
+  if (!broker) return false;
+  const domain = String(broker.custom_domain ?? "").trim();
+  return (
+    !!domain && broker.domain_status === "active" && broker.is_active === true
+  );
+}
+
+/**
+ * The custom domain to show a broker's visitors, or null while it is not
+ * active. Use this wherever the UI would otherwise show the subdomain.
+ */
+export function getActiveCustomDomain(
+  broker: Partial<BrokerHostFields> | null | undefined,
+): string | null {
+  if (!hasActiveCustomDomain(broker)) return null;
+  return String(broker!.custom_domain)
     .trim()
     .toLowerCase()
     .replace(/^www\./, "");
-  if (customDomain && broker.domain_status === "active") {
-    return `https://${customDomain}${pathname}`;
+}
+
+/**
+ * The origin a broker's public site lives at:
+ *   https://<custom_domain>      when the custom domain is active
+ *   https://<subdomain>.<apex>   otherwise (the internal key and fallback)
+ * Returned without a trailing slash.
+ */
+export function getBrokerPublicOrigin(broker: BrokerHostFields): string {
+  const customDomain = getActiveCustomDomain(broker);
+  if (customDomain) return `https://${customDomain}`;
+  return buildTenantUrl(broker.subdomain, "");
+}
+
+/** A broker's public URL for `pathname`, on the custom domain when active. */
+export function buildBrokerWebsiteUrl(
+  broker: BrokerHostFields,
+  pathname: string = "/",
+): string {
+  return `${getBrokerPublicOrigin(broker)}${pathname}`;
+}
+
+/**
+ * True while browsing a broker's own custom domain (resolved, not pending).
+ * Sign-in stays on this host, because the session only exists in this host's
+ * browser storage. Plan change and payment do not: they run on the main host
+ * (see buildMainHostRelayUrl in lib/sessionRelay.ts).
+ */
+export function isOnBrokerCustomDomain(): boolean {
+  const tenant = getTenant();
+  return (
+    tenant.type === "custom" && !tenant.pendingCustom && !!tenant.subdomain
+  );
+}
+
+/**
+ * URL for a sign-in page. On a broker's custom domain it stays on the current
+ * host; elsewhere it goes to the platform host as it always has.
+ */
+export function buildFlowUrl(pathname: string = "/"): string {
+  if (typeof window === "undefined") return pathname;
+  if (isOnBrokerCustomDomain()) {
+    return `${window.location.origin}${pathname}`;
   }
-  return buildTenantUrl(broker.subdomain, pathname);
+  return buildMainSiteUrl(pathname);
 }
 
 /**

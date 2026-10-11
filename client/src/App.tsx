@@ -12,6 +12,7 @@ import ProtectedRoute from "@/components/common/ProtectedRoute";
 import OnboardingRoute from "@/components/common/OnboardingRoute";
 import RequireAdmin from "@/components/admin/RequireAdmin";
 import {
+  buildMainSiteUrl,
   ensureBrokerCustomDomain,
   getTenant,
   hasResolvedCustomDomain,
@@ -97,6 +98,17 @@ const SubdomainGuard = () => {
 };
 
 /**
+ * A new broker signs up on the platform, not on another broker's site, so a
+ * broker host sends /register to the main host's /register.
+ */
+const RegisterOnMainHost = ({ lang }: { lang: SupportedLanguage }) => {
+  useEffect(() => {
+    window.location.replace(buildMainSiteUrl(`/${lang}/register`));
+  }, [lang]);
+  return routeFallback;
+};
+
+/**
  * Wraps the admin route tree in its own auth context. Only mounted on the main
  * host — deliberately kept out of the broker subdomain relay/routing.
  */
@@ -176,6 +188,37 @@ const App = ({ lang }: AppProps) => {
                       <Route path="subscription" element={<Subscription />} />
                     </Route>
                     <Route path="/" element={<Index />} />
+                    {/* Sign-in, sign-up and onboarding: the same pages the main host
+                        serves, so a broker's own host (subdomain or custom
+                        domain) never has to send visitors to the platform host. */}
+                    <Route element={<MarketingAnimatedLayout />}>
+                      <Route
+                        path="/register"
+                        element={<RegisterOnMainHost lang={lang} />}
+                      />
+                      <Route path="/login" element={<Auth />} />
+                      <Route element={<OnboardingRoute />}>
+                        <Route path="/select-plan" element={<SelectPlan />} />
+                        <Route path="/domain-setup" element={<DomainSetup />} />
+                        <Route path="/payment" element={<Payment />} />
+                        <Route
+                          path="/payment/instapay"
+                          element={<InstapayPayment />}
+                        />
+                        <Route
+                          path="/payment/instapay/receipt"
+                          element={<InstapayReceipt />}
+                        />
+                        <Route
+                          path="/payment/instapay/pending"
+                          element={<InstapayPending />}
+                        />
+                        <Route
+                          path="/branding-setup"
+                          element={<BrandingSetup />}
+                        />
+                      </Route>
+                    </Route>
                     <Route path="*" element={<NotFound />} />
                   </Route>
                 ) : (

@@ -13,6 +13,7 @@ import helmet from "helmet";
 import hpp from "hpp";
 import errorHandler from "./middleware/errorHandler.js";
 import subdomainMiddleware from "./middleware/subdomain.middleware.js";
+import brokerSubdomainRedirect from "./middleware/brokerSubdomainRedirect.js";
 import authRoutes from "./routes/authRoutes.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
 import brokerRoutes from "./routes/brokerRoutes.js";
@@ -33,6 +34,7 @@ import {
 } from "./middleware/rateLimiter.js";
 import customDomainResolveRoutes from "./routes/customDomainResolveRoutes.js";
 import { resolveActiveCustomDomain } from "./utils/customDomainResolve.js";
+import { logAppUrlStatus } from "./config/reachiPayment.js";
 import { startBillingMonitor } from "./services/billingMonitor.js";
 import { startDomainMonitor } from "./services/domainMonitor.js";
 
@@ -148,6 +150,10 @@ app.use(hpp());
 // req.subdomain / req.tenantType. Mounted before routes intentionally.
 app.use(subdomainMiddleware);
 
+// Old broker subdomain -> custom domain redirect for page requests. Skips
+// /api/* and webhooks, and only acts when the broker's custom domain is active.
+app.use(brokerSubdomainRedirect);
+
 // Rate limiting — auth and POST /contact use dedicated limiters (see rateLimiter.js)
 app.use("/api/auth", authLimiter);
 app.use("/api/contact", (req, res, next) => {
@@ -214,6 +220,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
   console.log(`📡 API available at http://localhost:${PORT}/api`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || "production"}`);
+  logAppUrlStatus();
   startBillingMonitor();
   console.log(`⏱️  Billing monitor started (hourly sweep)`);
   startDomainMonitor();

@@ -13,7 +13,7 @@ import {
   signInWithPassword,
 } from "./authController.js";
 import { PLANS_BY_ID } from "../config/plans.js";
-import { APP_URL } from "../config/reachiPayment.js";
+import { requireAppUrl } from "../config/reachiPayment.js";
 import {
   createPaymentSession,
   verifyWebhookSignature,
@@ -32,7 +32,10 @@ function buildReturnUrl(returnPath) {
   if (typeof returnPath !== "string" || !RETURN_PATH_PATTERN.test(returnPath)) {
     throw Object.assign(new Error("Invalid returnPath"), { status: 400 });
   }
-  return `${APP_URL}${returnPath}`;
+  // Always the main host (NEXT_PUBLIC_APP_URL), whichever host started the
+  // checkout: the gateway only has to know that one origin. The client then
+  // forwards the buyer to their broker's own host once the result is known.
+  return `${requireAppUrl()}${returnPath}`;
 }
 
 function toStatusDto(session) {

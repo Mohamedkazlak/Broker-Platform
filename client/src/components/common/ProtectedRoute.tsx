@@ -1,9 +1,15 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  buildMainSiteUrl,
+  isOnBrokerCustomDomain,
+  isSubdomainTenant,
+} from "@/utils/tenant";
 
 /**
  * Wraps routes that require authentication.
- * Redirects to /login on the main domain if the user is not signed in.
+ * Signed-out visitors go to /login: on the broker's custom domain that is the
+ * same host, on a platform subdomain it is the platform host's login.
  */
 export default function ProtectedRoute() {
   const { user, isLoading } = useAuth();
@@ -18,11 +24,14 @@ export default function ProtectedRoute() {
   }
 
   if (!user) {
-    // If on a subdomain, redirect to main domain login
-    const hostname = window.location.hostname;
-    if (hostname.endsWith('.localhost') || (hostname !== 'localhost' && hostname.split('.').length >= 3)) {
-      const port = window.location.port ? `:${window.location.port}` : '';
-      window.location.href = `http://localhost${port}/login`;
+    // A broker's custom domain serves /login itself. A platform subdomain still
+    // sends visitors to the platform host's login.
+    if (isOnBrokerCustomDomain()) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    if (isSubdomainTenant()) {
+      const lang = localStorage.getItem("i18nextLng") || "en";
+      window.location.href = buildMainSiteUrl(`/${lang}/login`);
       return null;
     }
     return <Navigate to="/login" state={{ from: location }} replace />;

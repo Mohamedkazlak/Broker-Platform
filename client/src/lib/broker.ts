@@ -11,6 +11,7 @@ export interface Broker {
   subdomain: string;
   custom_domain?: string | null;
   domain_status?: string | null;
+  is_active?: boolean | null;
   email: string;
   phone_number: string;
   whatsapp_number: string;

@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { buildMainSiteUrl } from "@/utils/tenant";
+import { buildFlowUrl } from "@/utils/tenant";
 
 /**
  * Recovery for sessions that outlived their server-side counterpart.
@@ -32,7 +32,7 @@ export async function discardDeadSession(): Promise<void> {
   }
 
   const lang = localStorage.getItem("i18nextLng") || "en";
-  window.location.href = buildMainSiteUrl(`/${lang}/login?session=expired`);
+  window.location.href = buildFlowUrl(`/${lang}/login?session=expired`);
 }
 
 /**

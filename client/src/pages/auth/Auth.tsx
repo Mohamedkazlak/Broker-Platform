@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBroker } from "@/contexts/BrokerContext";
 import { useToast } from "@/hooks/use-toast";
 import { buildSubdomainRedirect } from "@/lib/sessionRelay";
+import { supabase } from "@/integrations/supabase/client";
+import { isSubdomainTenant } from "@/utils/tenant";
 import { GovernorateSelect } from "@/components/forms/GovernorateSelect";
 import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
@@ -156,14 +158,14 @@ export default function Auth() {
     setPhoneHasWhatsapp(false);
   }, [location.pathname]);
 
-  const subdomain = window.location.hostname.endsWith(".localhost")
-    ? window.location.hostname.replace(".localhost", "")
-    : null;
+  // On a broker's own host (subdomain or custom domain) a signed-in user goes
+  // straight to the dashboard on this same host.
+  const onBrokerHost = isSubdomainTenant();
   useEffect(() => {
-    if (user && subdomain) {
+    if (user && onBrokerHost) {
       navigate("/dashboard");
     }
-  }, [user, navigate, subdomain]);
+  }, [user, navigate, onBrokerHost]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -268,10 +270,18 @@ export default function Auth() {
         }
 
         if (brokerSubdomain) {
+          // Same broker as the host being browsed: buildSubdomainRedirect keeps
+          // the URL on this host. A different broker's account is sent to that
+          // broker's own host, and its session is not left behind on this one.
           const redirectUrl = await buildSubdomainRedirect(
             brokerSubdomain,
             "/dashboard",
           );
+          const foreignAccount =
+            onBrokerHost && !!broker && broker.subdomain !== brokerSubdomain;
+          if (foreignAccount) {
+            await supabase.auth.signOut({ scope: "local" });
+          }
           window.location.href = redirectUrl;
           return;
         }

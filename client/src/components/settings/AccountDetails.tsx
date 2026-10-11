@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBroker } from "@/contexts/BrokerContext";
 import api from "@/lib/api";
-import { buildMainSiteUrl } from "@/utils/tenant";
+import { buildMainHostRelayUrl } from "@/lib/sessionRelay";
 import { PlanChangeStatus } from "@/components/dashboard/PlanChangeStatus";
 
 interface AccountData {
@@ -86,9 +86,11 @@ export function AccountDetails() {
 
   // Cross-host links: plan selection and payment live on the main host, so we
   // need a real navigation (window.location), not client-side routing. Mirrors
-  // the existing buildMainSiteUrl / buildTenantUrl language-prefixed pattern.
-  const goToMainHost = (path: string) => {
-    window.location.href = buildMainSiteUrl(`/${i18n.language}${path}`);
+  // the existing buildTenantUrl language-prefixed pattern.
+  const goToMainHost = async (path: string) => {
+    window.location.href = await buildMainHostRelayUrl(
+      `/${i18n.language}${path}`,
+    );
   };
 
   const renderBody = () => {

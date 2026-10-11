@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildMainSiteUrl } from "@/utils/tenant";
+import { buildMainHostRelayUrl } from "@/lib/sessionRelay";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Loader2 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
@@ -57,7 +57,7 @@ export default function Subscription() {
    * priced, paid for, and (with Instapay) approved. That whole flow lives on
    * the main host, so this hands off to it with the chosen plan.
    */
-  const handleSelectPlan = (planId: string) => {
+  const handleSelectPlan = async (planId: string) => {
     if (!profile?.broker_id) {
       toast({
         title: t("subscription.toasts.errorTitle"),
@@ -68,7 +68,7 @@ export default function Subscription() {
     }
 
     setIsLoading(planId);
-    window.location.href = buildMainSiteUrl(
+    window.location.href = await buildMainHostRelayUrl(
       `/${i18n.language}/select-plan?plan=${planId}&category=${category}`,
     );
   };

@@ -79,6 +79,35 @@ export const brokerModel = {
     return { id: data.id, subdomain: data.subdomain };
   },
 
+  /**
+   * The reverse of findActiveByCustomDomain: the active custom domain of the
+   * broker that owns this subdomain, or null when there is none (no custom
+   * domain, not 'active', or broker not is_active). Used by the old
+   * subdomain -> custom domain redirect.
+   */
+  async findActiveCustomDomainBySubdomain(subdomain) {
+    const normalized = String(subdomain ?? "")
+      .trim()
+      .toLowerCase();
+    if (!normalized || isPendingSubdomain(normalized)) return null;
+
+    const { data, error } = await supabaseAdmin
+      .from("brokers")
+      .select("id, subdomain, custom_domain, is_active, domain_status")
+      .eq("subdomain", normalized)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!isServableCustomDomainBroker(data) || !data.custom_domain) return null;
+    return {
+      id: data.id,
+      subdomain: data.subdomain,
+      custom_domain: data.custom_domain,
+      domain_status: data.domain_status,
+      is_active: data.is_active,
+    };
+  },
+
   async findById(id) {
     const { data, error } = await supabaseAdmin
       .from("brokers")

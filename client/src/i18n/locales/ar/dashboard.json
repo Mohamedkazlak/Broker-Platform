@@ -323,6 +323,9 @@
     "platformDescription": "تحديث اسم المنصة والرابط",
     "platformName": "اسم المنصة",
     "domain": "الرابط",
+    "customDomain": {
+      "hint": "موقعك يعمل الآن على هذا النطاق، ويتم توجيه الزوار إليه تلقائيًا."
+    },
     "subdomain": {
       "suffix": ".myflats.store",
       "checking": "جاري التحقق من التوفر…",

@@ -34,7 +34,7 @@ export function PropertyWhatsAppButton({
   const phone = broker?.whatsapp_number || broker?.phone_number;
   if (!phone) return null;
 
-  const propertyUrl = getPropertyUrl(propertyId);
+  const propertyUrl = getPropertyUrl(propertyId, broker);
   const href = buildWhatsAppUrl(
     phone,
     t("listing.whatsappInquiry", { url: propertyUrl }),

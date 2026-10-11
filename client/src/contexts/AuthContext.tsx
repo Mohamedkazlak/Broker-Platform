@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBroker } from "./BrokerContext";
 import { acceptRelayedSession } from "@/lib/sessionRelay";
 import { isSessionStillValid } from "@/lib/sessionGuard";
-import { buildMainSiteUrl } from "@/utils/tenant";
+import { buildFlowUrl } from "@/utils/tenant";
 import type { PackageCategory } from "@/lib/plans";
 
 interface Profile {
@@ -155,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setProfile(null);
               setRole(null);
               const lang = localStorage.getItem("i18nextLng") || "en";
-              window.location.href = buildMainSiteUrl(`/${lang}/login`);
+              window.location.href = buildFlowUrl(`/${lang}/login`);
               return;
             }
             sessionStorage.setItem(STORAGE_KEY, String(serverAt));

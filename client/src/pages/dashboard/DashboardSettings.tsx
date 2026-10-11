@@ -55,6 +55,7 @@ import { PhoneNumberInput } from "@/components/forms/PhoneNumberInput";
 import { isValidGovernorate } from "@/constants/governorates";
 import { isValidPhoneNumber } from "@/utils/phoneNumber";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
+import { getActiveCustomDomain } from "@/utils/tenant";
 
 function socialFormFromBroker(
   broker: {
@@ -109,7 +110,11 @@ const DashboardSettings = () => {
     }));
   }, [broker?.subdomain]);
 
-  const canCustomizeSubdomain = isPaidPlan(broker?.package);
+  // A broker with an active custom domain never sees its platform subdomain:
+  // the field is replaced by the custom domain, and no subdomain is submitted.
+  const activeCustomDomain = getActiveCustomDomain(broker);
+  const canCustomizeSubdomain =
+    isPaidPlan(broker?.package) && !activeCustomDomain;
   const canCustomizeBranding = hasBrandingAccess(broker?.package);
   const canCustomizeSocial = hasBrandingAccess(broker?.package);
 
@@ -563,7 +568,7 @@ const DashboardSettings = () => {
               </CardTitle>
             </div>
             <CardDescription>
-              {canCustomizeSubdomain
+              {canCustomizeSubdomain || activeCustomDomain
                 ? t("settings.platformDescription")
                 : t("settings.subdomain.upgradeDescription")}
             </CardDescription>
@@ -584,41 +589,58 @@ const DashboardSettings = () => {
                 }
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="domain">{t("settings.domain")}</Label>
-              <div className="flex items-center gap-2" dir="ltr">
+            {activeCustomDomain ? (
+              <div className="space-y-2">
+                <Label htmlFor="domain">{t("settings.domain")}</Label>
                 <Input
                   id="domain"
                   dir="ltr"
                   className="text-start"
-                  value={platformForm.domain}
-                  disabled={!canCustomizeSubdomain}
-                  onChange={(e) =>
-                    setPlatformForm((p) => ({
-                      ...p,
-                      domain: e.target.value
-                        .toLowerCase()
-                        .replace(/[^a-z0-9-]/g, ""),
-                    }))
-                  }
+                  value={activeCustomDomain}
+                  disabled
+                  readOnly
                 />
-                <span
-                  className="text-sm text-muted-foreground font-medium whitespace-nowrap"
-                  dir="ltr"
-                >
-                  {t("settings.subdomain.suffix")}
-                </span>
-              </div>
-              {canCustomizeSubdomain ? (
-                <SubdomainStatusLine status={subdomainStatus} />
-              ) : (
                 <p className="text-sm text-muted-foreground">
-                  {t("settings.subdomain.lockedHint")}
+                  {t("settings.customDomain.hint")}
                 </p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="domain">{t("settings.domain")}</Label>
+                <div className="flex items-center gap-2" dir="ltr">
+                  <Input
+                    id="domain"
+                    dir="ltr"
+                    className="text-start"
+                    value={platformForm.domain}
+                    disabled={!canCustomizeSubdomain}
+                    onChange={(e) =>
+                      setPlatformForm((p) => ({
+                        ...p,
+                        domain: e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]/g, ""),
+                      }))
+                    }
+                  />
+                  <span
+                    className="text-sm text-muted-foreground font-medium whitespace-nowrap"
+                    dir="ltr"
+                  >
+                    {t("settings.subdomain.suffix")}
+                  </span>
+                </div>
+                {canCustomizeSubdomain ? (
+                  <SubdomainStatusLine status={subdomainStatus} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {t("settings.subdomain.lockedHint")}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {!canCustomizeSubdomain && (
+              {!canCustomizeSubdomain && !activeCustomDomain && (
                 <Button variant="outline" asChild>
                   <Link to="/dashboard/subscription">
                     {t("settings.subdomain.upgradeCta")}
