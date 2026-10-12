@@ -83,6 +83,16 @@ const routeFallback = (
   <div className="min-h-[35vh] w-full animate-pulse bg-muted/40" aria-hidden />
 );
 
+/** Visible shell while a custom domain waits on /api/tenant/resolve. */
+const customDomainBootFallback = (
+  <div className="flex min-h-[100dvh] w-full items-center justify-center bg-background">
+    <div
+      className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
+      aria-label="Loading"
+    />
+  </div>
+);
+
 /**
  * Layout route for tenant subdomains. Blocks rendering of any subdomain
  * page until the broker lookup is finished, and shows the dedicated
@@ -144,152 +154,190 @@ const App = ({ lang }: AppProps) => {
   const customDomainMissing =
     tenant.type === "custom" && !tenant.pendingCustom && !tenant.subdomain;
 
-  if (!customReady || tenant.pendingCustom) return routeFallback;
+  if (!customReady || tenant.pendingCustom) return customDomainBootFallback;
 
   return (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrokerProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter basename={`/${lang}`}>
-            <ScrollToTop />
-            <Suspense fallback={routeFallback}>
-              {customDomainMissing ? (
-                <BrokerNotFound />
-              ) : (
-              <Routes>
-                {isBrokerSite ? (
-                  <Route element={<SubdomainGuard />}>
-                    <Route path="/home" element={<Index />} />
-                    <Route path="/properties" element={<Properties />} />
-                    <Route
-                      path="/properties/:id"
-                      element={<PropertyDetails />}
-                    />
-                    <Route path="/dashboard" element={<ProtectedRoute />}>
-                      <Route index element={<Dashboard />} />
-                      <Route
-                        path="properties"
-                        element={<DashboardProperties />}
-                      />
-                      <Route
-                        path="properties/new"
-                        element={<DashboardAddProperty />}
-                      />
-                      <Route
-                        path="properties/edit/:id"
-                        element={<DashboardAddProperty />}
-                      />
-                      <Route path="insights" element={<DashboardInsights />} />
-                      <Route path="revenue" element={<DashboardRevenue />} />
-                      <Route path="settings" element={<DashboardSettings />} />
-                      <Route path="subscription" element={<Subscription />} />
-                    </Route>
-                    <Route path="/" element={<Index />} />
-                    {/* Sign-in, sign-up and onboarding: the same pages the main host
-                        serves, so a broker's own host (subdomain or custom
-                        domain) never has to send visitors to the platform host. */}
-                    <Route element={<MarketingAnimatedLayout />}>
-                      <Route
-                        path="/register"
-                        element={<RegisterOnMainHost lang={lang} />}
-                      />
-                      <Route path="/login" element={<Auth />} />
-                      <Route element={<OnboardingRoute />}>
-                        <Route path="/select-plan" element={<SelectPlan />} />
-                        <Route path="/domain-setup" element={<DomainSetup />} />
-                        <Route path="/payment" element={<Payment />} />
-                        <Route
-                          path="/payment/instapay"
-                          element={<InstapayPayment />}
-                        />
-                        <Route
-                          path="/payment/instapay/receipt"
-                          element={<InstapayReceipt />}
-                        />
-                        <Route
-                          path="/payment/instapay/pending"
-                          element={<InstapayPending />}
-                        />
-                        <Route
-                          path="/branding-setup"
-                          element={<BrandingSetup />}
-                        />
-                      </Route>
-                    </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Route>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrokerProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter basename={`/${lang}`}>
+              <ScrollToTop />
+              <Suspense fallback={routeFallback}>
+                {customDomainMissing ? (
+                  <BrokerNotFound />
                 ) : (
-                  <>
-                    {/* Platform admin — main host only, own auth context */}
-                    <Route path="/admin" element={<AdminRoot />}>
-                      <Route path="login" element={<AdminLogin />} />
-                      <Route element={<RequireAdmin />}>
-                        <Route element={<AdminLayout />}>
-                          <Route index element={<AdminDashboard />} />
-                          <Route path="brokers" element={<AdminBrokers />} />
-                          <Route
-                            path="brokers/:brokerId"
-                            element={<AdminBrokerDetail />}
-                          />
-                          <Route path="payments" element={<AdminPayments />} />
-                          <Route path="messages" element={<AdminMessages />} />
+                  <Routes>
+                    {isBrokerSite ? (
+                      <Route element={<SubdomainGuard />}>
+                        <Route path="/home" element={<Index />} />
+                        <Route path="/properties" element={<Properties />} />
+                        <Route
+                          path="/properties/:id"
+                          element={<PropertyDetails />}
+                        />
+                        <Route path="/dashboard" element={<ProtectedRoute />}>
+                          <Route index element={<Dashboard />} />
                           <Route
                             path="properties"
-                            element={<AdminPlaceholder section="properties" />}
+                            element={<DashboardProperties />}
                           />
                           <Route
-                            path="domains"
-                            element={<AdminPlaceholder section="domains" />}
+                            path="properties/new"
+                            element={<DashboardAddProperty />}
+                          />
+                          <Route
+                            path="properties/edit/:id"
+                            element={<DashboardAddProperty />}
+                          />
+                          <Route
+                            path="insights"
+                            element={<DashboardInsights />}
+                          />
+                          <Route
+                            path="revenue"
+                            element={<DashboardRevenue />}
+                          />
+                          <Route
+                            path="settings"
+                            element={<DashboardSettings />}
+                          />
+                          <Route
+                            path="subscription"
+                            element={<Subscription />}
                           />
                         </Route>
+                        <Route path="/" element={<Index />} />
+                        {/* Sign-in, sign-up and onboarding: the same pages the main host
+                        serves, so a broker's own host (subdomain or custom
+                        domain) never has to send visitors to the platform host. */}
+                        <Route element={<MarketingAnimatedLayout />}>
+                          <Route
+                            path="/register"
+                            element={<RegisterOnMainHost lang={lang} />}
+                          />
+                          <Route path="/login" element={<Auth />} />
+                          <Route element={<OnboardingRoute />}>
+                            <Route
+                              path="/select-plan"
+                              element={<SelectPlan />}
+                            />
+                            <Route
+                              path="/domain-setup"
+                              element={<DomainSetup />}
+                            />
+                            <Route path="/payment" element={<Payment />} />
+                            <Route
+                              path="/payment/instapay"
+                              element={<InstapayPayment />}
+                            />
+                            <Route
+                              path="/payment/instapay/receipt"
+                              element={<InstapayReceipt />}
+                            />
+                            <Route
+                              path="/payment/instapay/pending"
+                              element={<InstapayPending />}
+                            />
+                            <Route
+                              path="/branding-setup"
+                              element={<BrandingSetup />}
+                            />
+                          </Route>
+                        </Route>
+                        <Route path="*" element={<NotFound />} />
                       </Route>
-                    </Route>
+                    ) : (
+                      <>
+                        {/* Platform admin — main host only, own auth context */}
+                        <Route path="/admin" element={<AdminRoot />}>
+                          <Route path="login" element={<AdminLogin />} />
+                          <Route element={<RequireAdmin />}>
+                            <Route element={<AdminLayout />}>
+                              <Route index element={<AdminDashboard />} />
+                              <Route
+                                path="brokers"
+                                element={<AdminBrokers />}
+                              />
+                              <Route
+                                path="brokers/:brokerId"
+                                element={<AdminBrokerDetail />}
+                              />
+                              <Route
+                                path="payments"
+                                element={<AdminPayments />}
+                              />
+                              <Route
+                                path="messages"
+                                element={<AdminMessages />}
+                              />
+                              <Route
+                                path="properties"
+                                element={
+                                  <AdminPlaceholder section="properties" />
+                                }
+                              />
+                              <Route
+                                path="domains"
+                                element={<AdminPlaceholder section="domains" />}
+                              />
+                            </Route>
+                          </Route>
+                        </Route>
 
-                    <Route element={<MarketingAnimatedLayout />}>
-                      <Route index element={<Platform />} />
-                      <Route path="pricing" element={<Pricing />} />
-                      <Route path="about" element={<About />} />
-                      <Route path="contact" element={<Contact />} />
-                      <Route path="register" element={<Auth />} />
-                      <Route path="login" element={<Auth />} />
-                      <Route path="subscription" element={<Subscription />} />
-                      {/* Onboarding: draft signup (no DB yet) or authenticated upgrade */}
-                      <Route element={<OnboardingRoute />}>
-                        <Route path="select-plan" element={<SelectPlan />} />
-                        <Route path="domain-setup" element={<DomainSetup />} />
-                        <Route path="payment" element={<Payment />} />
-                        <Route
-                          path="payment/instapay"
-                          element={<InstapayPayment />}
-                        />
-                        <Route
-                          path="payment/instapay/receipt"
-                          element={<InstapayReceipt />}
-                        />
-                        <Route
-                          path="payment/instapay/pending"
-                          element={<InstapayPending />}
-                        />
-                        <Route
-                          path="branding-setup"
-                          element={<BrandingSetup />}
-                        />
-                      </Route>
-                      <Route path="*" element={<NotFound />} />
-                    </Route>
-                  </>
+                        <Route element={<MarketingAnimatedLayout />}>
+                          <Route index element={<Platform />} />
+                          <Route path="pricing" element={<Pricing />} />
+                          <Route path="about" element={<About />} />
+                          <Route path="contact" element={<Contact />} />
+                          <Route path="register" element={<Auth />} />
+                          <Route path="login" element={<Auth />} />
+                          <Route
+                            path="subscription"
+                            element={<Subscription />}
+                          />
+                          {/* Onboarding: draft signup (no DB yet) or authenticated upgrade */}
+                          <Route element={<OnboardingRoute />}>
+                            <Route
+                              path="select-plan"
+                              element={<SelectPlan />}
+                            />
+                            <Route
+                              path="domain-setup"
+                              element={<DomainSetup />}
+                            />
+                            <Route path="payment" element={<Payment />} />
+                            <Route
+                              path="payment/instapay"
+                              element={<InstapayPayment />}
+                            />
+                            <Route
+                              path="payment/instapay/receipt"
+                              element={<InstapayReceipt />}
+                            />
+                            <Route
+                              path="payment/instapay/pending"
+                              element={<InstapayPending />}
+                            />
+                            <Route
+                              path="branding-setup"
+                              element={<BrandingSetup />}
+                            />
+                          </Route>
+                          <Route path="*" element={<NotFound />} />
+                        </Route>
+                      </>
+                    )}
+                  </Routes>
                 )}
-              </Routes>
-              )}
-            </Suspense>
-          </BrowserRouter>
-        </AuthProvider>
-      </BrokerProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+              </Suspense>
+            </BrowserRouter>
+          </AuthProvider>
+        </BrokerProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 

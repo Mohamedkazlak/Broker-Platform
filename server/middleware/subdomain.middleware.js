@@ -111,14 +111,46 @@ function applyPlatformHost(req, rawHost) {
   req.tenantType = subdomain ? "subdomain" : "main";
 }
 
+/**
+ * Fingerprinted Vite assets and favicons never need a broker row. Looking them
+ * up in Supabase on every cold cache miss added seconds to the main JS download
+ * on custom domains and left visitors staring at an empty #root.
+ */
+function isStaticAssetPath(pathname) {
+  const path = String(pathname || "");
+  return (
+    path.startsWith("/assets/") ||
+    path === "/icon.ico" ||
+    path === "/favicon.ico" ||
+    path === "/robots.txt"
+  );
+}
+
 export async function subdomainMiddleware(req, _res, next) {
   // req.hostname strips the port; fall back to the Host header if missing.
   const rawHost =
     req.hostname || (req.headers.host ? req.headers.host.split(":")[0] : "");
 
+  if (isStaticAssetPath(req.path)) {
+    req.hostnameRaw = rawHost;
+    req.subdomain = null;
+    req.tenantType = "main";
+    return next();
+  }
+
   try {
     if (!isPlatformHost(rawHost)) {
-      const broker = await resolveActiveCustomDomain(rawHost);
+      let broker = null;
+      try {
+        broker = await resolveActiveCustomDomain(rawHost);
+      } catch (err) {
+        // Soft-fail: still serve HTML/API. A hung Supabase lookup must not
+        // leave the visitor on a blank document while middleware waits.
+        console.warn(
+          `[subdomain] custom-domain resolve failed for ${rawHost}:`,
+          err?.message || err,
+        );
+      }
       if (broker?.subdomain) {
         req.hostnameRaw = rawHost;
         req.subdomain = broker.subdomain;

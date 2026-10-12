@@ -237,6 +237,9 @@ export function getPrefetchedCustomDomainBroker(
  * When the API returns a public `broker` payload, keeps it in memory for
  * BrokerProvider to consume without another network hop.
  */
+/** Don't leave the SPA on a blank shell if /tenant/resolve hangs. */
+const CUSTOM_DOMAIN_RESOLVE_TIMEOUT_MS = 8_000;
+
 export function ensureBrokerCustomDomain(): Promise<CustomDomainCacheEntry | null> {
   if (typeof window === "undefined") return Promise.resolve(null);
 
@@ -247,10 +250,17 @@ export function ensureBrokerCustomDomain(): Promise<CustomDomainCacheEntry | nul
   if (cached) return Promise.resolve(cached);
 
   if (!customDomainInflight) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(
+      () => controller.abort(),
+      CUSTOM_DOMAIN_RESOLVE_TIMEOUT_MS,
+    );
+
     customDomainInflight = fetch(
       `${resolveApiBase()}/tenant/resolve?host=${encodeURIComponent(host)}`,
       {
         headers: { Accept: "application/json" },
+        signal: controller.signal,
       },
     )
       .then(async (res) => {
@@ -269,7 +279,7 @@ export function ensureBrokerCustomDomain(): Promise<CustomDomainCacheEntry | nul
           writeCustomDomainCache(entry);
           return entry;
         }
-        // Don't remember a 429/500 for the whole session; a reload can retry.
+        // Don't remember a 429/500/503 for the whole session; a reload can retry.
         prefetchedCustomDomainBroker = null;
         const entry = { host, subdomain: null };
         customDomainMemory = entry;
@@ -282,6 +292,7 @@ export function ensureBrokerCustomDomain(): Promise<CustomDomainCacheEntry | nul
         return entry;
       })
       .finally(() => {
+        window.clearTimeout(timer);
         customDomainInflight = null;
       });
   }
