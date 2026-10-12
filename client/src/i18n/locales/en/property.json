@@ -128,6 +128,7 @@
     "showingCount": "Showing <strong>{{count}}</strong> properties"
   },
   "filters": {
+    "all": "All",
     "buy": "Buy",
     "rent": "Rent",
     "search": "Search",

@@ -350,6 +350,7 @@ export function PropertySearchFilters({
   }, []);
 
   const listingTabs: { value: ListingType; label: string }[] = [
+    { value: "all", label: t("filters.all") },
     { value: "sale", label: t("filters.buy") },
     { value: "rent", label: t("filters.rent") },
   ];
@@ -363,7 +364,7 @@ export function PropertySearchFilters({
       ? t("filters.rent")
       : value.type === "sale"
         ? t("filters.buy")
-        : t("filters.buy");
+        : t("filters.all");
 
   const buildingLabel =
     value.building === "all"

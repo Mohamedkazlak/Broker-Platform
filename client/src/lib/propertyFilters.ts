@@ -23,7 +23,7 @@ export interface PropertyFilterState {
 
 export const EMPTY_PROPERTY_FILTERS: PropertyFilterState = {
   q: "",
-  type: "sale",
+  type: "all",
   building: "all",
   city: "",
   beds: "",
@@ -56,9 +56,7 @@ export function parsePropertyFiltersFromSearchParams(
   const type: ListingType =
     typeParam === "sale" || typeParam === "rent" || typeParam === "all"
       ? typeParam
-      : typeParam
-        ? "all"
-        : "sale";
+      : "all";
 
   const buildingParam = params.get("building");
   const building: BuildingTypeFilter =

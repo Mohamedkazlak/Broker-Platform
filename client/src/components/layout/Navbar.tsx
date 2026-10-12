@@ -36,10 +36,25 @@ export function Navbar({ links, transparent }: NavbarProps) {
   const navLinks = links || defaultLinks;
 
   const isActive = (path: string) => {
-    if (path.includes("?")) {
-      return location.pathname + location.search === path;
+    const [pathname, query = ""] = path.split("?");
+    if (location.pathname !== pathname) return false;
+
+    const expected = new URLSearchParams(query);
+    const actual = new URLSearchParams(location.search);
+    const expectedType = expected.get("type");
+
+    // Buy / Rent: highlight from the listing-type query even if other filters are set
+    if (expectedType === "sale" || expectedType === "rent") {
+      return actual.get("type") === expectedType;
     }
-    return location.pathname === path && !location.search;
+
+    // Properties (and other bare paths): active when type is All / unset
+    if (pathname === "/properties") {
+      const type = actual.get("type");
+      return !type || type === "all";
+    }
+
+    return location.pathname + location.search === path;
   };
 
   const showCustomIcon =
