@@ -11,3 +11,6 @@ export const BILLING_MONITOR_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 /** How often the server sweeps custom-domain verification at Render (ms). */
 export const DOMAIN_MONITOR_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+
+/** How often custom-domain expiry dates are refreshed from name.com (ms). */
+export const DOMAIN_EXPIRY_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours

@@ -13,6 +13,33 @@ import {
 const TLD_PRICING_PER_PAGE = 100;
 const TLD_PRICING_MAX_PAGES = 40;
 
+/** name.com ListDomains defaults to 1,000. Cap pages so a bad nextPage can't loop. */
+const DOMAINS_PER_PAGE = 1000;
+const DOMAINS_MAX_PAGES = 100;
+
+/**
+ * RFC 3339 expireDate from a name.com domain object, as an ISO string.
+ * Returns null when the field is missing or not a real timestamp — callers
+ * must leave any stored expiry untouched in that case.
+ */
+export function parseDomainExpireDate(value) {
+  if (value == null || value === "") return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+/**
+ * expireDate from a successful registerDomain() result.
+ *
+ * CreateDomain (POST /v4/domains) nests it at `domain.expireDate`.
+ * The already-owned path returns the GetDomain body on `domain`, and that
+ * body also carries `expireDate`. Both shapes are covered by `.domain.expireDate`.
+ */
+export function expireDateFromRegistration(registration) {
+  return parseDomainExpireDate(registration?.domain?.expireDate);
+}
+
 function nameComStatus(res) {
   // Pass through name.com's own 4xx as-is (e.g. 400 "invalid domain name"
   // is us sending bad input, not an outage on their end) — only fall back
@@ -185,6 +212,59 @@ export async function registerDomain(domain, purchasePriceUsd) {
   }
 
   return body;
+}
+
+/**
+ * GET /v4/domains — every domain in the name.com account.
+ *
+ * ListDomains returns `{ domains, nextPage }`. `domains[]` entries include
+ * `domainName` and `expireDate` (RFC 3339). `nextPage` is only present when
+ * another page exists. Pagination stops when it is missing, not a positive
+ * number, or repeats the page we just read.
+ *
+ * @returns {Promise<Array<{ domainName?: string, expireDate?: string }>>}
+ */
+export async function listAccountDomains() {
+  assertNameComConfigured();
+
+  const collected = [];
+  let page = 1;
+
+  for (let i = 0; i < DOMAINS_MAX_PAGES; i++) {
+    const url = new URL(`${NAME_COM_BASE_URL}/domains`);
+    url.searchParams.set("perPage", String(DOMAINS_PER_PAGE));
+    url.searchParams.set("page", String(page));
+
+    const res = await fetch(url, { headers: nameComAuthHeaders() });
+    const body = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw Object.assign(
+        new Error(
+          body?.message || `name.com domain list failed (${res.status})`,
+        ),
+        { status: nameComStatus(res), details: body?.details },
+      );
+    }
+
+    const rows = Array.isArray(body?.domains) ? body.domains : [];
+    collected.push(...rows);
+
+    const nextPage = body?.nextPage;
+    if (
+      typeof nextPage !== "number" ||
+      !Number.isFinite(nextPage) ||
+      nextPage <= 0
+    ) {
+      return collected;
+    }
+    if (nextPage === page) return collected;
+    page = nextPage;
+  }
+
+  throw new Error(
+    `name.com domain list did not finish within ${DOMAINS_MAX_PAGES} pages`,
+  );
 }
 
 /**

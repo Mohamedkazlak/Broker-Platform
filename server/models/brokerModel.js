@@ -220,4 +220,18 @@ export const brokerModel = {
     if (error) throw error;
     return data ?? [];
   },
+
+  /**
+   * Brokers that actually have a custom domain, for the name.com expiry sync.
+   * Empty strings are dropped so a blank custom_domain is left alone.
+   */
+  async findWithCustomDomain() {
+    const { data, error } = await supabaseAdmin
+      .from("brokers")
+      .select("id, custom_domain, domain_expires_at")
+      .not("custom_domain", "is", null);
+
+    if (error) throw error;
+    return (data ?? []).filter((row) => String(row.custom_domain ?? "").trim());
+  },
 };

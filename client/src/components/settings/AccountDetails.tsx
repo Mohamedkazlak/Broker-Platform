@@ -31,6 +31,7 @@ interface AccountData {
   next_billing_date: string | null;
   billing_amount: number | string | null;
   days_until_next_payment: number | null;
+  domain_expires_at?: string | null;
 }
 
 interface ApiPlan {
@@ -119,6 +120,16 @@ export function AccountDetails() {
     const isFree = account.package === "free";
     const isPastDue = account.subscription_status === "past_due";
     const billingAmount = Number(account.billing_amount ?? 0);
+    const parsedExpiry = account.domain_expires_at
+      ? new Date(account.domain_expires_at)
+      : null;
+    const domainExpiresAt =
+      parsedExpiry && !Number.isNaN(parsedExpiry.getTime())
+        ? parsedExpiry
+        : null;
+    const domainExpiringSoon =
+      domainExpiresAt != null &&
+      domainExpiresAt.getTime() - Date.now() <= 30 * 86_400_000;
 
     return (
       <div className="space-y-5">
@@ -184,6 +195,38 @@ export function AccountDetails() {
             </Badge>
           </span>
         </div>
+
+        {isCustom && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm text-muted-foreground">
+              {t("settings.account.domainExpiresLabel")}
+            </span>
+            {domainExpiresAt ? (
+              <div className="text-end">
+                <span
+                  className={`font-medium tabular-nums${
+                    domainExpiringSoon ? " text-amber-600" : ""
+                  }`}
+                >
+                  {domainExpiresAt.toLocaleDateString(localeNum, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+                {domainExpiringSoon && (
+                  <p className="text-xs text-amber-600">
+                    {t("settings.account.domainExpiringSoon")}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <span className="font-medium text-muted-foreground">
+                {t("settings.account.domainExpiresUnavailable")}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Billing */}
         <div className="flex items-center justify-between gap-4">

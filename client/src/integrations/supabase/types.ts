@@ -19,6 +19,7 @@ export type Database = {
           billing_amount: number | null;
           created_at: string;
           custom_domain: string | null;
+          domain_expires_at: string | null;
           domain_type: string;
           email: string;
           first_name: string;
@@ -48,6 +49,7 @@ export type Database = {
           billing_amount?: number | null;
           created_at?: string;
           custom_domain?: string | null;
+          domain_expires_at?: string | null;
           domain_type?: string;
           email: string;
           first_name: string;
@@ -77,6 +79,7 @@ export type Database = {
           billing_amount?: number | null;
           created_at?: string;
           custom_domain?: string | null;
+          domain_expires_at?: string | null;
           domain_type?: string;
           email?: string;
           first_name?: string;

@@ -62,7 +62,23 @@ export async function provisionCustomDomain(
       console.log(`${label} already registered at name.com, continuing to DNS`);
     }
 
-    await brokerModel.update(brokerId, { domain_status: "dns_pending" });
+    // expireDate is optional. A missing value, or a failure to store it,
+    // must not fail the purchase; the daily sync can fill it in later.
+    const domainExpiresAt =
+      nameComClient.expireDateFromRegistration(registration);
+    const registered = { domain_status: "dns_pending" };
+    if (domainExpiresAt) registered.domain_expires_at = domainExpiresAt;
+
+    try {
+      await brokerModel.update(brokerId, registered);
+    } catch (err) {
+      if (!domainExpiresAt) throw err;
+      console.warn(
+        `${label} could not save domain expiry, continuing registration:`,
+        err?.message || err,
+      );
+      await brokerModel.update(brokerId, { domain_status: "dns_pending" });
+    }
 
     // www → CNAME. Apex uses ANAME (name.com's CNAME-at-root equivalent) so
     // we never need a static A-record IP — Render's hostname is the target.
