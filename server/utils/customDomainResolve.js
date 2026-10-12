@@ -37,7 +37,7 @@ export async function resolveActiveCustomDomainForSubdomain(subdomain) {
  * miss). Only a broker with is_active and domain_status 'active' is returned.
  *
  * @param {string} host raw host, Host header, or origin hostname
- * @returns {Promise<{ id: string, subdomain: string } | null>}
+ * @returns {Promise<(Record<string, unknown> & { id: string, subdomain: string }) | null>}
  */
 export async function resolveActiveCustomDomain(host) {
   if (isPlatformHost(host)) return null;

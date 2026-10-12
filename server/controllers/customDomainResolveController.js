@@ -3,7 +3,9 @@ import { isPlatformHost } from "../utils/customDomainHost.js";
 
 /**
  * GET /api/tenant/resolve?host=<host>
- * Public. Returns { subdomain } when the host is an active custom domain.
+ * Public. Returns { subdomain, broker } when the host is an active custom
+ * domain. `broker` is the public profile so the SPA can skip a second
+ * Supabase round-trip on first paint.
  */
 export const resolveHost = async (req, res, next) => {
   try {
@@ -30,7 +32,7 @@ export const resolveHost = async (req, res, next) => {
       });
     }
 
-    return res.json({ subdomain: broker.subdomain });
+    return res.json({ subdomain: broker.subdomain, broker });
   } catch (error) {
     next(error);
   }

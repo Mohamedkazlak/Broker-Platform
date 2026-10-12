@@ -8,6 +8,16 @@ import i18n, {
   resolveInitialLanguage,
   applyDocumentLanguageAttributes,
 } from "./i18n";
+import { ensureBrokerCustomDomain, isPlatformHost } from "./utils/tenant";
+
+// Start custom-domain → broker resolve before React mounts so the network
+// hop overlaps with i18n / first render instead of waiting until App's effect.
+if (
+  typeof window !== "undefined" &&
+  !isPlatformHost(window.location.hostname)
+) {
+  void ensureBrokerCustomDomain();
+}
 
 // Ensure URL is always prefixed with the active language before React Router mounts,
 // so BrowserRouter's `basename` matches from the first render.

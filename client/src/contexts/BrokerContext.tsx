@@ -4,6 +4,7 @@ import {
   getSubdomainFromHost,
   getBrokerBySubdomain,
 } from "@/lib/broker";
+import { getPrefetchedCustomDomainBroker } from "@/utils/tenant";
 
 interface BrokerContextType {
   broker: Broker | null;
@@ -36,7 +37,12 @@ export function BrokerProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        const brokerData = await getBrokerBySubdomain(subdomain);
+        // Custom-domain bootstrap already fetched the public profile via
+        // /api/tenant/resolve — reuse it instead of a second round-trip.
+        const prefetched = getPrefetchedCustomDomainBroker(subdomain);
+        const brokerData =
+          (prefetched as Broker | null) ??
+          (await getBrokerBySubdomain(subdomain));
 
         if (brokerData) {
           setBroker(brokerData);

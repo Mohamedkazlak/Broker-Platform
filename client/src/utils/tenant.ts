@@ -85,7 +85,11 @@ const APEX_SUFFIXES = ["myflats.store", "myflats.com", "onrender.com"] as const;
 export function isPlatformHost(host: string): boolean {
   const hostname = stripHostPort(host);
   if (!hostname) return true;
-  if (hostname === "localhost" || hostname === "::1" || IP_REGEX.test(hostname)) {
+  if (
+    hostname === "localhost" ||
+    hostname === "::1" ||
+    IP_REGEX.test(hostname)
+  ) {
     return true;
   }
   if (hostname.includes(":")) return true;
@@ -122,10 +126,20 @@ interface CustomDomainCacheEntry {
   subdomain: string | null;
 }
 
+/** Public broker row returned by /api/tenant/resolve (in-memory only). */
+export type PrefetchedCustomDomainBroker = {
+  id: string;
+  subdomain: string;
+  [key: string]: unknown;
+};
+
 let customDomainMemory: CustomDomainCacheEntry | null = null;
 let customDomainInflight: Promise<CustomDomainCacheEntry> | null = null;
+let prefetchedCustomDomainBroker: PrefetchedCustomDomainBroker | null = null;
 
-function readCustomDomainCache(hostname: string): CustomDomainCacheEntry | null {
+function readCustomDomainCache(
+  hostname: string,
+): CustomDomainCacheEntry | null {
   const host = hostname.toLowerCase();
   if (customDomainMemory?.host === host) return customDomainMemory;
 
@@ -172,9 +186,56 @@ function resolveApiBase(): string {
   return "/api";
 }
 
+function rememberPrefetchedBroker(
+  host: string,
+  body: {
+    subdomain?: unknown;
+    broker?: unknown;
+  },
+) {
+  const subdomain =
+    typeof body?.subdomain === "string" && body.subdomain.trim()
+      ? body.subdomain.trim().toLowerCase()
+      : null;
+
+  const raw = body?.broker;
+  if (
+    subdomain &&
+    raw &&
+    typeof raw === "object" &&
+    typeof (raw as PrefetchedCustomDomainBroker).id === "string" &&
+    typeof (raw as PrefetchedCustomDomainBroker).subdomain === "string"
+  ) {
+    prefetchedCustomDomainBroker = {
+      ...(raw as PrefetchedCustomDomainBroker),
+      subdomain,
+    };
+  } else {
+    prefetchedCustomDomainBroker = null;
+  }
+
+  return { host, subdomain };
+}
+
+/**
+ * Broker profile from the latest successful /api/tenant/resolve for this
+ * host, if any. Used to skip a second public brokers query on first paint.
+ */
+export function getPrefetchedCustomDomainBroker(
+  subdomain: string | null | undefined,
+): PrefetchedCustomDomainBroker | null {
+  if (!subdomain || !prefetchedCustomDomainBroker) return null;
+  if (prefetchedCustomDomainBroker.subdomain !== subdomain.toLowerCase()) {
+    return null;
+  }
+  return prefetchedCustomDomainBroker;
+}
+
 /**
  * Resolve a non-platform host once per session.
  * Remembers `{ subdomain }` or a 404 (`subdomain: null`) in sessionStorage.
+ * When the API returns a public `broker` payload, keeps it in memory for
+ * BrokerProvider to consume without another network hop.
  */
 export function ensureBrokerCustomDomain(): Promise<CustomDomainCacheEntry | null> {
   if (typeof window === "undefined") return Promise.resolve(null);
@@ -186,31 +247,36 @@ export function ensureBrokerCustomDomain(): Promise<CustomDomainCacheEntry | nul
   if (cached) return Promise.resolve(cached);
 
   if (!customDomainInflight) {
-    customDomainInflight = fetch(`${resolveApiBase()}/tenant/resolve?host=${encodeURIComponent(host)}`, {
-      headers: { Accept: "application/json" },
-    })
+    customDomainInflight = fetch(
+      `${resolveApiBase()}/tenant/resolve?host=${encodeURIComponent(host)}`,
+      {
+        headers: { Accept: "application/json" },
+      },
+    )
       .then(async (res) => {
         if (res.ok) {
-          const body = (await res.json()) as { subdomain?: unknown };
-          const subdomain =
-            typeof body?.subdomain === "string" && body.subdomain.trim()
-              ? body.subdomain.trim().toLowerCase()
-              : null;
-          const entry = { host, subdomain };
+          const body = (await res.json()) as {
+            subdomain?: unknown;
+            broker?: unknown;
+          };
+          const entry = rememberPrefetchedBroker(host, body);
           writeCustomDomainCache(entry);
           return entry;
         }
         if (res.status === 404) {
+          prefetchedCustomDomainBroker = null;
           const entry = { host, subdomain: null };
           writeCustomDomainCache(entry);
           return entry;
         }
         // Don't remember a 429/500 for the whole session; a reload can retry.
+        prefetchedCustomDomainBroker = null;
         const entry = { host, subdomain: null };
         customDomainMemory = entry;
         return entry;
       })
       .catch(() => {
+        prefetchedCustomDomainBroker = null;
         const entry = { host, subdomain: null as string | null };
         customDomainMemory = entry;
         return entry;
@@ -357,7 +423,11 @@ function parseMainSiteOrigin(
  * login and the main site use VITE_MAIN_SITE_ORIGIN when set, otherwise
  * https://myflats.store. Platform hosts keep the current window origin.
  */
-function platformApexFromWindow(): { protocol: string; apex: string; portPart: string } {
+function platformApexFromWindow(): {
+  protocol: string;
+  apex: string;
+  portPart: string;
+} {
   const { protocol, port, hostname } = window.location;
   if (isPlatformHost(hostname)) {
     return {

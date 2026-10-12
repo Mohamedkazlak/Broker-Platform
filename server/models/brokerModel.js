@@ -61,6 +61,8 @@ export const brokerModel = {
   /**
    * Broker allowed to serve its public site on this custom domain.
    * Returns null unless is_active is true and domain_status is 'active'.
+   * Includes the same public columns as findBySubdomain so /api/tenant/resolve
+   * can satisfy the client broker bootstrap in one round-trip.
    */
   async findActiveByCustomDomain(customDomain) {
     const normalized = String(customDomain ?? "")
@@ -70,13 +72,21 @@ export const brokerModel = {
 
     const { data, error } = await supabaseAdmin
       .from("brokers")
-      .select("id, subdomain, is_active, domain_status")
+      .select(
+        `${BROKER_PUBLIC_FIELDS}, is_active, domain_status, custom_domain`,
+      )
       .eq("custom_domain", normalized)
       .maybeSingle();
 
     if (error) throw error;
     if (!isServableCustomDomainBroker(data)) return null;
-    return { id: data.id, subdomain: data.subdomain };
+
+    const {
+      is_active: _isActive,
+      domain_status: _domainStatus,
+      ...publicBroker
+    } = data;
+    return publicBroker;
   },
 
   /**

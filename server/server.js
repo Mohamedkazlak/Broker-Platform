@@ -203,10 +203,29 @@ app.use("/api/{*path}", (req, res) => {
 });
 
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../client/dist")));
+  const clientDist = path.join(__dirname, "../client/dist");
+
+  // Vite fingerprints files under /assets/ (content hashes). Cache those at
+  // the edge for a year so Cloudflare/browsers stop re-fetching the ~1MB
+  // bundle from Render on every visit. HTML must stay no-cache so deploys
+  // that change the hash are picked up immediately.
+  app.use(
+    express.static(clientDist, {
+      index: false,
+      setHeaders(res, filePath) {
+        const relative = path.relative(clientDist, filePath);
+        if (relative.split(path.sep)[0] === "assets") {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=3600");
+        }
+      },
+    }),
+  );
 
   app.get("/{*wildcard}", (req, res) => {
-    res.sendFile(path.join(__dirname, "../client/dist", "index.html"));
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(path.join(clientDist, "index.html"));
   });
 }
 
