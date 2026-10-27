@@ -153,6 +153,47 @@ export const paymentModel = {
   },
 
   /**
+   * Custom-domain payment sessions with refund_status requested|failed for
+   * the admin Domain issues page (includes rows without a Reachi session_id).
+   */
+  async findDomainRefundIssues() {
+    const { data, error } = await supabaseAdmin
+      .from("payment_sessions")
+      .select(COLUMNS)
+      .in("refund_status", ["requested", "failed"])
+      .not("requested_custom_domain", "is", null)
+      .order("updated_at", { ascending: false });
+
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  /**
+   * Latest custom-domain payment session per broker id (for enriching issues).
+   */
+  async findLatestDomainSessionsForBrokers(brokerIds) {
+    const ids = [...new Set((brokerIds ?? []).filter(Boolean))];
+    if (!ids.length) return new Map();
+
+    const { data, error } = await supabaseAdmin
+      .from("payment_sessions")
+      .select(COLUMNS)
+      .in("broker_id", ids)
+      .not("requested_custom_domain", "is", null)
+      .order("completed_at", { ascending: false });
+
+    if (error) throw error;
+
+    const byBroker = new Map();
+    for (const row of data ?? []) {
+      if (!byBroker.has(row.broker_id)) {
+        byBroker.set(row.broker_id, row);
+      }
+    }
+    return byBroker;
+  },
+
+  /**
    * Latest paid custom-domain session for a broker (admin refund+revert).
    */
   async findLatestDomainSessionForBroker(brokerId, customDomain) {

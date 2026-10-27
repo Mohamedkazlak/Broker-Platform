@@ -134,13 +134,6 @@ export const DOMAIN_TLD_PRICES = {
 
 export const DEFAULT_DOMAIN_PRICE = 400;
 
-/** Well-known domains that should always read as unavailable. */
-export const HARDCODED_TAKEN_DOMAINS = [
-  "google.com",
-  "facebook.com",
-  "amazon.com",
-];
-
 /** The domain's last label, lowercased. Prefer catalog matching for multi-part TLDs. */
 export function getDomainTld(domain) {
   return String(domain ?? "")

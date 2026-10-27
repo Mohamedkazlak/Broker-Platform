@@ -392,10 +392,21 @@
       "domainExpiringSoon": "ينتهي قريبًا",
       "badgeSubdomain": "نطاق فرعي",
       "badgeCustom": "نطاق مخصص",
+      "badgeCustomConnected": "متصل",
+      "badgeCustomConnecting": "جارٍ الاتصال…",
+      "badgeCustomReview": "قيد المراجعة",
+      "domainConnecting": {
+        "title": "جارٍ توصيل نطاقك…",
+        "description": "قد يستغرق هذا بعض الوقت. يظل نطاقك الفرعي يعمل في هذه الأثناء."
+      },
+      "domainReview": {
+        "title": "نقوم بمراجعة الأمر",
+        "description": "لا يلزم أي إجراء منك — سنُكمل توصيل نطاقك."
+      },
       "billingLabel": "الفوترة",
-      "nextBillingLabel": "تاريخ الفوترة التالي",
+      "nextBillingLabel": "تنتهي الفترة في",
       "freeNoBilling": "باقة مجانية – بدون فوترة",
-      "daysUntil": "{{days}} يومًا حتى الدفعة التالية بقيمة {{amount}}",
+      "daysUntil": "يتبقى {{days}} يومًا في هذه الفترة — جدّد بمبلغ {{amount}} للمتابعة",
       "amount": "{{amount}} جنيه",
       "upgrade": "تغيير الباقة",
       "pastDue": {

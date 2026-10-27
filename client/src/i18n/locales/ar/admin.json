@@ -96,11 +96,14 @@
       "governorate": "المحافظة",
       "subdomain": "النطاق الفرعي",
       "customDomain": "النطاق المخصص",
+      "domainStatus": "حالة النطاق",
+      "domainLastError": "آخر خطأ للنطاق",
+      "domainExpiresAt": "انتهاء النطاق",
       "plan": "الباقة",
       "status": "الحالة",
       "signupDate": "تاريخ التسجيل",
       "billingAmount": "مبلغ الفاتورة",
-      "nextBillingDate": "تاريخ الفاتورة التالي",
+      "nextBillingDate": "تنتهي الفترة في",
       "daysUntilPayment": "الأيام حتى الدفع"
     }
   },
@@ -116,6 +119,55 @@
     "domains": {
       "heading": "النطاقات",
       "subheading": "إدارة النطاقات المخصصة والنطاقات الفرعية."
+    }
+  },
+  "domains": {
+    "heading": "مشاكل النطاقات",
+    "subheading": "الوسطاء الذين لديهم مشاكل في تجهيز النطاق أو إعدادات متوقفة أو استردادات قيد التنفيذ.",
+    "loadError": "تعذّر تحميل مشاكل النطاقات.",
+    "empty": "لا توجد مشاكل نطاقات حالياً.",
+    "cancel": "إلغاء",
+    "retryDnsToast": "بدأت إعادة محاولة DNS",
+    "retryRenderToast": "بدأت إعادة محاولة ربط/تحقق Render",
+    "markResolvedToast": "تم تعليم النطاق كمحلول",
+    "refundToast": "بدأ الاسترداد والتراجع",
+    "actionErrorTitle": "فشلت العملية",
+    "actionErrorDescription": "تعذّر إكمال إجراء النطاق. حاول مرة أخرى.",
+    "refundTitle": "استرداد وتراجع؟",
+    "refundDescription": "سيتم استرداد كامل مبلغ الدفع لـ {{name}} وإعادته إلى نطاق فرعي. أدخل سبباً للتأكيد.",
+    "refundPlaceholder": "سبب الاسترداد والتراجع…",
+    "confirmRefund": "استرداد وتراجع",
+    "actions": {
+      "retryDns": "إعادة DNS",
+      "retryRender": "إعادة Render",
+      "markResolved": "تعليم كمحلول",
+      "refundRevert": "استرداد وتراجع"
+    },
+    "table": {
+      "broker": "الوسيط",
+      "domain": "النطاق",
+      "status": "الحالة",
+      "lastError": "آخر خطأ",
+      "attempts": "المحاولات",
+      "started": "البداية",
+      "amount": "مبلغ الجلسة",
+      "refund": "حالة الاسترداد",
+      "actions": "الإجراءات"
+    },
+    "status": {
+      "registering": "جارٍ التسجيل",
+      "dns_pending": "DNS معلّق",
+      "attaching": "جارٍ الربط",
+      "verifying": "جارٍ التحقق",
+      "active": "نشط",
+      "needs_review": "يحتاج مراجعة",
+      "failed": "فشل"
+    },
+    "refundStatus": {
+      "none": "لا يوجد",
+      "requested": "مطلوب",
+      "refunded": "تم الاسترداد",
+      "failed": "فشل"
     }
   },
   "payments": {

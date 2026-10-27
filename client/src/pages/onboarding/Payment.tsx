@@ -28,12 +28,14 @@ import {
   clearOnboardingDraft,
   getOnboardingDraft,
   hasOnboardingDraft,
+  updateOnboardingDraft,
 } from "@/lib/onboardingDraft";
 import {
   clearPlanChangeDraft,
   getPlanChangeDraft,
   planChangeRequestBody,
   planChangeSummaryParams,
+  savePlanChangeDraft,
 } from "@/lib/planChange";
 import { buildSubdomainRedirect } from "@/lib/sessionRelay";
 import {
@@ -111,10 +113,12 @@ export default function Payment() {
   const [confirming, setConfirming] = useState(isReturningFromGateway);
   const [domainSetup, setDomainSetup] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [domainFailed, setDomainFailed] = useState(false);
   const [failureReason, setFailureReason] = useState<string | null>(null);
   const [pollError, setPollError] = useState(false);
   const [stuck, setStuck] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const domainSetupRef = useRef(false);
 
   // Strip ?status=...&order_id=...&session_id=...&sig= as soon as we've read
   // them so a refresh mid-poll doesn't re-trigger this branch. Deliberately
@@ -158,7 +162,7 @@ export default function Payment() {
     let attempts = 0;
     let sawDomainProcessing = false;
 
-    const resolveSuccess = (subdomain: string | null) => {
+    const resolveSuccess = async (subdomain: string | null) => {
       if (subdomain) {
         sessionStorage.setItem("broker_subdomain", subdomain);
       }
@@ -174,6 +178,23 @@ export default function Payment() {
       }
       if (!isPlanChange && !renewal) markPostPaymentPending();
       setConfirming(false);
+
+      // After a custom-domain job finishes, land in the dashboard without
+      // requiring a refresh or an extra click.
+      if (domainSetupRef.current || sawDomainProcessing) {
+        const sub = subdomain || sessionStorage.getItem("broker_subdomain");
+        if (sub) {
+          window.location.href = await buildSubdomainRedirect(
+            sub,
+            "/dashboard",
+            i18n.language,
+          );
+          return;
+        }
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
       setPaymentSuccess(true);
     };
 
@@ -190,7 +211,7 @@ export default function Payment() {
               refresh_token: payload.session.refresh_token,
             });
           }
-          resolveSuccess(payload.subdomain);
+          await resolveSuccess(payload.subdomain);
           return;
         }
 
@@ -198,6 +219,7 @@ export default function Payment() {
           // Domain buy + activate still running — keep polling; do not use
           // the broker-row shortcut (plan may match before domain is ready).
           sawDomainProcessing = true;
+          domainSetupRef.current = true;
           setDomainSetup(true);
           attempts += 1;
           if (attempts >= MAX_POLL_ATTEMPTS) {
@@ -212,8 +234,17 @@ export default function Payment() {
         if (payload.status === "failed" || payload.status === "expired") {
           clearReachiClaimToken();
           setConfirming(false);
-          setDomainSetup(false);
           setFailureReason(payload.failureReason ?? null);
+          const isDomainFulfillmentFail =
+            sawDomainProcessing ||
+            domainSetupRef.current ||
+            payload.domainFulfillmentStatus === "failed";
+          if (isDomainFulfillmentFail) {
+            setDomainSetup(false);
+            setDomainFailed(true);
+            return;
+          }
+          setDomainSetup(false);
           setFailed(true);
           setMethod("card");
           return;
@@ -231,7 +262,7 @@ export default function Payment() {
                 ? b?.package === planChange.package
                 : b?.subscription_status === "active";
             if (matchesTarget) {
-              resolveSuccess(b?.subdomain ?? null);
+              await resolveSuccess(b?.subdomain ?? null);
               return;
             }
           } catch (brokerCheckErr) {
@@ -277,13 +308,22 @@ export default function Payment() {
     isPlanChange,
     planChange,
     brokerId,
+    i18n.language,
+    navigate,
   ]);
 
   useEffect(() => {
     // While we're confirming a just-completed gateway redirect, hold off —
     // once that resolves (success renders its own card; failure falls
     // through here) we need the order summary regardless.
-    if (paymentSuccess || isPostPaymentPending() || confirming || stuck) return;
+    if (
+      paymentSuccess ||
+      isPostPaymentPending() ||
+      confirming ||
+      stuck ||
+      domainFailed
+    )
+      return;
 
     let active = true;
 
@@ -380,6 +420,7 @@ export default function Payment() {
     paymentSuccess,
     confirming,
     stuck,
+    domainFailed,
     navigate,
     t,
     toast,
@@ -399,6 +440,46 @@ export default function Payment() {
       return;
     }
     navigate("/dashboard");
+  };
+
+  const goChooseAnotherPlan = () => {
+    setDomainFailed(false);
+    setFailureReason(null);
+    navigate("/select-plan");
+  };
+
+  const goMaxWithSubdomain = () => {
+    setDomainFailed(false);
+    setFailureReason(null);
+
+    const draft = getOnboardingDraft();
+    if (draft) {
+      updateOnboardingDraft({
+        package: "max",
+        domain: {
+          domain_type: "subdomain",
+          subdomain: draft.domain?.subdomain,
+        },
+      });
+      navigate("/domain-setup");
+      return;
+    }
+
+    if (brokerId) {
+      const existing = getPlanChangeDraft();
+      savePlanChangeDraft({
+        package: "max",
+        packageCategory: existing?.packageCategory ?? "personal",
+        domain: {
+          domain_type: "subdomain",
+          subdomain: existing?.domain?.subdomain,
+        },
+      });
+      navigate("/domain-setup");
+      return;
+    }
+
+    navigate("/select-plan");
   };
 
   const handleCheckout = async () => {
@@ -486,6 +567,51 @@ export default function Payment() {
                   {t("payment.confirming.pollError")}
                 </p>
               )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (domainFailed) {
+    return (
+      <div className="min-h-screen bg-background py-20 px-4">
+        <div className="container mx-auto max-w-lg">
+          <Card className="shadow-lg">
+            <CardContent className="pt-10 pb-8 text-center space-y-6">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+                <XCircle className="h-8 w-8 text-destructive" />
+              </div>
+              <div className="space-y-2">
+                <h1 className="font-display text-3xl font-bold">
+                  {t("payment.domainFailed.heading")}
+                </h1>
+                <p className="text-muted-foreground">
+                  {failureReason || t("payment.domainFailed.reasonFallback")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t("payment.domainFailed.refundNote")}
+                </p>
+              </div>
+              <div className="space-y-3">
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="w-full"
+                  onClick={goChooseAnotherPlan}
+                >
+                  {t("payment.domainFailed.choosePlan")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                  onClick={goMaxWithSubdomain}
+                >
+                  {t("payment.domainFailed.maxSubdomain")}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -96,11 +96,14 @@
       "governorate": "Governorate",
       "subdomain": "Subdomain",
       "customDomain": "Custom Domain",
+      "domainStatus": "Domain Status",
+      "domainLastError": "Domain Last Error",
+      "domainExpiresAt": "Domain Expires",
       "plan": "Plan",
       "status": "Status",
       "signupDate": "Signup Date",
       "billingAmount": "Billing Amount",
-      "nextBillingDate": "Next Billing Date",
+      "nextBillingDate": "Period ends",
       "daysUntilPayment": "Days Until Payment"
     }
   },
@@ -116,6 +119,55 @@
     "domains": {
       "heading": "Domains",
       "subheading": "Manage custom domains and subdomains."
+    }
+  },
+  "domains": {
+    "heading": "Domain issues",
+    "subheading": "Brokers with domain provisioning problems, stuck setups, or refunds in progress.",
+    "loadError": "Could not load domain issues.",
+    "empty": "No domain issues right now.",
+    "cancel": "Cancel",
+    "retryDnsToast": "DNS retry started",
+    "retryRenderToast": "Render attach/verify retry started",
+    "markResolvedToast": "Domain marked as resolved",
+    "refundToast": "Refund and revert started",
+    "actionErrorTitle": "Action failed",
+    "actionErrorDescription": "Could not complete this domain action. Please try again.",
+    "refundTitle": "Refund and revert?",
+    "refundDescription": "This refunds the full payment for {{name}} and reverts them to a subdomain. Enter a reason to confirm.",
+    "refundPlaceholder": "Reason for refund and revert…",
+    "confirmRefund": "Refund and revert",
+    "actions": {
+      "retryDns": "Retry DNS",
+      "retryRender": "Retry Render",
+      "markResolved": "Mark resolved",
+      "refundRevert": "Refund and revert"
+    },
+    "table": {
+      "broker": "Broker",
+      "domain": "Domain",
+      "status": "Status",
+      "lastError": "Last error",
+      "attempts": "Attempts",
+      "started": "Started",
+      "amount": "Session amount",
+      "refund": "Refund status",
+      "actions": "Actions"
+    },
+    "status": {
+      "registering": "Registering",
+      "dns_pending": "DNS pending",
+      "attaching": "Attaching",
+      "verifying": "Verifying",
+      "active": "Active",
+      "needs_review": "Needs review",
+      "failed": "Failed"
+    },
+    "refundStatus": {
+      "none": "None",
+      "requested": "Requested",
+      "refunded": "Refunded",
+      "failed": "Failed"
     }
   },
   "payments": {

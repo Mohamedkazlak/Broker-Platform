@@ -72,6 +72,7 @@ const AdminBrokerDetail = lazy(() => import("./pages/admin/AdminBrokerDetail"));
 const AdminPayments = lazy(() => import("./pages/admin/AdminPayments"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminPlaceholder = lazy(() => import("./pages/admin/AdminPlaceholder"));
+const AdminDomains = lazy(() => import("./pages/admin/AdminDomains"));
 
 const queryClient = new QueryClient();
 
@@ -281,7 +282,7 @@ const App = ({ lang }: AppProps) => {
                               />
                               <Route
                                 path="domains"
-                                element={<AdminPlaceholder section="domains" />}
+                                element={<AdminDomains />}
                               />
                             </Route>
                           </Route>

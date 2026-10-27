@@ -27,12 +27,20 @@ interface AccountData {
   domain_type: string;
   subdomain: string;
   custom_domain: string | null;
+  domain_status?: string | null;
   subscription_status: string;
   next_billing_date: string | null;
   billing_amount: number | string | null;
   days_until_next_payment: number | null;
   domain_expires_at?: string | null;
 }
+
+const CONNECTING_DOMAIN_STATUSES = new Set([
+  "registering",
+  "dns_pending",
+  "attaching",
+  "verifying",
+]);
 
 interface ApiPlan {
   id: string;
@@ -115,8 +123,18 @@ export function AccountDetails() {
     const planName = tPricing(`plans.${account.package}.name`, {
       defaultValue: plan?.name ?? account.package,
     });
-    const isCustom =
-      account.domain_type === "custom" && !!account.custom_domain;
+    const hasCustomName = !!account.custom_domain;
+    const domainStatus = account.domain_status ?? null;
+    const isConnecting =
+      hasCustomName &&
+      !!domainStatus &&
+      CONNECTING_DOMAIN_STATUSES.has(domainStatus);
+    const isDomainActive = hasCustomName && domainStatus === "active";
+    const isDomainReview =
+      hasCustomName &&
+      (domainStatus === "needs_review" || domainStatus === "failed");
+    // Only treat as a live custom domain when provisioning finished.
+    const isCustom = account.domain_type === "custom" && isDomainActive;
     const isFree = account.package === "free";
     const isPastDue = account.subscription_status === "past_due";
     const billingAmount = Number(account.billing_amount ?? 0);
@@ -130,6 +148,19 @@ export function AccountDetails() {
     const domainExpiringSoon =
       domainExpiresAt != null &&
       domainExpiresAt.getTime() - Date.now() <= 30 * 86_400_000;
+
+    const domainDisplay = hasCustomName
+      ? account.custom_domain
+      : account.subdomain;
+    const domainBadge = isCustom
+      ? t("settings.account.badgeCustomConnected")
+      : isConnecting
+        ? t("settings.account.badgeCustomConnecting")
+        : isDomainReview
+          ? t("settings.account.badgeCustomReview")
+          : hasCustomName
+            ? t("settings.account.badgeCustom")
+            : t("settings.account.badgeSubdomain");
 
     return (
       <div className="space-y-5">
@@ -182,19 +213,47 @@ export function AccountDetails() {
             {t("settings.account.domainLabel")}
           </span>
           <span className="flex items-center gap-2 font-medium" dir="ltr">
-            {isCustom ? account.custom_domain : account.subdomain}
-            <Badge variant={isCustom ? "default" : "secondary"}>
-              {isCustom ? (
+            {domainDisplay}
+            <Badge
+              variant={
+                isCustom
+                  ? "default"
+                  : isConnecting || isDomainReview
+                    ? "outline"
+                    : "secondary"
+              }
+            >
+              {isCustom || isConnecting || isDomainReview ? (
                 <Sparkles className="w-3 h-3 me-1" />
               ) : (
                 <Globe className="w-3 h-3 me-1" />
               )}
-              {isCustom
-                ? t("settings.account.badgeCustom")
-                : t("settings.account.badgeSubdomain")}
+              {domainBadge}
             </Badge>
           </span>
         </div>
+
+        {isConnecting && (
+          <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-1">
+            <p className="font-medium text-sm">
+              {t("settings.account.domainConnecting.title")}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t("settings.account.domainConnecting.description")}
+            </p>
+          </div>
+        )}
+
+        {isDomainReview && (
+          <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-1">
+            <p className="font-medium text-sm">
+              {t("settings.account.domainReview.title")}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t("settings.account.domainReview.description")}
+            </p>
+          </div>
+        )}
 
         {isCustom && (
           <div className="flex items-center justify-between gap-4">

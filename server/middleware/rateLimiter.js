@@ -51,6 +51,22 @@ export const customDomainResolveLimiter = rateLimit({
   },
 });
 
+// Public name.com availability + price check. Tight limit on top of apiLimiter
+// so typing/spamming the picker cannot burn the reseller API quota.
+export const customDomainCheckLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: "RATE_LIMITED",
+      message: "Too many domain checks, please try again later.",
+      status: 429,
+    },
+  },
+});
+
 // Contact form limiter
 export const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour

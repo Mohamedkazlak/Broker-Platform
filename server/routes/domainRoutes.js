@@ -3,6 +3,7 @@ import {
   checkCustomDomain,
   listCustomDomainTlds,
 } from "../controllers/domainController.js";
+import { customDomainCheckLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
 router.get("/tlds", listCustomDomainTlds);
 
 // Public, advisory-only availability + live wholesale price check.
-router.get("/check-custom", checkCustomDomain);
+// Dedicated limiter on top of the general /api apiLimiter.
+router.get("/check-custom", customDomainCheckLimiter, checkCustomDomain);
 
 export default router;

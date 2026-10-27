@@ -253,18 +253,54 @@ export const brokerModel = {
   },
 
   /**
-   * Brokers stuck in needs_review for the admin Domain issues page (Phase 6).
+   * Brokers for the admin Domain issues page: needs_review / failed, or
+   * stuck mid-provision past `olderThanIso` (updated_at).
    */
-  async findDomainNeedsReview() {
-    const { data, error } = await supabaseAdmin
+  async findDomainIssues({ olderThanIso } = {}) {
+    // Includes Phase 1 columns (dns/verify attempts, name.com/Render ids).
+    // Apply 2026-10-23_custom_domain_purchase_flow.sql before relying on those.
+    const issueSelect =
+      "id, platform_name, email, subdomain, custom_domain, domain_status, domain_last_error, domain_attempts, domain_dns_attempts, domain_verify_attempts, name_com_order_id, render_domain_id, domain_expires_at, domain_provisioned_at, package, updated_at, created_at";
+
+    const { data: flagged, error: flaggedError } = await supabaseAdmin
       .from("brokers")
-      .select(
-        "id, platform_name, email, subdomain, custom_domain, domain_status, domain_last_error, domain_dns_attempts, domain_verify_attempts, name_com_order_id, render_domain_id, domain_expires_at, package, updated_at, created_at",
-      )
-      .eq("domain_status", "needs_review")
+      .select(issueSelect)
+      .in("domain_status", ["needs_review", "failed"])
       .order("updated_at", { ascending: false });
 
-    if (error) throw error;
-    return data ?? [];
+    if (flaggedError) throw flaggedError;
+
+    let stuck = [];
+    if (olderThanIso) {
+      const { data: midFlight, error: stuckError } = await supabaseAdmin
+        .from("brokers")
+        .select(issueSelect)
+        .in("domain_status", [
+          "registering",
+          "dns_pending",
+          "attaching",
+          "verifying",
+        ])
+        .lte("updated_at", olderThanIso)
+        .order("updated_at", { ascending: false });
+
+      if (stuckError) throw stuckError;
+      stuck = midFlight ?? [];
+    }
+
+    const byId = new Map();
+    for (const row of [...(flagged ?? []), ...stuck]) {
+      byId.set(row.id, row);
+    }
+    return [...byId.values()].sort((a, b) => {
+      const aAt = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+      const bAt = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+      return bAt - aAt;
+    });
+  },
+
+  /** @deprecated Prefer findDomainIssues — kept for callers during Phase 6. */
+  async findDomainNeedsReview() {
+    return this.findDomainIssues();
   },
 };

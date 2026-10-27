@@ -18,7 +18,7 @@ const BROKER_ADMIN_LIST_COLUMNS =
   "id, first_name, last_name, platform_name, email, subdomain, custom_domain, domain_type, package, subscription_status, is_active, created_at";
 
 const BROKER_ADMIN_DETAIL_COLUMNS =
-  "id, first_name, last_name, platform_name, email, phone_number, whatsapp_number, governorate, subdomain, custom_domain, domain_type, package, package_limit, subscription_status, is_active, billing_amount, next_billing_date, created_at, updated_at";
+  "id, first_name, last_name, platform_name, email, phone_number, whatsapp_number, governorate, subdomain, custom_domain, domain_type, domain_status, domain_last_error, domain_expires_at, package, package_limit, subscription_status, is_active, billing_amount, next_billing_date, created_at, updated_at";
 
 /** First day of the current calendar month (UTC), as an ISO string. */
 function startOfCurrentMonthISO() {

@@ -78,6 +78,13 @@
       "description": "Your payment couldn't be processed. No changes were charged.",
       "retry": "Try again"
     },
+    "domainFailed": {
+      "heading": "We couldn't set up your domain",
+      "reasonFallback": "Domain registration didn't complete.",
+      "refundNote": "The full amount is being refunded to your original payment method.",
+      "choosePlan": "Choose another plan",
+      "maxSubdomain": "Continue with Max + subdomain"
+    },
     "toasts": {
       "loadFailedTitle": "Couldn't load your order",
       "loadFailedDescription": "Please try again.",
@@ -93,7 +100,7 @@
       "heading": "Confirm your new plan",
       "subheading": "You're moving from {{from}} to {{to}}. Your current plan stays active until this payment goes through.",
       "successTitle": "Your plan has been updated",
-      "successDescription": "Your new plan is active and your next billing cycle starts today.",
+      "successDescription": "Your new plan is active. This period starts today — pay again when it ends to stay active.",
       "backToDashboard": "Back to dashboard"
     },
     "renewal": {

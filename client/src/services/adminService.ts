@@ -41,6 +41,9 @@ export interface BrokerDetail {
   subdomain: string;
   customDomain: string | null;
   domainType: string;
+  domainStatus: string | null;
+  domainLastError: string | null;
+  domainExpiresAt: string | null;
   plan: string;
   packageLimit: number;
   status: BrokerStatus;
@@ -50,6 +53,32 @@ export interface BrokerDetail {
   nextBillingDate: string | null;
   daysUntilNextPayment: number | null;
   signupDate: string;
+}
+
+export interface DomainIssue {
+  brokerId: string | null;
+  platformName: string | null;
+  email: string | null;
+  subdomain: string | null;
+  customDomain: string | null;
+  domainStatus: string | null;
+  lastError: string | null;
+  attempts: number;
+  dnsAttempts: number;
+  verifyAttempts: number;
+  nameComOrderId?: string | null;
+  renderDomainId?: string | null;
+  domainExpiresAt?: string | null;
+  package?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+  startedAt: string | null;
+  sessionId: string | null;
+  sessionAmount: number | null;
+  sessionCurrency: string | null;
+  refundStatus: string | null;
+  refundReason: string | null;
+  fulfillmentStatus: string | null;
 }
 
 export interface Pagination {
@@ -178,5 +207,36 @@ export const adminService = {
 
   async deleteContactMessage(id: string): Promise<void> {
     await api.delete(`/admin/contact-messages/${id}`);
+  },
+
+  async listDomainIssues(): Promise<{ issues: DomainIssue[] }> {
+    const { data } = await api.get("/admin/domains/issues");
+    return { issues: data.data };
+  },
+
+  async retryDomainDns(brokerId: string): Promise<DomainIssue> {
+    const { data } = await api.post(`/admin/domains/${brokerId}/retry-dns`);
+    return data.data;
+  },
+
+  async retryDomainRender(brokerId: string): Promise<DomainIssue> {
+    const { data } = await api.post(`/admin/domains/${brokerId}/retry-render`);
+    return data.data;
+  },
+
+  async markDomainResolved(brokerId: string): Promise<DomainIssue> {
+    const { data } = await api.post(`/admin/domains/${brokerId}/mark-resolved`);
+    return data.data;
+  },
+
+  async refundAndRevertDomain(
+    brokerId: string,
+    reason: string,
+  ): Promise<{ broker: DomainIssue; session: unknown }> {
+    const { data } = await api.post(
+      `/admin/domains/${brokerId}/refund-revert`,
+      { reason },
+    );
+    return data.data;
   },
 };

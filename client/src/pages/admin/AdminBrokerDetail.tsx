@@ -191,6 +191,20 @@ export default function AdminBrokerDetail() {
             value={broker.customDomain}
           />
           <InfoRow
+            label={t("detail.fields.domainStatus")}
+            value={broker.domainStatus}
+          />
+          <InfoRow
+            label={t("detail.fields.domainLastError")}
+            value={broker.domainLastError}
+          />
+          <InfoRow
+            label={t("detail.fields.domainExpiresAt")}
+            value={
+              broker.domainExpiresAt ? formatDate(broker.domainExpiresAt) : null
+            }
+          />
+          <InfoRow
             label={t("detail.fields.plan")}
             value={<span className="capitalize">{broker.plan}</span>}
           />
@@ -217,9 +231,7 @@ export default function AdminBrokerDetail() {
           <InfoRow
             label={t("detail.fields.nextBillingDate")}
             value={
-              broker.nextBillingDate
-                ? formatDate(broker.nextBillingDate)
-                : null
+              broker.nextBillingDate ? formatDate(broker.nextBillingDate) : null
             }
           />
           <InfoRow

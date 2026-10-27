@@ -392,10 +392,21 @@
       "domainExpiringSoon": "Expiring soon",
       "badgeSubdomain": "Subdomain",
       "badgeCustom": "Custom domain",
+      "badgeCustomConnected": "Connected",
+      "badgeCustomConnecting": "Connecting…",
+      "badgeCustomReview": "In review",
+      "domainConnecting": {
+        "title": "Connecting your domain…",
+        "description": "This can take a while. Your subdomain keeps working in the meantime."
+      },
+      "domainReview": {
+        "title": "We're looking into it",
+        "description": "No action needed from you — we'll finish connecting your domain."
+      },
       "billingLabel": "Billing",
-      "nextBillingLabel": "Next billing date",
+      "nextBillingLabel": "Period ends",
       "freeNoBilling": "Free plan – no billing",
-      "daysUntil": "{{days}} days until next payment of {{amount}}",
+      "daysUntil": "{{days}} days left in this period — renew for {{amount}} to continue",
       "amount": "{{amount}} EGP",
       "upgrade": "Change plan",
       "pastDue": {
