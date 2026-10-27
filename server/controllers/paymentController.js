@@ -3,6 +3,11 @@ import { brokerModel } from "../models/brokerModel.js";
 import { paymentModel } from "../models/paymentModel.js";
 import { applyPlanChange, resolvePlanChange } from "../services/subscription.js";
 import {
+  applyLockedDomainQuote,
+  isNewCustomDomainPurchase,
+  lockCustomDomainForCheckout,
+} from "../services/domainCheckout.js";
+import {
   buildOrderSummary,
   buildRegistrationOrderSummary,
 } from "../utils/orderSummary.js";
@@ -24,6 +29,7 @@ import {
 } from "../utils/registrationPayload.js";
 import { createClaimToken, hashClaimToken } from "../utils/claimToken.js";
 import { resolveBrokerIdFromAuth } from "../utils/resolveBrokerFromAuth.js";
+import { startDomainFulfillment } from "../services/domainFulfillment.js";
 
 /** Only the onboarding payment page is a valid return destination. */
 const RETURN_PATH_PATTERN = /^\/[a-z]{2}\/payment$/;
@@ -38,15 +44,51 @@ function buildReturnUrl(returnPath) {
   return `${requireAppUrl()}${returnPath}`;
 }
 
+/**
+ * Client-facing checkout status. Custom-domain checkouts stay on `processing`
+ * until fulfillment finishes (or fails) so Payment.tsx can show
+ * "Setting up your domain…".
+ */
 function toStatusDto(session) {
   if (!session) return null;
+
+  const fulfillment = session.domain_fulfillment_status || "none";
+  let status = session.status;
+  let failureReason = null;
+
+  if (session.status === "completed") {
+    if (fulfillment === "pending" || fulfillment === "registering") {
+      status = "processing";
+    } else if (fulfillment === "failed") {
+      status = "failed";
+      failureReason =
+        session.refund_reason ||
+        "We couldn't set up your custom domain. Your payment is being refunded.";
+    }
+  } else if (session.status === "refunded" && fulfillment === "failed") {
+    status = "failed";
+    failureReason =
+      session.refund_reason ||
+      "We couldn't set up your custom domain. Your payment was refunded.";
+  }
+
   return {
     orderId: session.order_id,
-    status: session.status,
+    status,
     package: session.package,
     amount: Number(session.amount),
     currency: session.currency,
+    failureReason,
+    domainFulfillmentStatus: fulfillment,
   };
+}
+
+function sessionNeedsDomainFulfillment(session) {
+  return (
+    !!session?.requested_custom_domain &&
+    session.domain_fulfillment_status &&
+    session.domain_fulfillment_status !== "none"
+  );
 }
 
 /**
@@ -120,28 +162,27 @@ async function checkoutForBroker(req, res, brokerId) {
   }
 
   const returnUrl = buildReturnUrl(req.body?.returnPath);
+  const targetDomainType = change?.domain_type ?? broker.domain_type;
+  const targetCustomDomain = change?.custom_domain ?? broker.custom_domain;
   const domainAlreadyOwned =
-    broker.domain_type === "custom" && !!broker.custom_domain;
-  const summary = change
+    targetDomainType === "custom" &&
+    !!targetCustomDomain &&
+    targetCustomDomain === broker.custom_domain;
+
+  let summary = change
     ? change.summary
     : await buildOrderSummary(broker, { domainAlreadyOwned });
 
+  let domainLock = null;
+  if (isNewCustomDomainPurchase(summary, domainAlreadyOwned)) {
+    domainLock = await lockCustomDomainForCheckout(summary.customDomain, {
+      excludeBrokerId: brokerId,
+    });
+    summary = applyLockedDomainQuote(summary, domainLock);
+  }
+
   const orderId = `bp_${crypto.randomUUID()}`;
   const { token, hash } = createClaimToken();
-
-  const session = await createPaymentSession({
-    orderId,
-    amount: summary.total.toFixed(2),
-    currency: summary.currency,
-    description: summary.planName,
-    customer: {
-      name: `${broker.first_name ?? ""} ${broker.last_name ?? ""}`.trim(),
-      email: broker.email,
-      phone: broker.phone_number,
-    },
-    returnUrl,
-    items: buildLineItems(summary),
-  });
 
   const created = await paymentModel.create({
     orderId,
@@ -151,16 +192,45 @@ async function checkoutForBroker(req, res, brokerId) {
     amount: summary.total,
     currency: summary.currency,
     claimTokenHash: hash,
-    // Only set for a plan change — the webhook switches the broker over to
-    // these once the payment clears.
-    requestedDomainType: change?.domain_type ?? null,
+    // Plan change and new-domain draft holds: webhook / fulfillment read these.
+    requestedDomainType: change?.domain_type ?? (domainLock ? "custom" : null),
     requestedSubdomain: change?.subdomain ?? null,
-    requestedCustomDomain: change?.custom_domain ?? null,
+    requestedCustomDomain: domainLock?.domain ?? change?.custom_domain ?? null,
+    domainQuotedPriceUsd: domainLock?.priceUSD ?? null,
+    domainQuotedPriceEgp: domainLock?.priceEGP ?? null,
+    domainHoldExpiresAt: domainLock?.holdExpiresAt ?? null,
+    domainFulfillmentStatus: domainLock ? "pending" : "none",
   });
+
+  let session;
+  try {
+    session = await createPaymentSession({
+      orderId,
+      amount: summary.total.toFixed(2),
+      currency: summary.currency,
+      description: summary.planName,
+      customer: {
+        name: `${broker.first_name ?? ""} ${broker.last_name ?? ""}`.trim(),
+        email: broker.email,
+        phone: broker.phone_number,
+      },
+      returnUrl,
+      items: buildLineItems(summary),
+    });
+  } catch (error) {
+    await paymentModel.update(created.id, { status: "failed" });
+    throw error;
+  }
+
+  const holdExpiresAt =
+    session.expires_at ?? domainLock?.holdExpiresAt ?? null;
   await paymentModel.update(created.id, {
     session_id: session.session_id,
     pay_url: session.pay_url,
     expires_at: session.expires_at,
+    ...(domainLock
+      ? { domain_hold_expires_at: holdExpiresAt }
+      : {}),
   });
 
   res.json({ status: "success", payUrl: session.pay_url, claimToken: token });
@@ -190,7 +260,13 @@ async function checkoutForDraft(req, res) {
 
   const returnUrl = buildReturnUrl(returnPath);
   const domainFields = await resolveDomainFields(formData, pkg, domain);
-  const summary = await buildRegistrationOrderSummary(pkg, domainFields);
+  let summary = await buildRegistrationOrderSummary(pkg, domainFields);
+
+  let domainLock = null;
+  if (isNewCustomDomainPurchase(summary, false)) {
+    domainLock = await lockCustomDomainForCheckout(summary.customDomain);
+    summary = applyLockedDomainQuote(summary, domainLock);
+  }
 
   const orderId = `bp_${crypto.randomUUID()}`;
   const { token, hash } = createClaimToken();
@@ -203,20 +279,6 @@ async function checkoutForDraft(req, res) {
     domainFields,
   });
 
-  const session = await createPaymentSession({
-    orderId,
-    amount: summary.total.toFixed(2),
-    currency: summary.currency,
-    description: summary.planName,
-    customer: {
-      name: `${formData.firstName ?? ""} ${formData.lastName ?? ""}`.trim(),
-      email: normalizedEmail,
-      phone: formData.phone,
-    },
-    returnUrl,
-    items: buildLineItems(summary),
-  });
-
   const created = await paymentModel.create({
     orderId,
     brokerId: null,
@@ -226,11 +288,44 @@ async function checkoutForDraft(req, res) {
     currency: summary.currency,
     registrationPayload,
     claimTokenHash: hash,
+    requestedDomainType: domainFields.domain_type,
+    requestedSubdomain: domainFields.subdomain,
+    requestedCustomDomain: domainLock?.domain ?? domainFields.custom_domain,
+    domainQuotedPriceUsd: domainLock?.priceUSD ?? null,
+    domainQuotedPriceEgp: domainLock?.priceEGP ?? null,
+    domainHoldExpiresAt: domainLock?.holdExpiresAt ?? null,
+    domainFulfillmentStatus: domainLock ? "pending" : "none",
   });
+
+  let session;
+  try {
+    session = await createPaymentSession({
+      orderId,
+      amount: summary.total.toFixed(2),
+      currency: summary.currency,
+      description: summary.planName,
+      customer: {
+        name: `${formData.firstName ?? ""} ${formData.lastName ?? ""}`.trim(),
+        email: normalizedEmail,
+        phone: formData.phone,
+      },
+      returnUrl,
+      items: buildLineItems(summary),
+    });
+  } catch (error) {
+    await paymentModel.update(created.id, { status: "failed" });
+    throw error;
+  }
+
+  const holdExpiresAt =
+    session.expires_at ?? domainLock?.holdExpiresAt ?? null;
   await paymentModel.update(created.id, {
     session_id: session.session_id,
     pay_url: session.pay_url,
     expires_at: session.expires_at,
+    ...(domainLock
+      ? { domain_hold_expires_at: holdExpiresAt }
+      : {}),
   });
 
   res.json({ status: "success", payUrl: session.pay_url, claimToken: token });
@@ -296,14 +391,25 @@ export const getCheckoutStatus = async (req, res, next) => {
 
     let subdomain = null;
     let authSession = null;
+    const dto = toStatusDto(session);
+
+    // Auth handoff only when fulfillment is done (none = no domain buy,
+    // registered = domain bought + broker activated). Never while processing.
+    const fulfillmentDone =
+      !sessionNeedsDomainFulfillment(session) ||
+      session.domain_fulfillment_status === "registered";
 
     if (session.broker_id) {
       const broker = await brokerModel.findById(session.broker_id);
       subdomain = broker?.subdomain ?? null;
 
-      if (session.status === "completed" && session.registration_payload) {
-        // Draft signup that just got provisioned by the webhook — hand off a
-        // signed-in session the same way Instapay's claim poll does.
+      if (
+        session.status === "completed" &&
+        fulfillmentDone &&
+        session.registration_payload
+      ) {
+        // Draft signup that just got provisioned — hand off a signed-in
+        // session the same way Instapay's claim poll does.
         try {
           const decrypted = decryptRegistrationPayload(
             session.registration_payload,
@@ -322,7 +428,7 @@ export const getCheckoutStatus = async (req, res, next) => {
     res.json({
       status: "success",
       data: {
-        ...toStatusDto(session),
+        ...dto,
         subdomain,
         session: authSession,
       },
@@ -370,8 +476,15 @@ export const handleWebhook = async (req, res) => {
       return res.status(200).json({ received: true });
     }
 
-    // Already handled (retry) — no-op, respond 2xx.
-    if (session.status === "completed" || session.status === "failed") {
+    // Already handled (retry) — no-op, respond 2xx. Include refunded so a
+    // later payment.refunded cannot overwrite fields we set ourselves.
+    if (
+      session.status === "completed" ||
+      session.status === "failed" ||
+      session.status === "refunded" ||
+      session.status === "cancelled" ||
+      session.status === "expired"
+    ) {
       return res.status(200).json({ received: true });
     }
 
@@ -385,15 +498,36 @@ export const handleWebhook = async (req, res) => {
         return res.status(400).json({ error: "Amount mismatch" });
       }
 
+      const completedAt = payload.completed_at ?? new Date().toISOString();
+      const transactionId = payload.transaction_id ?? null;
+
+      // Custom-domain checkout: mark paid, do NOT activate yet — background
+      // job buys the domain first, then activates (Phase 3).
+      if (sessionNeedsDomainFulfillment(session)) {
+        await paymentModel.update(session.id, {
+          status: "completed",
+          domain_fulfillment_status: "pending",
+          transaction_id: transactionId,
+          completed_at: completedAt,
+        });
+        startDomainFulfillment(session.id);
+        return res.status(200).json({ received: true });
+      }
+
       let brokerId = session.broker_id;
+      // Monthly recurring amount is plan price only — one-time domain fee
+      // stays on payment_sessions.domain_quoted_price_egp.
+      const planPrice = PLANS_BY_ID[session.package]?.price ?? 0;
 
       if (brokerId) {
         await applyPlanChange(brokerId, await planChangeFromSession(session), {
-          billingAmount: Number(amount),
+          billingAmount: planPrice,
         });
       } else {
         // Draft signup — provision the account now that payment cleared.
-        const decrypted = decryptRegistrationPayload(session.registration_payload);
+        const decrypted = decryptRegistrationPayload(
+          session.registration_payload,
+        );
         const normalizedEmail = decrypted.formData.email.trim().toLowerCase();
 
         // Guard against a double-click having created two sessions for the
@@ -409,7 +543,7 @@ export const handleWebhook = async (req, res) => {
             packageCategory: decrypted.packageCategory,
             domain: decrypted.domain,
             domainFields: decrypted.domainFields,
-            billingAmount: Number(amount),
+            billingAmount: planPrice,
           });
           brokerId = provisioned.broker.id;
         }
@@ -418,29 +552,61 @@ export const handleWebhook = async (req, res) => {
       await paymentModel.update(session.id, {
         status: "completed",
         broker_id: brokerId,
-        transaction_id: payload.transaction_id ?? null,
-        completed_at: payload.completed_at ?? new Date().toISOString(),
+        transaction_id: transactionId,
+        completed_at: completedAt,
       });
       return res.status(200).json({ received: true });
     }
 
     if (event === "payment.failed") {
-      if (session.broker_id) {
+      if (session.broker_id && !sessionNeedsDomainFulfillment(session)) {
         await brokerModel.update(session.broker_id, {
           subscription_status: "past_due",
         });
       }
-      await paymentModel.update(session.id, { status: "failed" });
+      await paymentModel.update(session.id, {
+        status: "failed",
+        ...(session.domain_fulfillment_status === "pending"
+          ? { domain_fulfillment_status: "failed" }
+          : {}),
+      });
+      return res.status(200).json({ received: true });
+    }
+
+    if (event === "payment.cancelled" || event === "payment.expired") {
+      const status =
+        event === "payment.cancelled" ? "cancelled" : "expired";
+      await paymentModel.update(session.id, {
+        status,
+        ...(session.domain_fulfillment_status === "pending"
+          ? { domain_fulfillment_status: "failed" }
+          : {}),
+      });
       return res.status(200).json({ received: true });
     }
 
     if (event === "payment.refunded") {
-      if (session.broker_id) {
+      // Do not overwrite refund_status / fulfillment we already set, and do
+      // not flip an untouched upgrade broker to past_due when registration
+      // failed before activate.
+      if (session.refund_status && session.refund_status !== "none") {
+        return res.status(200).json({ received: true });
+      }
+      if (
+        session.broker_id &&
+        !sessionNeedsDomainFulfillment(session) &&
+        session.domain_fulfillment_status !== "failed"
+      ) {
         await brokerModel.update(session.broker_id, {
           subscription_status: "past_due",
         });
       }
-      await paymentModel.update(session.id, { status: "refunded" });
+      await paymentModel.update(session.id, {
+        status: "refunded",
+        ...(session.domain_fulfillment_status === "pending"
+          ? { domain_fulfillment_status: "failed" }
+          : {}),
+      });
       return res.status(200).json({ received: true });
     }
 

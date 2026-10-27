@@ -2,8 +2,8 @@
  * Tenant resolution utility.
  *
  * Detects whether the React app is running on the main marketing domain
- * (e.g. localhost, myflats.store) or on a broker-scoped subdomain (e.g.
- * ahmed.localhost, ahmed.myflats.store) — and exposes that decision to the
+ * (e.g. localhost, brokersplatform.shop) or on a broker-scoped subdomain (e.g.
+ * ahmed.localhost, ahmed.brokersplatform.shop) — and exposes that decision to the
  * rest of the app through a single consistent shape.
  */
 
@@ -17,6 +17,12 @@ export interface TenantInfo {
   pendingCustom?: boolean;
 }
 
+/** Platform apex; keep in sync with server PLATFORM_BASE_DOMAIN / APEX_HOSTS. */
+export const PLATFORM_BASE_DOMAIN = (
+  (import.meta.env.VITE_PLATFORM_BASE_DOMAIN as string | undefined)?.trim() ||
+  "brokersplatform.shop"
+).toLowerCase();
+
 const RESERVED_LABELS = new Set([
   "www",
   "api",
@@ -29,12 +35,8 @@ const RESERVED_LABELS = new Set([
   "broker-platform-957u",
 ]);
 
-const APEX_HOSTS = new Set([
-  "localhost",
-  "myflats.store",
-  "myflats.com",
-  "onrender.com",
-]);
+// Keep in sync with server/middleware/subdomain.middleware.js (APEX_HOSTS).
+const APEX_HOSTS = new Set(["localhost", PLATFORM_BASE_DOMAIN, "onrender.com"]);
 
 const IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
 
@@ -55,7 +57,7 @@ function extractSubdomain(hostname: string): string | null {
     return label;
   }
 
-  // Match against the longest known apex (myflats.store, onrender.com, …).
+  // Match against the longest known apex (brokersplatform.shop, onrender.com, …).
   for (let i = 0; i < parts.length - 1; i++) {
     const candidateApex = parts.slice(i).join(".");
     if (APEX_HOSTS.has(candidateApex)) {
@@ -76,7 +78,7 @@ function extractSubdomain(hostname: string): string | null {
   return null;
 }
 
-const APEX_SUFFIXES = ["myflats.store", "myflats.com", "onrender.com"] as const;
+const APEX_SUFFIXES = [PLATFORM_BASE_DOMAIN, "onrender.com"] as const;
 
 /**
  * Platform hosts keep the existing main-site / subdomain behavior.
@@ -366,13 +368,13 @@ export function isSubdomainTenant(): boolean {
  * Resolve the apex (main-site) hostname for the current browser window.
  *
  * Examples (current window → returned apex):
- *   localhost                  → localhost
- *   ahmed.localhost            → localhost
- *   myflats.store                 → myflats.store
- *   www.myflats.store             → myflats.store
- *   ahmed.myflats.store           → myflats.store
- *   foo.bar.lovable.app        → lovable.app
- *   ahmed.example.co           → example.co  (generic fallback)
+ *   localhost                       → localhost
+ *   ahmed.localhost                 → localhost
+ *   brokersplatform.shop            → brokersplatform.shop
+ *   www.brokersplatform.shop        → brokersplatform.shop
+ *   ahmed.brokersplatform.shop      → brokersplatform.shop
+ *   foo.bar.lovable.app             → lovable.app
+ *   ahmed.example.co                → example.co  (generic fallback)
  */
 function resolveApexHostname(hostname: string): string {
   const host = hostname.toLowerCase().trim();
@@ -383,7 +385,7 @@ function resolveApexHostname(hostname: string): string {
 
   const parts = host.split(".");
 
-  // Longest matching known apex suffix wins (handles foo.bar.myflats.store → myflats.store).
+  // Longest matching known apex suffix wins (handles foo.bar.brokersplatform.shop).
   for (let i = 0; i < parts.length; i++) {
     const candidate = parts.slice(i).join(".");
     if (APEX_HOSTS.has(candidate)) return candidate;
@@ -403,10 +405,10 @@ function resolveApexHostname(hostname: string): string {
 }
 
 /** Production default when a custom domain links back to the main host. */
-const DEFAULT_MAIN_SITE_ORIGIN = "https://myflats.store";
+const DEFAULT_MAIN_SITE_ORIGIN = `https://${PLATFORM_BASE_DOMAIN}`;
 
 /**
- * Parse VITE_MAIN_SITE_ORIGIN (an origin like https://myflats.store).
+ * Parse VITE_MAIN_SITE_ORIGIN (an origin like https://brokersplatform.shop).
  * Trailing slashes are stripped. Returns null when unset or invalid.
  */
 function parseMainSiteOrigin(
@@ -432,7 +434,7 @@ function parseMainSiteOrigin(
  * Apex used when building a platform URL.
  * On a custom domain the current host is not the platform, so links back to
  * login and the main site use VITE_MAIN_SITE_ORIGIN when set, otherwise
- * https://myflats.store. Platform hosts keep the current window origin.
+ * https://<PLATFORM_BASE_DOMAIN>. Platform hosts keep the current window origin.
  */
 function platformApexFromWindow(): {
   protocol: string;

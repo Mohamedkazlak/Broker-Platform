@@ -61,8 +61,9 @@ type PaymentMethod = "card" | "instapay" | null;
 const POLL_MS = 4000;
 // Bounded, not infinite — if the payment_sessions tracking row never flips
 // (its own update can lag or fail even after the webhook already applied the
-// real change to the broker) the UI must not spin forever. 30 * 4s = 2 min.
-const MAX_POLL_ATTEMPTS = 30;
+// real change to the broker) the UI must not spin forever. Custom-domain
+// checkouts also buy at name.com before activate, so allow ~5 min.
+const MAX_POLL_ATTEMPTS = 75;
 
 export default function Payment() {
   const navigate = useNavigate();
@@ -108,7 +109,9 @@ export default function Payment() {
   const [method, setMethod] = useState<PaymentMethod>(null);
   const [processing, setProcessing] = useState(false);
   const [confirming, setConfirming] = useState(isReturningFromGateway);
+  const [domainSetup, setDomainSetup] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [failureReason, setFailureReason] = useState<string | null>(null);
   const [pollError, setPollError] = useState(false);
   const [stuck, setStuck] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -153,6 +156,7 @@ export default function Payment() {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
+    let sawDomainProcessing = false;
 
     const resolveSuccess = (subdomain: string | null) => {
       if (subdomain) {
@@ -190,21 +194,35 @@ export default function Payment() {
           return;
         }
 
+        if (payload.status === "processing") {
+          // Domain buy + activate still running — keep polling; do not use
+          // the broker-row shortcut (plan may match before domain is ready).
+          sawDomainProcessing = true;
+          setDomainSetup(true);
+          attempts += 1;
+          if (attempts >= MAX_POLL_ATTEMPTS) {
+            setConfirming(false);
+            setStuck(true);
+            return;
+          }
+          timer = setTimeout(poll, POLL_MS);
+          return;
+        }
+
         if (payload.status === "failed" || payload.status === "expired") {
           clearReachiClaimToken();
           setConfirming(false);
+          setDomainSetup(false);
+          setFailureReason(payload.failureReason ?? null);
           setFailed(true);
           setMethod("card");
           return;
         }
 
         // Our own tracking row (payment_sessions) is still "pending". For an
-        // existing broker, that row isn't actually what the user cares about
-        // — the broker record is. If the webhook already applied the change
-        // there, treat it as success even though payment_sessions' own
-        // status update lagged or failed after the fact, rather than making
-        // the user watch a spinner over what is, for them, a done payment.
-        if (brokerId) {
+        // existing broker without a custom-domain buy, if the webhook already
+        // applied the change on the broker row, treat it as success.
+        if (brokerId && !sawDomainProcessing) {
           try {
             const { data: brokerRes } = await api.get(`/brokers/${brokerId}`);
             const b = brokerRes?.data;
@@ -453,10 +471,14 @@ export default function Payment() {
               </div>
               <div className="space-y-2">
                 <h1 className="font-display text-3xl font-bold">
-                  {t("payment.confirming.heading")}
+                  {domainSetup
+                    ? t("payment.confirming.domainHeading")
+                    : t("payment.confirming.heading")}
                 </h1>
                 <p className="text-muted-foreground">
-                  {t("payment.confirming.subheading")}
+                  {domainSetup
+                    ? t("payment.confirming.domainSubheading")
+                    : t("payment.confirming.subheading")}
                 </p>
               </div>
               {pollError && (
@@ -639,19 +661,29 @@ export default function Payment() {
               <CreditCard className="w-4 h-4 me-2" />
               {t("payment.methods.card")}
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full"
-              onClick={() =>
-                navigate(
-                  isRenewal ? "/payment/instapay?renew=1" : "/payment/instapay",
-                )
-              }
-            >
-              <Smartphone className="w-4 h-4 me-2" />
-              {t("payment.methods.instapay")}
-            </Button>
+            {summary.package === "max" &&
+            summary.domainType === "custom" &&
+            summary.customDomain ? (
+              <p className="text-sm text-center text-muted-foreground">
+                {t("payment.customDomainCardOnly")}
+              </p>
+            ) : (
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={() =>
+                  navigate(
+                    isRenewal
+                      ? "/payment/instapay?renew=1"
+                      : "/payment/instapay",
+                  )
+                }
+              >
+                <Smartphone className="w-4 h-4 me-2" />
+                {t("payment.methods.instapay")}
+              </Button>
+            )}
           </div>
         )}
 
@@ -666,7 +698,7 @@ export default function Payment() {
                   {t("payment.failed.title")}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {t("payment.failed.description")}
+                  {failureReason || t("payment.failed.description")}
                 </p>
               </div>
             )}
@@ -700,6 +732,7 @@ export default function Payment() {
                 onClick={() => {
                   setMethod(null);
                   setFailed(false);
+                  setFailureReason(null);
                 }}
               >
                 {t("payment.backToMethods")}

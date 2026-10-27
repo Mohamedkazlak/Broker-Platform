@@ -3,6 +3,8 @@
  * to the broker's custom domain.
  */
 
+import { PLATFORM_BASE_DOMAIN } from "./domains.js";
+
 /**
  * HTTP status for the old-subdomain -> custom-domain page redirect.
  * 302 while this is being rolled out (browsers do not cache it). Change to 301
@@ -13,22 +15,15 @@ export const BROKER_SUBDOMAIN_REDIRECT_STATUS = 302;
 /**
  * Platform domain that broker subdomains live under. Used to build the
  * fallback https://<subdomain>.<apex> origin for brokers without an active
- * custom domain.
+ * custom domain. Alias of PLATFORM_BASE_DOMAIN (server/config/domains.js).
  */
-export const PLATFORM_APEX_DOMAIN = (
-  process.env.PLATFORM_APEX_DOMAIN || "myflats.store"
-)
-  .trim()
-  .toLowerCase();
+export const PLATFORM_APEX_DOMAIN = PLATFORM_BASE_DOMAIN;
 
 /**
  * Only hosts directly under one of these domains are redirected. Local
  * (*.localhost), IP, and staging (*.onrender.com) hosts are never redirected.
  */
-export const BROKER_SUBDOMAIN_REDIRECT_APEXES = [
-  PLATFORM_APEX_DOMAIN,
-  "myflats.com",
-];
+export const BROKER_SUBDOMAIN_REDIRECT_APEXES = [PLATFORM_APEX_DOMAIN];
 
 /**
  * Requests under these paths are never redirected, so old browser tabs,

@@ -6,7 +6,7 @@ import {
 
 const router = Router();
 
-// Public catalog of every TLD name.com sells, with 1-year list prices.
+// Featured TLD catalog (same 50 the picker shows), with 1-year list prices.
 router.get("/tlds", listCustomDomainTlds);
 
 // Public, advisory-only availability + live wholesale price check.

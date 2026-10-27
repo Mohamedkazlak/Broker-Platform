@@ -60,7 +60,7 @@ export function useTldCatalog(enabled = true): {
 }
 
 /**
- * Search the full name.com catalog so an off-list TLD still returns a price.
+ * Search within the featured TLD catalog (same list the default picker shows).
  */
 export function useTldSearch(
   query: string,

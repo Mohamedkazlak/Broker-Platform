@@ -327,7 +327,7 @@
       "hint": "Your site is live on this domain. Visitors are sent to it automatically."
     },
     "subdomain": {
-      "suffix": ".myflats.store",
+      "suffix": ".brokersplatform.shop",
       "checking": "Checking availability…",
       "available": "Available",
       "current": "This is your current subdomain",

@@ -206,19 +206,36 @@ export const brokerModel = {
 
   /**
    * Brokers whose custom-domain provisioning is mid-flight and still under
-   * the retry budget — picked up by domainMonitor for Render verification.
+   * the relevant retry budget — picked up by domainMonitor for DNS retry,
+   * finishing an interrupted attach, or Render verification.
+   *
+   * Filter notes (PostgREST can't OR two different attempt columns cleanly
+   * in one eq-chain, so we fetch the status set and filter attempts in JS):
+   *   dns_pending  → domain_dns_attempts < 5
+   *   attaching    → always (attach failures already wrote needs_review)
+   *   verifying    → domain_verify_attempts < 5
    */
   async findForDomainMonitorSweep() {
     const { data, error } = await supabaseAdmin
       .from("brokers")
       .select(
-        "id, custom_domain, domain_status, domain_attempts, domain_last_error",
+        "id, custom_domain, domain_status, domain_dns_attempts, domain_verify_attempts, render_domain_id, domain_last_error",
       )
-      .in("domain_status", ["dns_pending", "attaching"])
-      .lt("domain_attempts", 5);
+      .in("domain_status", ["dns_pending", "attaching", "verifying"]);
 
     if (error) throw error;
-    return data ?? [];
+
+    return (data ?? []).filter((row) => {
+      const status = row.domain_status;
+      if (status === "dns_pending") {
+        return (Number(row.domain_dns_attempts) || 0) < 5;
+      }
+      if (status === "verifying") {
+        return (Number(row.domain_verify_attempts) || 0) < 5;
+      }
+      // attaching: complete interrupted attach; recorded failures are needs_review
+      return status === "attaching";
+    });
   },
 
   /**
@@ -233,5 +250,21 @@ export const brokerModel = {
 
     if (error) throw error;
     return (data ?? []).filter((row) => String(row.custom_domain ?? "").trim());
+  },
+
+  /**
+   * Brokers stuck in needs_review for the admin Domain issues page (Phase 6).
+   */
+  async findDomainNeedsReview() {
+    const { data, error } = await supabaseAdmin
+      .from("brokers")
+      .select(
+        "id, platform_name, email, subdomain, custom_domain, domain_status, domain_last_error, domain_dns_attempts, domain_verify_attempts, name_com_order_id, render_domain_id, domain_expires_at, package, updated_at, created_at",
+      )
+      .eq("domain_status", "needs_review")
+      .order("updated_at", { ascending: false });
+
+    if (error) throw error;
+    return data ?? [];
   },
 };

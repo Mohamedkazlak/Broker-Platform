@@ -6,7 +6,7 @@
       "title": "Keep or change your subdomain",
       "description": "A free address hosted on our platform.",
       "label": "Your subdomain",
-      "suffix": ".myflats.store",
+      "suffix": ".brokersplatform.shop",
       "checking": "Checking availability…",
       "available": "Available",
       "current": "This is your current subdomain",
@@ -30,6 +30,7 @@
       "taken": "This domain is already taken",
       "invalid": "Enter a valid domain name",
       "unsupportedTld": "name.com doesn't currently sell this extension",
+      "premium": "Premium domains aren't available — pick another name",
       "checkFailed": "Couldn't check this domain right now. Try again.",
       "tldPrice": ".{{tld}} — {{price}} {{currency}}/year",
       "currencyToggleAria": "Show domain price in USD"
@@ -55,12 +56,15 @@
       "card": "Pay with Card",
       "instapay": "Pay with Instapay"
     },
+    "customDomainCardOnly": "Custom domains on Max are card-only.",
     "backToMethods": "Back to payment methods",
     "payButton": "Pay Now",
     "processing": "Redirecting to secure checkout…",
     "confirming": {
       "heading": "Confirming your payment",
       "subheading": "This only takes a moment — please don't close this page.",
+      "domainHeading": "Setting up your domain…",
+      "domainSubheading": "Payment received. We're registering your domain and preparing your platform — please don't close this page.",
       "pollError": "Still checking… this is taking longer than usual."
     },
     "stuck": {

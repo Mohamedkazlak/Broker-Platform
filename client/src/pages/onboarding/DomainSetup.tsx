@@ -601,6 +601,7 @@ function CustomStatusLine({ status }: { status: string }) {
     status === "taken" ||
     status === "invalid" ||
     status === "unsupportedTld" ||
+    status === "premium" ||
     status === "checkFailed"
   ) {
     return (

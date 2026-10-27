@@ -4,6 +4,11 @@ import {
   assertRenderConfigured,
   renderAuthHeaders,
 } from "../config/render.js";
+import {
+  externalHttpSignal,
+  httpTimeoutError,
+  isHttpTimeoutError,
+} from "../utils/httpTimeout.js";
 
 /**
  * Thin HTTP client for Render's Custom Domains API. Attaches a broker's
@@ -19,16 +24,48 @@ function customDomainsUrl(suffix = "") {
   return suffix ? `${base}/${encodeURIComponent(suffix)}` : base;
 }
 
+async function renderFetch(url, init = {}) {
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: init.signal ?? externalHttpSignal(),
+    });
+  } catch (err) {
+    if (isHttpTimeoutError(err)) throw httpTimeoutError("Render", err);
+    throw err;
+  }
+}
+
+/** Unwrap Render's `{ customDomain }` envelope when present. */
+export function unwrapCustomDomain(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  return payload.customDomain ?? payload;
+}
+
+function isAlreadyAttachedError(res, body) {
+  if (res.status === 409) return true;
+  const message = String(body?.message ?? "").toLowerCase();
+  return (
+    message.includes("already") ||
+    message.includes("exists") ||
+    message.includes("conflict")
+  );
+}
+
 /**
  * POST /v1/services/{id}/custom-domains
  *
- * @param {string} domainName e.g. "ahmed.com"
- * @returns {Promise<object>} the created custom-domain object (has id, name, …)
+ * If the domain is already attached (409 / "already exists"), fetch the
+ * existing custom-domain and return it — that counts as success so we can
+ * persist render_domain_id.
+ *
+ * @param {string} domainName e.g. "ahmed.com" or "www.ahmed.com"
+ * @returns {Promise<object>} the created or existing custom-domain object
  */
 export async function addCustomDomain(domainName) {
   assertRenderConfigured();
 
-  const res = await fetch(customDomainsUrl(), {
+  const res = await renderFetch(customDomainsUrl(), {
     method: "POST",
     headers: renderAuthHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ name: domainName }),
@@ -37,6 +74,20 @@ export async function addCustomDomain(domainName) {
   const body = await res.json().catch(() => null);
 
   if (!res.ok) {
+    if (isAlreadyAttachedError(res, body)) {
+      const existing = await getCustomDomain(domainName);
+      const row = unwrapCustomDomain(existing);
+      if (!row?.id && !row?.name) {
+        throw Object.assign(
+          new Error(
+            body?.message ||
+              `Render custom domain already attached but lookup failed for ${domainName}`,
+          ),
+          { status: renderStatus(res), details: body },
+        );
+      }
+      return row;
+    }
     throw Object.assign(
       new Error(
         body?.message || `Render add custom domain failed (${res.status})`,
@@ -45,8 +96,17 @@ export async function addCustomDomain(domainName) {
     );
   }
 
-  // Create returns an array of customDomain objects.
-  const created = Array.isArray(body) ? body[0] : body;
+  // Create returns an array of customDomain objects (sometimes wrapped).
+  const rows = Array.isArray(body)
+    ? body.map(unwrapCustomDomain)
+    : [unwrapCustomDomain(body)];
+  const created =
+    rows.find(
+      (row) =>
+        String(row?.name ?? "").toLowerCase() ===
+        String(domainName).toLowerCase(),
+    ) || rows[0];
+
   if (!created) {
     throw Object.assign(
       new Error("Render add custom domain returned an empty response"),
@@ -65,7 +125,7 @@ export async function addCustomDomain(domainName) {
 export async function verifyCustomDomain(domainIdOrName) {
   assertRenderConfigured();
 
-  const res = await fetch(`${customDomainsUrl(domainIdOrName)}/verify`, {
+  const res = await renderFetch(`${customDomainsUrl(domainIdOrName)}/verify`, {
     method: "POST",
     headers: renderAuthHeaders(),
   });
@@ -94,7 +154,7 @@ export async function verifyCustomDomain(domainIdOrName) {
 export async function getCustomDomain(domainIdOrName) {
   assertRenderConfigured();
 
-  const res = await fetch(customDomainsUrl(domainIdOrName), {
+  const res = await renderFetch(customDomainsUrl(domainIdOrName), {
     method: "GET",
     headers: renderAuthHeaders(),
   });

@@ -5,8 +5,8 @@ import {
 import { getUsdToEgpRate } from "./exchangeRate.js";
 import {
   COMMON_CUSTOM_DOMAIN_TLDS,
+  FEATURED_CUSTOM_DOMAIN_TLD_LIMIT,
   getDomainTld,
-  priceForDomain,
 } from "../config/domains.js";
 
 const TLD_CATALOG_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -36,17 +36,25 @@ export async function convertWholesaleUsd(priceUsd) {
  *
  * Availability and price both come from the same name.com call, so this
  * never issues two requests for one domain. Deliberately never falls back
- * to a guessed/flat price on failure.
+ * to a guessed/flat price on failure. Premium domains are refused.
  *
  * @param {string} domain e.g. "ahmed.com"
  * @returns {Promise<{ priceUSD: number, priceEGP: number }>}
  * @throws with `.reason = "taken"` when name.com reports the domain isn't
- *   purchasable right now; a plain error otherwise (availability check
- *   failed, name.com didn't return a price, or the exchange rate lookup
- *   failed).
+ *   purchasable; `.reason = "premium"` when name.com marks it premium; a
+ *   plain error otherwise (availability check failed, name.com didn't
+ *   return a price, or the exchange rate lookup failed).
  */
 export async function getLiveDomainPrice(domain) {
-  const { purchasable, priceUsd } = await checkDomainAvailability(domain);
+  const { purchasable, premium, priceUsd } =
+    await checkDomainAvailability(domain);
+
+  if (premium) {
+    throw Object.assign(
+      new Error(`${domain} is a premium domain and is not available`),
+      { status: 409, reason: "premium" },
+    );
+  }
 
   if (!purchasable) {
     throw Object.assign(
@@ -69,12 +77,15 @@ export async function getLiveDomainPrice(domain) {
   return convertWholesaleUsd(priceUsd);
 }
 
-/** Keep only the 50 common extensions, in picker order, that name.com sells. */
+/**
+ * Keep only the featured common extensions, in picker order, that name.com
+ * sells. This is the source of truth for what brokers see and may buy.
+ */
 function toOfferedCatalog(tlds) {
   const byTld = new Map(tlds.map((row) => [row.tld, row]));
   return COMMON_CUSTOM_DOMAIN_TLDS.map((tld) => byTld.get(tld))
     .filter(Boolean)
-    .slice(0, 50);
+    .slice(0, FEATURED_CUSTOM_DOMAIN_TLD_LIMIT);
 }
 
 /**
@@ -121,7 +132,8 @@ async function loadFullTldCatalog() {
 
 /**
  * Every TLD name.com currently sells, with 1-year list prices. Cached so
- * the featured list and TLD search both reuse one name.com pagination.
+ * getTldCatalog() can intersect with COMMON_CUSTOM_DOMAIN_TLDS without
+ * re-paging name.com. Not sold directly — only the featured subset is.
  *
  * @returns {Promise<Array<{ tld: string, priceUSD: number, priceEGP: number }>>}
  */
@@ -150,8 +162,9 @@ export async function getFullTldCatalog() {
 }
 
 /**
- * The common TLDs we offer (up to 50), with 1-year list prices in USD and
- * EGP from name.com.
+ * The featured TLDs brokers see (up to FEATURED_CUSTOM_DOMAIN_TLD_LIMIT),
+ * with 1-year list prices in USD and EGP from name.com. Source of truth for
+ * what we sell.
  *
  * @returns {Promise<Array<{ tld: string, priceUSD: number, priceEGP: number }>>}
  */
@@ -160,8 +173,34 @@ export async function getTldCatalog() {
 }
 
 /**
- * Search the full name.com catalog. Exact matches first, then prefix, then
- * substring — so typing an off-list TLD still returns its live price.
+ * Fail closed: domain TLD must be in the same featured catalog the picker
+ * shows. Catalog load failures and an empty offer list both reject.
+ *
+ * @param {string} domain
+ */
+export async function assertOfferedCustomDomainTld(domain) {
+  let catalog;
+  try {
+    catalog = await getTldCatalog();
+  } catch (error) {
+    console.error("TLD catalog unavailable while validating domain:", error);
+    throw Object.assign(
+      new Error("Couldn't load domain extension prices right now"),
+      { status: 502, reason: "catalogUnavailable" },
+    );
+  }
+
+  if (!catalog.length || !findCatalogTld(domain, catalog)) {
+    throw Object.assign(
+      new Error("That domain extension isn't supported"),
+      { status: 400, reason: "unsupportedTld" },
+    );
+  }
+}
+
+/**
+ * Search only the featured catalog (same 50 the picker shows). Exact
+ * matches first, then prefix.
  *
  * @param {string} query
  * @returns {Promise<Array<{ tld: string, priceUSD: number, priceEGP: number }>>}
@@ -171,26 +210,26 @@ export async function searchTldCatalog(query) {
     .trim()
     .toLowerCase()
     .replace(/^\.+/, "");
-  if (!needle) return getTldCatalog();
+  const offered = await getTldCatalog();
+  if (!needle) return offered;
 
-  const full = await getFullTldCatalog();
   const exact = [];
   const prefix = [];
 
-  for (const row of full) {
+  for (const row of offered) {
     if (row.tld === needle) exact.push(row);
     else if (row.tld.startsWith(needle)) prefix.push(row);
   }
 
-  return [...exact, ...prefix].slice(0, 50);
+  return [...exact, ...prefix];
 }
 
 /**
- * List price for a domain's TLD from the name.com catalog (non-premium).
- * Returns null when the TLD isn't in the catalog.
+ * List price for a domain's TLD from the featured catalog (non-premium).
+ * Returns null when the TLD isn't offered.
  */
 export async function quoteTldListPrice(domain) {
-  const catalog = await getFullTldCatalog();
+  const catalog = await getTldCatalog();
   const tld = findCatalogTld(domain, catalog) ?? getDomainTld(domain);
   const row = catalog.find((entry) => entry.tld === tld);
   if (!row) return null;
@@ -200,8 +239,8 @@ export async function quoteTldListPrice(domain) {
 /**
  * Price a custom domain for an order. New registrations use the live
  * availability quote (and fail if the name isn't for sale). Domains the
- * broker already holds aren't purchasable, so those fall back to the TLD
- * catalog list price, then the old flat table.
+ * broker already holds are a one-time purchase already paid — renewals and
+ * plan-change checkouts charge 0 for the domain line.
  *
  * @param {string} domain
  * @param {{ alreadyOwned?: boolean }} [options]
@@ -210,19 +249,9 @@ export async function quoteDomainForOrder(
   domain,
   { alreadyOwned = false } = {},
 ) {
-  if (!alreadyOwned) {
-    return getLiveDomainPrice(domain);
+  if (alreadyOwned) {
+    return { priceUSD: null, priceEGP: 0 };
   }
 
-  try {
-    const list = await quoteTldListPrice(domain);
-    if (list) return list;
-  } catch (error) {
-    console.error(`TLD catalog lookup failed for ${domain}:`, error);
-  }
-
-  return {
-    priceUSD: null,
-    priceEGP: priceForDomain(domain),
-  };
+  return getLiveDomainPrice(domain);
 }

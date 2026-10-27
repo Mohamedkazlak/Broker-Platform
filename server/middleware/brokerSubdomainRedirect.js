@@ -2,7 +2,7 @@
  * Old broker subdomain -> custom domain redirect.
  *
  * Runs after subdomainMiddleware. When a page is requested on a broker's
- * platform subdomain (https://<subdomain>.myflats.store/...) and that broker has
+ * platform subdomain (https://<subdomain>.brokersplatform.shop/...) and that broker has
  * an active custom domain, the visitor is sent to the same path and query on
  * the custom domain.
  *

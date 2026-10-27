@@ -2,12 +2,12 @@
 
 Welcome to the **Broker Platform** repository! This is a complete, multi-tenant platform tailored for real estate brokers to manage listings, analyze insights, and host customized white-labeled consumer-facing websites under their own subdomains.
 
-**Live site:** [https://www.myflats.store/en](https://www.myflats.store/en)
+**Live site:** [https://www.brokersplatform.shop/en](https://www.brokersplatform.shop/en)
 
 ## Key Features
 
 - **Broker Dashboard:** A comprehensive central hub to track property statuses, sales volume, top locations, and message handling.
-- **Custom Broker Subdomains:** Automatically handles multi-tenant subdomains so each broker gets a unique real estate website (e.g. `brokername.myflats.store` acting as their portfolio).
+- **Custom Broker Subdomains:** Automatically handles multi-tenant subdomains so each broker gets a unique real estate website (e.g. `brokername.brokersplatform.shop` acting as their portfolio).
 - **Property Management:** Dedicated pages and workflows to add, update, rent, or sell properties with rich descriptions, specs, and images.
 - **Dynamic Content & Theming:** Custom tenant-facing landing pages show personalized hero backgrounds, broker details, and curated property lists based on active subscriptions.
 - **Analytics & Insights:** Granular reporting metrics built directly into the broker dashboards.

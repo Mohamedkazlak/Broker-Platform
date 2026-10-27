@@ -4,6 +4,7 @@ import { PLANS_BY_ID, resolvePackageCategory } from "../config/plans.js";
 import { isValidCustomDomainFormat } from "../config/domains.js";
 import { validateSubdomainFormat } from "../utils/subdomainValidator.js";
 import { buildOrderSummary } from "../utils/orderSummary.js";
+import { assertOfferedCustomDomainTld } from "./domainPricing.js";
 import { resolveNextBillingDate } from "./billingMonitor.js";
 
 /**
@@ -15,8 +16,9 @@ import { resolveNextBillingDate } from "./billingMonitor.js";
  *
  * @param {string} brokerId
  * @param {{ package: string, packageCategory?: string, billingAmount?: number }} planDetails
- *   `package` — plan id from the catalog; `billingAmount` optional override
- *   (defaults to server-computed order total: plan price + custom domain fee).
+ *   `package` — plan id from the catalog; `billingAmount` optional override for
+ *   the monthly recurring amount (defaults to plan.price). Never include a
+ *   one-time domain fee here — that lives on payment_sessions.
  */
 export async function activateSubscription(brokerId, planDetails) {
   const plan = PLANS_BY_ID[planDetails.package];
@@ -29,16 +31,10 @@ export async function activateSubscription(brokerId, planDetails) {
     throw new Error("Broker not found");
   }
 
-  const domainAlreadyOwned =
-    broker.domain_type === "custom" && !!broker.custom_domain;
-  const { total } = await buildOrderSummary(
-    {
-      ...broker,
-      package: planDetails.package,
-    },
-    { domainAlreadyOwned },
-  );
-  const billingAmount = planDetails.billingAmount ?? total;
+  const billingAmount =
+    typeof planDetails.billingAmount === "number"
+      ? planDetails.billingAmount
+      : plan.price;
 
   return brokerModel.update(brokerId, {
     subscription_status: "active",
@@ -141,7 +137,11 @@ async function resolvePlanChangeDomain(broker, plan, domain) {
     });
   }
 
+  // Already-owned names skip the featured-catalog gate so renewals / keep-
+  // current still work if we later shrink the offer list.
   if (customDomain !== broker.custom_domain) {
+    await assertOfferedCustomDomainTld(customDomain);
+
     const taken = await brokerModel.findByCustomDomain(customDomain);
     if (taken && taken.id !== broker.id) {
       throw Object.assign(new Error("Custom domain already taken"), {

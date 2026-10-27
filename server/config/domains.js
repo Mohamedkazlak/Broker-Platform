@@ -7,18 +7,43 @@
  * A domain is also "taken" if it already exists in brokers.custom_domain,
  * regardless of what the registrar says.
  *
- * Max/Ultra may register any TLD name.com sells. The domain-setup picker
- * leads with COMMON_CUSTOM_DOMAIN_TLDS (up to 50); searching the list
- * looks up the rest of the name.com catalog. DOMAIN_TLD_PRICES /
- * priceForDomain are the old flat EGP table, kept only as a last-resort
- * fallback when a live quote and the TLD catalog are both unavailable.
+ * Source of truth for what brokers may buy: getTldCatalog() in
+ * domainPricing.js — COMMON_CUSTOM_DOMAIN_TLDS in order ∩ name.com
+ * registration prices, capped at FEATURED_CUSTOM_DOMAIN_TLD_LIMIT (50).
+ * The preference list below may be longer; extras are only backups when
+ * an earlier entry has no registration price. Off-list / full-catalog
+ * TLDs are not sold. DOMAIN_TLD_PRICES / priceForDomain are the old flat
+ * EGP table, kept only as a last-resort display fallback elsewhere.
  */
-export const DOMAIN_CURRENCY = "EGP";
 
 /**
- * Common extensions we offer, in picker order. We show up to 50 that
- * name.com currently sells; extras below the first 50 are backups if a
- * well-known TLD has no registration price.
+ * Platform apex for broker subdomains (<slug>.<PLATFORM_BASE_DOMAIN>).
+ * Migrated from myflats.store → brokersplatform.shop. Override with
+ * PLATFORM_BASE_DOMAIN (or legacy PLATFORM_APEX_DOMAIN). Client mirror:
+ * VITE_PLATFORM_BASE_DOMAIN.
+ */
+export const PLATFORM_BASE_DOMAIN = (
+  process.env.PLATFORM_BASE_DOMAIN ||
+  process.env.PLATFORM_APEX_DOMAIN ||
+  "brokersplatform.shop"
+)
+  .trim()
+  .toLowerCase();
+
+export const DOMAIN_CURRENCY = "EGP";
+
+/** How many featured TLDs brokers see and the server will sell. */
+export const FEATURED_CUSTOM_DOMAIN_TLD_LIMIT = 50;
+
+/**
+ * Pending checkout hold on a custom domain before the Reachi session
+ * expires (overridden by the gateway's expires_at when present).
+ */
+export const DOMAIN_HOLD_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * Preferred extensions, in picker order. getTldCatalog() keeps the first
+ * FEATURED_CUSTOM_DOMAIN_TLD_LIMIT that name.com currently sells.
  */
 export const COMMON_CUSTOM_DOMAIN_TLDS = [
   "com",

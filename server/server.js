@@ -26,6 +26,7 @@ import instapayRoutes from "./routes/instapayRoutes.js";
 import webhookRoutes from "./routes/webhooks.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import paymentWebhookRoutes from "./routes/paymentWebhookRoutes.js";
+import { PLATFORM_BASE_DOMAIN } from "./config/domains.js";
 import {
   apiLimiter,
   authLimiter,
@@ -35,11 +36,19 @@ import {
 import customDomainResolveRoutes from "./routes/customDomainResolveRoutes.js";
 import { resolveActiveCustomDomain } from "./utils/customDomainResolve.js";
 import { logAppUrlStatus } from "./config/reachiPayment.js";
+import { runStartupEnvChecks } from "./config/startupEnv.js";
 import { startBillingMonitor } from "./services/billingMonitor.js";
 import {
   startDomainExpirySync,
   startDomainMonitor,
 } from "./services/domainMonitor.js";
+
+try {
+  runStartupEnvChecks();
+} catch (err) {
+  console.error(`❌ [startup] ${err?.message || err}`);
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -90,14 +99,17 @@ app.use(
   }),
 );
 
-// CORS — allow the main host and ANY *.localhost / *.myflats.store /
-// *.myflats.com / *.onrender.com subdomain on any port (covers 5173, 8080, 3000, etc).
-const subdomainOriginPattern =
-  /^https?:\/\/([a-z0-9-]+\.)*(localhost|myflats\.store|myflats\.com|onrender\.com)(:\d+)?$/i;
+// CORS — allow the main host and ANY *.localhost / *.<PLATFORM_BASE_DOMAIN> /
+// *.onrender.com subdomain on any port (covers 5173, 8080, 3000, etc).
+const platformApexPattern = PLATFORM_BASE_DOMAIN.replace(/\./g, "\\.");
+const subdomainOriginPattern = new RegExp(
+  `^https?:\\/\\/([a-z0-9-]+\\.)*(localhost|${platformApexPattern}|onrender\\.com)(:\\d+)?$`,
+  "i",
+);
 const explicitOrigins = [
   process.env.CLIENT_URL,
-  "https://www.myflats.store",
-  "https://myflats.store",
+  `https://www.${PLATFORM_BASE_DOMAIN}`,
+  `https://${PLATFORM_BASE_DOMAIN}`,
   "http://localhost:5173",
   "http://localhost:8080",
   "http://localhost:3000",

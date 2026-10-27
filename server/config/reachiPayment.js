@@ -7,6 +7,12 @@
  * by whoever runs payment.reachi.ai (not self-service) — ask them to run
  * `flask create-platform <slug> "<name>" --webhook-url <APP_URL>/api/payments/webhook
  * --allowed-return-domain <APP_URL's host>` and hand you the two values.
+ *
+ * Production / test switch (Reachi has no sandbox flag):
+ *   Set REACHI_PAYMENT_BASE_URL explicitly.
+ *   - Live:   https://payment.reachi.ai
+ *   - Test:   your test/staging payment origin (never the live host)
+ *   Boot warns when NODE_ENV and this URL disagree (see startupEnv.js).
  */
 
 export const REACHI_BASE_URL = (
@@ -21,7 +27,7 @@ export const REACHI_WEBHOOK_SECRET =
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 /**
- * This app's own public origin (the main host, e.g. https://myflats.store) —
+ * This app's own public origin (the main host, e.g. https://brokersplatform.shop) —
  * used to build the payment return_url. This is the only origin the payment
  * gateway needs registered; broker custom domains never are.
  *
@@ -35,7 +41,7 @@ export const APP_URL = (
 
 const APP_URL_MISSING_MESSAGE =
   "NEXT_PUBLIC_APP_URL is not set. In production it must be the main host's origin " +
-  "(for example https://myflats.store); payment return URLs cannot be built without it.";
+  "(for example https://brokersplatform.shop); payment return URLs cannot be built without it.";
 
 /** Logs once at startup when production has no APP_URL. */
 export function logAppUrlStatus() {

@@ -69,11 +69,19 @@ export async function createDraftCheckoutSession(params: DraftCheckoutParams) {
 
 export interface PaymentStatusPayload {
   orderId: string;
-  status: "pending" | "completed" | "failed" | "expired" | "refunded";
+  status:
+    | "pending"
+    | "processing"
+    | "completed"
+    | "failed"
+    | "expired"
+    | "refunded";
   package: string;
   amount: number;
   currency: string;
   subdomain: string | null;
+  failureReason?: string | null;
+  domainFulfillmentStatus?: string;
   session?: { access_token: string; refresh_token: string } | null;
 }
 

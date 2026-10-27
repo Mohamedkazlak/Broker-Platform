@@ -78,7 +78,7 @@ const reset = () => {
 
 test("subdomain root redirects to the custom domain with 302", async () => {
   reset();
-  const res = await request(server, { host: "mohamedd.myflats.store", path: "/" });
+  const res = await request(server, { host: "mohamedd.brokersplatform.shop", path: "/" });
   assert.equal(res.status, 302);
   assert.equal(res.location, "https://kazlak.live/");
 });
@@ -91,7 +91,7 @@ test("path and query string are preserved", async () => {
     "/en/properties?type=villa&page=2",
     "/ar/properties/42?ref=wa",
   ]) {
-    const res = await request(server, { host: "mohamedd.myflats.store", path });
+    const res = await request(server, { host: "mohamedd.brokersplatform.shop", path });
     assert.equal(res.status, 302, path);
     assert.equal(res.location, `https://kazlak.live${path}`, path);
   }
@@ -99,10 +99,10 @@ test("path and query string are preserved", async () => {
 
 test("HEAD redirects, other methods do not", async () => {
   reset();
-  const head = await request(server, { host: "mohamedd.myflats.store", method: "HEAD", path: "/en/home" });
+  const head = await request(server, { host: "mohamedd.brokersplatform.shop", method: "HEAD", path: "/en/home" });
   assert.equal(head.status, 302);
   for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
-    const res = await request(server, { host: "mohamedd.myflats.store", method, path: "/en/home" });
+    const res = await request(server, { host: "mohamedd.brokersplatform.shop", method, path: "/en/home" });
     assert.equal(res.status, 200, method);
   }
 });
@@ -117,19 +117,19 @@ test("/api/* and webhook paths on the subdomain are untouched", async () => {
     "/api/payments/webhook",
     "/API/health",
   ]) {
-    const res = await request(server, { host: "mohamedd.myflats.store", path });
+    const res = await request(server, { host: "mohamedd.brokersplatform.shop", path });
     assert.equal(res.status, 200, path);
     assert.equal(res.location, undefined, path);
   }
   // A path that merely starts with the letters "api" is a page, not the API.
-  const page = await request(server, { host: "mohamedd.myflats.store", path: "/apiary" });
+  const page = await request(server, { host: "mohamedd.brokersplatform.shop", path: "/apiary" });
   assert.equal(page.status, 302);
 });
 
 test("broker without an active custom domain is not redirected", async () => {
   reset();
   for (const subdomain of ["ma7-2011", "unknown"]) {
-    const res = await request(server, { host: `${subdomain}.myflats.store`, path: "/en/home" });
+    const res = await request(server, { host: `${subdomain}.brokersplatform.shop`, path: "/en/home" });
     assert.equal(res.status, 200, subdomain);
   }
 });
@@ -144,7 +144,7 @@ test("a custom domain that is not active is not redirected", async () => {
     { ...ACTIVE, custom_domain: "" },
   ]) {
     lookupImpl = async () => row;
-    const res = await request(server, { host: "mohamedd.myflats.store", path: "/en/home" });
+    const res = await request(server, { host: "mohamedd.brokersplatform.shop", path: "/en/home" });
     assert.equal(res.status, 200, JSON.stringify(row));
   }
 });
@@ -157,10 +157,10 @@ test("local, IP, staging, main and platform hosts are never redirected", async (
     { host: "127.0.0.1:5000" },
     { host: "mohamedd.onrender.com" },
     { host: "broker-platform-957u.onrender.com" },
-    { host: "myflats.store" },
-    { host: "www.myflats.store" },
+    { host: "brokersplatform.shop" },
+    { host: "www.brokersplatform.shop" },
     // Header fallback names a broker, but the host is the apex: not a broker host.
-    { host: "myflats.store", headers: { "X-Tenant-Subdomain": "mohamedd" } },
+    { host: "brokersplatform.shop", headers: { "X-Tenant-Subdomain": "mohamedd" } },
     { host: "localhost:5000", headers: { "X-Tenant-Subdomain": "mohamedd" } },
   ];
   for (const c of cases) {
@@ -171,9 +171,9 @@ test("local, IP, staging, main and platform hosts are never redirected", async (
 
 test("redirect target that is a platform host is refused (no loop)", async () => {
   reset();
-  for (const custom_domain of ["mohamedd.myflats.store", "other.myflats.store", "myflats.store", "localhost"]) {
+  for (const custom_domain of ["mohamedd.brokersplatform.shop", "other.brokersplatform.shop", "brokersplatform.shop", "localhost"]) {
     lookupImpl = async () => ({ ...ACTIVE, custom_domain });
-    const res = await request(server, { host: "mohamedd.myflats.store", path: "/en/home" });
+    const res = await request(server, { host: "mohamedd.brokersplatform.shop", path: "/en/home" });
     assert.equal(res.status, 200, custom_domain);
   }
 });
@@ -205,7 +205,7 @@ test("a lookup failure serves the subdomain instead of failing the page", async 
   lookupImpl = async () => {
     throw new Error("db down");
   };
-  const res = await request(server, { host: "mohamedd.myflats.store", path: "/en/home" });
+  const res = await request(server, { host: "mohamedd.brokersplatform.shop", path: "/en/home" });
   assert.equal(res.status, 200);
 });
 
@@ -213,7 +213,7 @@ test("the redirect status is configurable", async () => {
   const s = await startApp({ status: 301 });
   try {
     reset();
-    const res = await request(s, { host: "mohamedd.myflats.store", path: "/en/home" });
+    const res = await request(s, { host: "mohamedd.brokersplatform.shop", path: "/en/home" });
     assert.equal(res.status, 301);
     assert.equal(res.location, "https://kazlak.live/en/home");
   } finally {

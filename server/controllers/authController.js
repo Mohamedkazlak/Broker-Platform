@@ -8,6 +8,7 @@ import { validateSubdomainFormat } from "../utils/subdomainValidator.js";
 import { generateDefaultSubdomain } from "../utils/subdomainGenerator.js";
 import { PLANS_BY_ID, resolvePackageCategory } from "../config/plans.js";
 import { isValidCustomDomainFormat } from "../config/domains.js";
+import { assertOfferedCustomDomainTld } from "../services/domainPricing.js";
 import { buildRegistrationOrderSummary } from "../utils/orderSummary.js";
 import { addBillingDays } from "../services/billingMonitor.js";
 
@@ -121,6 +122,7 @@ export async function resolveDomainFields(formData, pkg, domain) {
         reason: "invalid",
       });
     }
+    await assertOfferedCustomDomainTld(customDomain);
     const taken = await brokerModel.findByCustomDomain(customDomain);
     if (taken) {
       throw Object.assign(new Error("Custom domain already taken"), {
@@ -220,9 +222,9 @@ export async function provisionBrokerAccount({
 
   const domainFields =
     preResolvedDomain ?? (await resolveDomainFields(formData, pkg, domain));
-  const orderSummary = await buildRegistrationOrderSummary(pkg, domainFields);
-  const amount =
-    typeof billingAmount === "number" ? billingAmount : orderSummary.total;
+  // Monthly recurring amount only — one-time domain fee lives on the
+  // payment_sessions row (domain_quoted_price_egp), not on brokers.
+  const amount = typeof billingAmount === "number" ? billingAmount : plan.price;
 
   let createdAuthUserId = null;
   try {

@@ -17,6 +17,13 @@ import {
   adminSetMessageRead,
   adminDeleteMessage,
 } from "../controllers/contactController.js";
+import {
+  listDomainIssues,
+  retryDns,
+  retryRender,
+  markDomainResolved,
+  refundAndRevert,
+} from "../controllers/adminDomainController.js";
 
 const router = Router();
 
@@ -33,5 +40,12 @@ router.patch("/instapay/:id", adminReviewSubmission);
 router.get("/contact-messages", adminListMessages);
 router.patch("/contact-messages/:id", adminSetMessageRead);
 router.delete("/contact-messages/:id", adminDeleteMessage);
+
+// Domain issues (Phase 5 actions; Phase 6 builds the admin UI)
+router.get("/domains/issues", listDomainIssues);
+router.post("/domains/:brokerId/retry-dns", retryDns);
+router.post("/domains/:brokerId/retry-render", retryRender);
+router.post("/domains/:brokerId/mark-resolved", markDomainResolved);
+router.post("/domains/:brokerId/refund-revert", refundAndRevert);
 
 export default router;

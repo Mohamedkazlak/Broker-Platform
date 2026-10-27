@@ -4,8 +4,7 @@ import {
   isValidCustomDomainFormat,
 } from "../config/domains.js";
 import {
-  findCatalogTld,
-  getFullTldCatalog,
+  assertOfferedCustomDomainTld,
   getLiveDomainPrice,
   getTldCatalog,
   searchTldCatalog,
@@ -22,9 +21,9 @@ function dualPriceFields(quote) {
 
 /**
  * GET /api/domains/tlds
- * Public catalog of the common TLDs we offer, with 1-year list prices
- * (USD wholesale + EGP conversion, no markup). Pass ?q= to search the full
- * name.com catalog so an off-list extension still returns a live price.
+ * Public catalog of the featured TLDs we sell (same 50 the picker shows),
+ * with 1-year list prices (USD wholesale + EGP conversion, no markup).
+ * Pass ?q= to search within that featured list only.
  */
 export const listCustomDomainTlds = async (req, res, next) => {
   try {
@@ -46,13 +45,14 @@ export const listCustomDomainTlds = async (req, res, next) => {
 /**
  * GET /api/domains/check-custom?domain=ahmed.com
  * Public, advisory-only. A domain is taken if it's already claimed by another
- * broker, or if name.com reports it as registered/unpurchasable. Price is
- * name.com's own live wholesale USD, plus that amount converted to EGP
- * (no markup) — never the old flat TLD lookup.
+ * broker, or if name.com reports it as registered/unpurchasable. Premium
+ * domains are refused. TLD must be in the featured catalog (fail closed if
+ * the catalog can't load). Price is name.com's own live wholesale USD, plus
+ * that amount converted to EGP (no markup).
  *
  * getLiveDomainPrice() makes the single name.com availability call itself
- * (it needs `purchasable` to know whether to even look at the price), so
- * there's no separate availability check here beyond it.
+ * (it needs `purchasable` / `premium` to know whether to even look at the
+ * price), so there's no separate availability check here beyond it.
  */
 export const checkCustomDomain = async (req, res, next) => {
   try {
@@ -65,17 +65,16 @@ export const checkCustomDomain = async (req, res, next) => {
     }
 
     try {
-      const catalog = await getFullTldCatalog();
-      if (catalog.length > 0 && !findCatalogTld(domain, catalog)) {
+      await assertOfferedCustomDomainTld(domain);
+    } catch (catalogError) {
+      if (catalogError.reason === "unsupportedTld") {
         return res.json({ available: false, reason: "unsupportedTld" });
       }
-    } catch (catalogError) {
-      // Catalog is advisory for the picker. If it is down, still ask name.com
-      // about this specific name rather than blocking every search.
       console.error(
         "TLD catalog unavailable during availability check:",
         catalogError,
       );
+      return res.json({ available: false, reason: "checkFailed" });
     }
 
     const existing = await brokerModel.findByCustomDomain(domain);
@@ -89,6 +88,9 @@ export const checkCustomDomain = async (req, res, next) => {
     } catch (lookupError) {
       if (lookupError.reason === "taken") {
         return res.json({ available: false, reason: "taken" });
+      }
+      if (lookupError.reason === "premium") {
+        return res.json({ available: false, reason: "premium" });
       }
       // A broken/timed-out call to name.com (or the exchange-rate API) must
       // never be read as "available" — fail closed and log so this doesn't

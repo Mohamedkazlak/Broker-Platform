@@ -8,6 +8,7 @@ export type CustomDomainStatus =
   | "taken"
   | "invalid"
   | "unsupportedTld"
+  | "premium"
   | "checkFailed";
 
 export type DomainPriceQuote = {
@@ -24,10 +25,12 @@ const DOMAIN_PATTERN =
 
 const DEBOUNCE_MS = 450;
 
-function parseQuote(data: {
-  priceUSD?: unknown;
-  priceEGP?: unknown;
-} | null): DomainPriceQuote | null {
+function parseQuote(
+  data: {
+    priceUSD?: unknown;
+    priceEGP?: unknown;
+  } | null,
+): DomainPriceQuote | null {
   if (
     typeof data?.priceUSD === "number" &&
     Number.isFinite(data.priceUSD) &&
@@ -100,6 +103,7 @@ export function useCustomDomainAvailability(rawDomain: string): {
         } else if (
           data?.reason === "invalid" ||
           data?.reason === "unsupportedTld" ||
+          data?.reason === "premium" ||
           data?.reason === "checkFailed"
         ) {
           setStatus(data.reason);

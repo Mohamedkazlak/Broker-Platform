@@ -9,10 +9,11 @@
  * in client/src/utils/tenant.ts.
  */
 
+import { PLATFORM_BASE_DOMAIN } from "../config/domains.js";
+
 const APEX_HOSTS = new Set([
   "localhost",
-  "myflats.store",
-  "myflats.com",
+  PLATFORM_BASE_DOMAIN,
   "onrender.com",
 ]);
 
@@ -36,8 +37,8 @@ export function stripHostPort(host) {
 }
 
 /**
- * True for myflats.store, www.myflats.store, any subdomain of myflats.store
- * (and myflats.com), localhost (including *.localhost), an IP address, or
+ * True for brokersplatform.shop, www.brokersplatform.shop, any subdomain of
+ * the platform apex, localhost (including *.localhost), an IP address, or
  * any onrender.com host.
  */
 export function isPlatformHost(host) {

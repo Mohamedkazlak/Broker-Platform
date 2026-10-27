@@ -9,8 +9,13 @@ services:
         value: production
       - key: VITE_API_URL
         value: /api
-      # Main host origin used by custom domains, default https://myflats.store
+      # Platform apex for broker subdomains; defaults to brokersplatform.shop
+      - key: VITE_PLATFORM_BASE_DOMAIN
+        sync: false
+      # Main host origin used by custom domains, default https://brokersplatform.shop
       - key: VITE_MAIN_SITE_ORIGIN
+        sync: false
+      - key: PLATFORM_BASE_DOMAIN
         sync: false
       - key: VITE_SUPABASE_PROJECT_ID
         sync: false
@@ -26,6 +31,28 @@ services:
         sync: false
       - key: CLIENT_URL
         sync: false
-      # Main host origin, e.g. https://myflats.store. Used as the payment return URL.
+      # Main host origin, e.g. https://brokersplatform.shop. Used as the payment return URL.
       - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      # name.com Reseller API (OT&E: https://api.dev.name.com/v4 — prod: https://api.name.com/v4)
+      - key: NAME_COM_API_USERNAME
+        sync: false
+      - key: NAME_COM_API_TOKEN
+        sync: false
+      - key: NAME_COM_BASE_URL
+        sync: false
+      # Render Custom Domains API + CNAME target for name.com DNS
+      - key: RENDER_API_KEY
+        sync: false
+      - key: RENDER_SERVICE_ID
+        sync: false
+      - key: RENDER_CNAME_TARGET
+        sync: false
+      # Reachi card gateway — live host is https://payment.reachi.ai (no sandbox flag;
+      # point REACHI_PAYMENT_BASE_URL at a test origin for non-prod).
+      - key: REACHI_PLATFORM_API_KEY
+        sync: false
+      - key: REACHI_PLATFORM_WEBHOOK_SECRET
+        sync: false
+      - key: REACHI_PAYMENT_BASE_URL
         sync: false

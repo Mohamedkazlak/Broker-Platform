@@ -4,9 +4,8 @@ import { quoteDomainForOrder } from "../services/domainPricing.js";
 
 /**
  * Compute an order total from server-side config only: the plan price plus
- * the custom-domain fee (live name.com quote for a new registration, TLD
- * catalog / flat fallback when the broker already holds the name). Never
- * trusts client input.
+ * the custom-domain fee (live name.com quote for a new registration, or 0
+ * when the broker already owns the name). Never trusts client input.
  *
  * Takes a broker-shaped object, so it works both for a broker row as it stands
  * and for a hypothetical one (a requested plan change) built by spreading the

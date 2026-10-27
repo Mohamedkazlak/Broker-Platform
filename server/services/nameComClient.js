@@ -4,6 +4,11 @@ import {
   assertNameComConfigured,
   nameComAuthHeaders,
 } from "../config/nameCom.js";
+import {
+  externalHttpSignal,
+  httpTimeoutError,
+  isHttpTimeoutError,
+} from "../utils/httpTimeout.js";
 
 /**
  * Thin HTTP client for name.com's Reseller API — availability/price checks,
@@ -16,6 +21,9 @@ const TLD_PRICING_MAX_PAGES = 40;
 /** name.com ListDomains defaults to 1,000. Cap pages so a bad nextPage can't loop. */
 const DOMAINS_PER_PAGE = 1000;
 const DOMAINS_MAX_PAGES = 100;
+
+const RECORDS_PER_PAGE = 1000;
+const RECORDS_MAX_PAGES = 20;
 
 /**
  * RFC 3339 expireDate from a name.com domain object, as an ISO string.
@@ -47,24 +55,64 @@ function nameComStatus(res) {
   return res.status >= 400 && res.status < 500 ? res.status : 502;
 }
 
+async function nameComFetch(url, init = {}) {
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: init.signal ?? externalHttpSignal(),
+    });
+  } catch (err) {
+    if (isHttpTimeoutError(err)) throw httpTimeoutError("name.com", err);
+    throw err;
+  }
+}
+
+function normalizeDnsHost(host) {
+  const h = String(host ?? "")
+    .trim()
+    .toLowerCase();
+  if (h === "@") return "";
+  return h;
+}
+
+function normalizeDnsAnswer(answer) {
+  return String(answer ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\.$/, "");
+}
+
+function dnsRecordMatches(row, { host, type, answer }) {
+  return (
+    normalizeDnsHost(row?.host) === normalizeDnsHost(host) &&
+    String(row?.type ?? "").toUpperCase() ===
+      String(type ?? "").toUpperCase() &&
+    normalizeDnsAnswer(row?.answer) === normalizeDnsAnswer(answer)
+  );
+}
+
 /**
  * POST /v4/domains:checkAvailability for a single domain.
  *
  * @param {string} domain e.g. "ahmed.com"
- * @returns {Promise<{ purchasable: boolean, priceUsd: number | null }>}
+ * @returns {Promise<{ purchasable: boolean, premium: boolean, priceUsd: number | null }>}
  *   `purchasable` is true if name.com reports the domain as free to
- *   register. `priceUsd` is name.com's own purchase price for it (USD, no
+ *   register. `premium` is name.com's registry-premium flag — we refuse
+ *   those. `priceUsd` is name.com's own purchase price for it (USD, no
  *   markup applied), taken from this same response — null when name.com
  *   didn't include one (e.g. the domain isn't purchasable).
  */
 export async function checkDomainAvailability(domain) {
   assertNameComConfigured();
 
-  const res = await fetch(`${NAME_COM_BASE_URL}/domains:checkAvailability`, {
-    method: "POST",
-    headers: nameComAuthHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ domainNames: [domain] }),
-  });
+  const res = await nameComFetch(
+    `${NAME_COM_BASE_URL}/domains:checkAvailability`,
+    {
+      method: "POST",
+      headers: nameComAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ domainNames: [domain] }),
+    },
+  );
 
   const body = await res.json().catch(() => null);
 
@@ -93,6 +141,7 @@ export async function checkDomainAvailability(domain) {
 
   return {
     purchasable: Boolean(result.purchasable),
+    premium: Boolean(result.premium),
     priceUsd:
       Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
   };
@@ -119,7 +168,7 @@ export async function listTldRegistrationPrices() {
     url.searchParams.set("duration", "1");
     url.searchParams.set("page", String(page));
 
-    const res = await fetch(url, { headers: nameComAuthHeaders() });
+    const res = await nameComFetch(url, { headers: nameComAuthHeaders() });
     const body = await res.json().catch(() => null);
 
     if (!res.ok) {
@@ -154,6 +203,36 @@ export async function listTldRegistrationPrices() {
 }
 
 /**
+ * GET /v4/domains/{domain} — whether our name.com account owns this domain.
+ *
+ * @param {string} domain
+ * @returns {Promise<{ owned: boolean, domain?: object }>}
+ */
+export async function getDomain(domain) {
+  assertNameComConfigured();
+
+  const res = await nameComFetch(
+    `${NAME_COM_BASE_URL}/domains/${encodeURIComponent(domain)}`,
+    { headers: nameComAuthHeaders() },
+  );
+  const body = await res.json().catch(() => null);
+
+  if (res.status === 200) {
+    return { owned: true, domain: body };
+  }
+  if (res.status === 404) {
+    return { owned: false };
+  }
+
+  throw Object.assign(
+    new Error(
+      body?.message || `name.com domain lookup failed (${res.status})`,
+    ),
+    { status: nameComStatus(res), details: body?.details },
+  );
+}
+
+/**
  * POST /v4/domains — register (purchase) a domain.
  *
  * Safe to retry: GET /domains/{domain} first; if we already own it, skip the
@@ -163,6 +242,10 @@ export async function listTldRegistrationPrices() {
  * the request is processed, the registration fails instead of charging more
  * than we agreed to.
  *
+ * Body we send (CreateDomain):
+ *   { domain: { domainName }, purchasePrice }
+ * We do not send years, contacts, purchaseType, or a payment method.
+ *
  * @param {string} domain e.g. "ahmed.com"
  * @param {number} purchasePriceUsd
  * @returns {Promise<object>} parsed body (includes domain, order, totalPaid),
@@ -171,27 +254,12 @@ export async function listTldRegistrationPrices() {
 export async function registerDomain(domain, purchasePriceUsd) {
   assertNameComConfigured();
 
-  const ownedRes = await fetch(
-    `${NAME_COM_BASE_URL}/domains/${encodeURIComponent(domain)}`,
-    { headers: nameComAuthHeaders() },
-  );
-  const ownedBody = await ownedRes.json().catch(() => null);
-
-  if (ownedRes.status === 200) {
-    return { alreadyOwned: true, domain: ownedBody };
+  const owned = await getDomain(domain);
+  if (owned.owned) {
+    return { alreadyOwned: true, domain: owned.domain };
   }
 
-  if (ownedRes.status !== 404) {
-    throw Object.assign(
-      new Error(
-        ownedBody?.message ||
-          `name.com domain lookup failed (${ownedRes.status})`,
-      ),
-      { status: nameComStatus(ownedRes), details: ownedBody?.details },
-    );
-  }
-
-  const res = await fetch(`${NAME_COM_BASE_URL}/domains`, {
+  const res = await nameComFetch(`${NAME_COM_BASE_URL}/domains`, {
     method: "POST",
     headers: nameComAuthHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
@@ -235,7 +303,7 @@ export async function listAccountDomains() {
     url.searchParams.set("perPage", String(DOMAINS_PER_PAGE));
     url.searchParams.set("page", String(page));
 
-    const res = await fetch(url, { headers: nameComAuthHeaders() });
+    const res = await nameComFetch(url, { headers: nameComAuthHeaders() });
     const body = await res.json().catch(() => null);
 
     if (!res.ok) {
@@ -268,11 +336,75 @@ export async function listAccountDomains() {
 }
 
 /**
+ * GET /v4/domains/{domain}/records — all DNS records for a zone we own.
+ *
+ * @param {string} domain
+ * @returns {Promise<object[]>}
+ */
+export async function listDnsRecords(domain) {
+  assertNameComConfigured();
+
+  const collected = [];
+  let page = 1;
+
+  for (let i = 0; i < RECORDS_MAX_PAGES; i++) {
+    const url = new URL(
+      `${NAME_COM_BASE_URL}/domains/${encodeURIComponent(domain)}/records`,
+    );
+    url.searchParams.set("perPage", String(RECORDS_PER_PAGE));
+    url.searchParams.set("page", String(page));
+
+    const res = await nameComFetch(url, { headers: nameComAuthHeaders() });
+    const body = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw Object.assign(
+        new Error(
+          body?.message || `name.com DNS record list failed (${res.status})`,
+        ),
+        { status: nameComStatus(res), details: body?.details },
+      );
+    }
+
+    const rows = Array.isArray(body?.records) ? body.records : [];
+    collected.push(...rows);
+
+    const nextPage = body?.nextPage;
+    if (
+      typeof nextPage !== "number" ||
+      !Number.isFinite(nextPage) ||
+      nextPage <= 0
+    ) {
+      return collected;
+    }
+    if (nextPage === page) return collected;
+    page = nextPage;
+  }
+
+  throw new Error(
+    `name.com DNS record list did not finish within ${RECORDS_MAX_PAGES} pages`,
+  );
+}
+
+function isDnsAlreadyExistsError(res, body) {
+  if (res.status === 409) return true;
+  const message = String(body?.message ?? body?.details ?? "").toLowerCase();
+  return (
+    message.includes("already exists") ||
+    message.includes("duplicate") ||
+    message.includes("record exists")
+  );
+}
+
+/**
  * POST /v4/domains/{domain}/records — create a DNS record on a domain we own.
+ * Idempotent: if an identical host+type+answer already exists, that counts as
+ * done (returns the existing row). A create that fails because the record
+ * already exists is also treated as success.
  *
  * @param {string} domain e.g. "ahmed.com"
  * @param {{ host: string, type: string, answer: string, ttl?: number }} record
- * @returns {Promise<object>} parsed body (the created record)
+ * @returns {Promise<object>} the existing or newly created record
  */
 export async function createDnsRecord(
   domain,
@@ -280,7 +412,13 @@ export async function createDnsRecord(
 ) {
   assertNameComConfigured();
 
-  const res = await fetch(
+  const existing = await listDnsRecords(domain);
+  const match = existing.find((row) =>
+    dnsRecordMatches(row, { host, type, answer }),
+  );
+  if (match) return match;
+
+  const res = await nameComFetch(
     `${NAME_COM_BASE_URL}/domains/${encodeURIComponent(domain)}/records`,
     {
       method: "POST",
@@ -292,6 +430,15 @@ export async function createDnsRecord(
   const body = await res.json().catch(() => null);
 
   if (!res.ok) {
+    if (isDnsAlreadyExistsError(res, body)) {
+      const again = await listDnsRecords(domain);
+      const found = again.find((row) =>
+        dnsRecordMatches(row, { host, type, answer }),
+      );
+      if (found) return found;
+      // Duplicate without a listable match — still treat as done for retries.
+      return body ?? { host, type, answer, ttl, alreadyExisted: true };
+    }
     throw Object.assign(
       new Error(
         body?.message || `name.com DNS record create failed (${res.status})`,

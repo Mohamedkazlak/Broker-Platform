@@ -240,6 +240,17 @@ export const submitReceipt = async (req, res, next) => {
   }
 };
 
+function assertInstapayAllowsDomain(pkg, domainType) {
+  if (pkg === "max" && domainType === "custom") {
+    throw Object.assign(
+      new Error(
+        "Custom domains on Max must be paid by card — Instapay isn't available for this combination",
+      ),
+      { status: 400, reason: "cardOnlyCustomDomain" },
+    );
+  }
+}
+
 async function submitReceiptForBroker(req, res, brokerId) {
   const broker = await brokerModel.findById(brokerId);
   if (!broker) {
@@ -270,6 +281,10 @@ async function submitReceiptForBroker(req, res, brokerId) {
       });
     }
   }
+
+  const targetPackage = change?.package ?? broker.package;
+  const targetDomainType = change?.domain_type ?? broker.domain_type;
+  assertInstapayAllowsDomain(targetPackage, targetDomainType);
 
   const existingPending = await instapayModel.findPendingForBroker(brokerId);
   if (existingPending) {
@@ -390,6 +405,7 @@ async function submitReceiptForDraft(req, res) {
   }
 
   const domainFields = await resolveDomainFields(formData, pkg, domain);
+  assertInstapayAllowsDomain(pkg, domainFields.domain_type);
 
   if (domainFields.subdomain) {
     const pendingSub = await instapayModel.findPendingBySubdomain(
@@ -705,13 +721,14 @@ export const adminReviewSubmission = async (req, res, next) => {
         submission.registration_payload,
       );
 
+      const draftPlanPrice = PLANS_BY_ID[decrypted.package]?.price ?? 0;
       const provisioned = await provisionBrokerAccount({
         formData: decrypted.formData,
         package: decrypted.package,
         packageCategory: decrypted.packageCategory,
         domain: decrypted.domain,
         domainFields: decrypted.domainFields,
-        billingAmount: Number(submission.amount),
+        billingAmount: draftPlanPrice,
       });
 
       broker = provisioned.broker;
@@ -727,11 +744,12 @@ export const adminReviewSubmission = async (req, res, next) => {
     } else {
       // Applies the plan / domain this receipt paid for — for a plain
       // activation those values are the broker's own, so it just activates.
-      broker = await applyPlanChange(
-        broker.id,
-        planChangeFromSubmission(submission, broker),
-        { billingAmount: Number(submission.amount) },
-      );
+      // billing_amount is plan price only (not the Instapay receipt total).
+      const change = planChangeFromSubmission(submission, broker);
+      const planPrice = PLANS_BY_ID[change.package]?.price ?? 0;
+      broker = await applyPlanChange(broker.id, change, {
+        billingAmount: planPrice,
+      });
       subdomain = broker.subdomain;
 
       await instapayModel.update(submission.id, {

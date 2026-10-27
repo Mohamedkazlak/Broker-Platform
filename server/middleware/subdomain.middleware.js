@@ -12,18 +12,19 @@
  *   req.tenantType     "main" | "subdomain" | "custom"
  *
  * Examples:
- *   ahmed.localhost          → { subdomain: "ahmed", tenantType: "subdomain" }
- *   localhost                → { subdomain: null,    tenantType: "main"      }
- *   127.0.0.1                → { subdomain: null,    tenantType: "main"      }
- *   ahmed.myflats.store      → { subdomain: "ahmed", tenantType: "subdomain" }
- *   www.myflats.store        → { subdomain: null,    tenantType: "main"      }
- *   myflats.store            → { subdomain: null,    tenantType: "main"      }
- *   kazlak.live              → { subdomain: <that broker's subdomain>, tenantType: "custom" }
+ *   ahmed.localhost                 → { subdomain: "ahmed", tenantType: "subdomain" }
+ *   localhost                       → { subdomain: null,    tenantType: "main"      }
+ *   127.0.0.1                       → { subdomain: null,    tenantType: "main"      }
+ *   ahmed.brokersplatform.shop      → { subdomain: "ahmed", tenantType: "subdomain" }
+ *   www.brokersplatform.shop        → { subdomain: null,    tenantType: "main"      }
+ *   brokersplatform.shop            → { subdomain: null,    tenantType: "main"      }
+ *   kazlak.live                     → { subdomain: <that broker's subdomain>, tenantType: "custom" }
  *                              when brokers.custom_domain matches and the broker
  *                              is_active with domain_status 'active'; otherwise
  *                              the same result as before this check.
  */
 
+import { PLATFORM_BASE_DOMAIN } from "../config/domains.js";
 import { isPlatformHost } from "../utils/customDomainHost.js";
 import { resolveActiveCustomDomain } from "../utils/customDomainResolve.js";
 
@@ -41,11 +42,11 @@ const RESERVED_LABELS = new Set([
 ]);
 
 // Domains that are treated as the apex (main) host. Anything to the left of
-// these is considered the tenant subdomain.
+// these is considered the tenant subdomain. Keep in sync with
+// client/src/utils/tenant.ts (APEX_HOSTS).
 const APEX_HOSTS = new Set([
   "localhost",
-  "myflats.store",
-  "myflats.com",
+  PLATFORM_BASE_DOMAIN,
   "onrender.com",
 ]);
 
@@ -71,7 +72,7 @@ function extractSubdomain(hostname) {
   }
 
   // Find the apex match: the longest suffix that is in APEX_HOSTS.
-  // e.g. "ahmed.myflats.store" → apex "myflats.store" → subdomain "ahmed".
+  // e.g. "ahmed.brokersplatform.shop" → apex "brokersplatform.shop" → subdomain "ahmed".
   for (let i = 0; i < parts.length - 1; i++) {
     const candidateApex = parts.slice(i).join(".");
     if (APEX_HOSTS.has(candidateApex)) {

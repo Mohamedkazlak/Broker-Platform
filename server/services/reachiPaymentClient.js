@@ -5,11 +5,28 @@ import {
   REACHI_WEBHOOK_SECRET,
   assertReachiConfigured,
 } from "../config/reachiPayment.js";
+import {
+  externalHttpSignal,
+  httpTimeoutError,
+  isHttpTimeoutError,
+} from "../utils/httpTimeout.js";
 
 /**
  * Thin HTTP client for payment.reachi.ai's session API. Every platform talks
  * to CyberSource only through this gateway — we never see card data.
  */
+
+async function reachiFetch(url, init = {}) {
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: init.signal ?? externalHttpSignal(),
+    });
+  } catch (err) {
+    if (isHttpTimeoutError(err)) throw httpTimeoutError("Reachi", err);
+    throw err;
+  }
+}
 
 /**
  * POST /api/sessions — create (or idempotently replay) a checkout session.
@@ -36,7 +53,7 @@ export async function createPaymentSession({
 }) {
   assertReachiConfigured();
 
-  const res = await fetch(`${REACHI_BASE_URL}/api/sessions`, {
+  const res = await reachiFetch(`${REACHI_BASE_URL}/api/sessions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${REACHI_API_KEY}`,
@@ -64,7 +81,9 @@ export async function createPaymentSession({
     // fall back to 502 for a genuinely unexpected upstream status.
     const status = res.status >= 400 && res.status < 500 ? res.status : 502;
     throw Object.assign(
-      new Error(body?.error || `Reachi session creation failed (${res.status})`),
+      new Error(
+        body?.error || `Reachi session creation failed (${res.status})`,
+      ),
       { status, details: body?.details },
     );
   }
@@ -78,7 +97,7 @@ export async function createPaymentSession({
 export async function refundPaymentSession(sessionId, { amount, reason }) {
   assertReachiConfigured();
 
-  const res = await fetch(
+  const res = await reachiFetch(
     `${REACHI_BASE_URL}/api/sessions/${encodeURIComponent(sessionId)}/refund`,
     {
       method: "POST",
