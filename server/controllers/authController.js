@@ -227,6 +227,7 @@ export async function provisionBrokerAccount({
   const amount = typeof billingAmount === "number" ? billingAmount : plan.price;
 
   let createdAuthUserId = null;
+  let createdBrokerId = null;
   try {
     const { data: authData, error: authError } =
       await supabaseAdmin.auth.admin.createUser({
@@ -273,6 +274,7 @@ export async function provisionBrokerAccount({
       next_billing_date: nextBilling,
       billing_amount: pkg === "free" ? 0 : amount,
     });
+    createdBrokerId = broker.id;
 
     await profileModel.create({
       id: userId,
@@ -290,6 +292,8 @@ export async function provisionBrokerAccount({
 
     if (signInError) throw signInError;
 
+    const orderSummary = await buildRegistrationOrderSummary(pkg, domainFields);
+
     return {
       session: signInData.session,
       broker,
@@ -302,6 +306,20 @@ export async function provisionBrokerAccount({
       } catch (rollbackErr) {
         console.error(
           "Failed to roll back auth user after registration error:",
+          rollbackErr,
+        );
+      }
+    }
+    if (createdBrokerId) {
+      try {
+        const { error: brokerRollbackError } = await supabaseAdmin
+          .from("brokers")
+          .delete()
+          .eq("id", createdBrokerId);
+        if (brokerRollbackError) throw brokerRollbackError;
+      } catch (rollbackErr) {
+        console.error(
+          "Failed to roll back broker after registration error:",
           rollbackErr,
         );
       }
